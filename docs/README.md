@@ -213,6 +213,21 @@ flowchart TD
     class MainDB,TasksTable,ChatInputTable dbLayer
 ```
 
+#### Task Submission & Parsing Component Responsibilities
+
+| Component | Primary Responsibility | Key Operations |
+|-----------|----------------------|----------------|
+| **Frontend Applications (UI)** | User interface for file upload and task management | File selection, upload initiation, progress monitoring, task viewing |
+| **SSO Server (Auth)** | Authentication and JWT token validation | JWT token issuance, public key distribution, user authentication |
+| **Backend API Service (API)** | Main request processing and coordination | JWT validation, request routing, response formatting, error handling |
+| **Excel Parser (FileParser)** | Excel file processing and sheet extraction | Multi-sheet parsing, format validation, cell data extraction |
+| **Data Structurer (DataStructurer)** | Row-by-row data validation and structuring | Column mapping, data type validation, requirement checking (question, golden_answer, golden_citations) |
+| **Task Manager (TaskManager)** | Task lifecycle and metadata management | Task creation, status updates, ownership validation, CRUD operations |
+| **Query Handler (QueryHandler)** | Data retrieval and response assembly | Structured data queries, table joins, result formatting |
+| **Main Database (MainDB)** | Persistent data storage | Transaction management, data integrity, concurrent access control |
+| **tasks Table (TasksTable)** | Task metadata and progress tracking | Task status, row counts, error messages, timing information |
+| **chat_evaluation_input Table (ChatInputTable)** | Structured input data storage | Questions, golden answers, citations, row-level metadata |
+
 ### Background Processing Flow Chart (Structured Data)
 ```mermaid
 flowchart TD
@@ -261,21 +276,19 @@ flowchart TD
     class GleanServices,LLMService externalLayer
 ```
 
-### Component Responsibilities Summary
+#### Background Processing Component Responsibilities
 
-| Component | Primary Responsibility | Key Relations |
-|-----------|----------------------|---------------|
-| **Frontend Applications** | User interface, file upload, task management | → Backend API Service (via JWT) |
-| **SSO Server** | Single Sign-On authentication, JWT token issuance and validation | → Backend API Service |
-| **Backend API Service** | RESTful endpoints, JWT validation, request/response handling | → Task Management, Database |
-| **Excel File Parser** | Multi-sheet parsing, data validation | → Data Structurer |
-| **Data Structurer** | Row-by-row data structuring and validation | → Task Manager |
-| **Task Manager** | Task CRUD operations, status updates, lifecycle management | → Database |
-| **Query Handler** | Task listing, filtering, structured data queries | → Database |
-| **Background Task Processor** | FIFO queue management, task routing | → Task Handlers |
-| **Chat Evaluation Handler** | Business logic for chat evaluation processing | → External APIs, Database |
-| **Database Tables** | Structured data persistence, relationships | ← All Components |
-| **External Service Clients** | API integration with Glean Platform Services and LLM Similarity Service | ← Task Handlers |
+| Component | Primary Responsibility | Key Operations |
+|-----------|----------------------|----------------|
+| **Task Processor (TaskProcessor)** | Task queue management and job scheduling | FIFO queue polling, task status monitoring, job routing to appropriate handlers |
+| **Chat Evaluation Handler (ChatEvalHandler)** | Core business logic for chat evaluation processing | Question processing, API orchestration, similarity calculation, progress tracking |
+| **Glean Service (GleanServices)** | External chat API integration | Chat request processing, response handling, error management, timeout handling |
+| **LLM Similarity Service (LLMService)** | Answer similarity computation | Text comparison, similarity scoring, result validation |
+| **tasks Table (TasksTable)** | Task status and progress persistence | Status updates, progress percentage calculation, error logging, completion tracking |
+| **chat_evaluation_input Table (ChatInputTable)** | Source data retrieval for processing | Row-by-row data reading, question extraction, golden answer retrieval |
+| **chat_evaluation_output Table (ChatOutputTable)** | Processing results storage | API response storage, similarity scores, processing metrics, result metadata |
+
+
 
 ### Data Flow Patterns
 
