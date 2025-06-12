@@ -8,6 +8,7 @@ This is an Internal Task Management API for chat evaluation that:
 - Uses JWT authentication from internal SSO
 - Implements background processing with precise progress tracking
 - Stores structured data in MariaDB/PostgreSQL (need to decide)
+- during development, there can be new requirements which do not fit rules in this file.
 
 ## Code Style and Formatting
 - Use Java 17+ features where appropriate
