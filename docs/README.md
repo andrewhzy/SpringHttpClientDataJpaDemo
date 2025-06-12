@@ -141,92 +141,59 @@ graph TB
 
 ## System Components and Data Flow
 
-### Task Submission, Parsing & Structured Storage Flow Chart
+### Backend Java Classes Flow (POST /tasks - Excel Upload)
 ```mermaid
 flowchart TD
-    %% User Interface Layer
-    UI[Frontend Applications<br/>Task Management UI]
-    Auth[SSO Server<br/>JWT Validation]
+    %% Frontend
+    FE[Frontend Application]
     
-    %% Backend API Service
-    API[Backend API Service<br/>Core Logic + Excel Parsing]
-    
-    %% Task Processing Components
-    subgraph "Upload Processing"
-        FileParser[Excel Parser<br/>Multi-sheet Processing]
-        DataStructurer[Data Structurer<br/>Row-by-Row Processing]
+    %% Backend Spring Boot Classes
+    subgraph "Spring Boot Backend"
+        Controller[TaskController<br/>RestController]
+        Service[TaskService<br/>Service]
+        ExcelService[ExcelParsingService<br/>Service]
+        Repository[TaskRepository<br/>Repository]
+        InputRepo[ChatEvaluationInputRepository<br/>Repository]
     end
     
-    %% Task Management Components
-    subgraph "Task Management"
-        TaskManager[Task Manager<br/>CRUD Operations]
-        QueryHandler[Query Handler<br/>Structured Data Queries]
-    end
+    %% Database
+    DB[(MariaDB Database)]
     
-    %% Database Layer - Structured Storage Focus
-    subgraph "Structured Data Storage"
-        MainDB[(Main Database<br/>MariaDB)]
-        
-        subgraph "Core Tables"
-            TasksTable[tasks<br/>Metadata & Progress]
-            ChatInputTable[chat_evaluation_input<br/>Questions & Answers]
-        end
-    end
-    
-    %% User Flow
-    UI -->|SSO Authentication| Auth
-    UI -->|JWT + Excel Files| API
-    
-    %% API Processing Flow
-    API -.->|Get Public Keys/Certs| Auth
-    API -->|Parse Excel File| FileParser
-    API -->|Structure Data| DataStructurer
-    API -->|Task Management| TaskManager
-    API -->|Query Operations| QueryHandler
-    
-    %% Upload Processing Flow
-    FileParser -->|Parsed Sheets| DataStructurer
-    DataStructurer -->|Structured Rows| TaskManager
-    
-    %% Task Management Flow
-    TaskManager -->|Create Tasks & Store Data| TasksTable
-    TaskManager -->|Store Chat Data| ChatInputTable
-    QueryHandler -->|Fetch Structured Data| TasksTable
-    QueryHandler -->|Join Input/Output Data| ChatInputTable
-    
-    %% Response Flow
-    QueryHandler -->|Return Structured Results| API
-    TaskManager -->|Return Status| API
-    API -->|Return Structured Response| UI
+    %% Simple Linear Flow for POST /tasks
+    FE -->|POST /tasks<br/>MultipartFile| Controller
+    Controller -->|Validate and Forward requests| Service
+    Service -->|Parse Excel| ExcelService
+    ExcelService -->|Return Parsed Data| Service
+    Service -->|Save Task Metadata| Repository
+    Service -->|Save Input Data| InputRepo
+    Repository -->|Write| DB
+    InputRepo -->|Write| DB
+    Service -->|Return Response| Controller
+    Controller -->|JSON Response| FE
     
     %% Styling
-    classDef uiLayer fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef apiLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef uploadLayer fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    classDef managementLayer fill:#fff3e0,stroke:#ff9800,stroke-width:2px
-    classDef dbLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef controller fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef service fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef repository fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    classDef database fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     
-    class UI,Auth uiLayer
-    class API apiLayer
-    class FileParser,DataStructurer uploadLayer
-    class TaskManager,QueryHandler managementLayer
-    class MainDB,TasksTable,ChatInputTable dbLayer
+    class FE frontend
+    class Controller controller
+    class Service,ExcelService service
+    class Repository,InputRepo repository
+    class DB database
 ```
 
-#### Task Submission & Parsing Component Responsibilities
+#### Backend Java Classes Responsibilities
 
-| Component | Primary Responsibility | Key Operations |
-|-----------|----------------------|----------------|
-| **Frontend Applications (UI)** | User interface for file upload and task management | File selection, upload initiation, progress monitoring, task viewing |
-| **SSO Server (Auth)** | Authentication and JWT token validation | JWT token issuance, public key distribution, user authentication |
-| **Backend API Service (API)** | Main request processing and coordination | JWT validation, request routing, response formatting, error handling |
-| **Excel Parser (FileParser)** | Excel file processing and sheet extraction | Multi-sheet parsing, format validation, cell data extraction |
-| **Data Structurer (DataStructurer)** | Row-by-row data validation and structuring | Column mapping, data type validation, requirement checking (question, golden_answer, golden_citations) |
-| **Task Manager (TaskManager)** | Task lifecycle and metadata management | Task creation, status updates, ownership validation, CRUD operations |
-| **Query Handler (QueryHandler)** | Data retrieval and response assembly | Structured data queries, table joins, result formatting |
-| **Main Database (MainDB)** | Persistent data storage | Transaction management, data integrity, concurrent access control |
-| **tasks Table (TasksTable)** | Task metadata and progress tracking | Task status, row counts, error messages, timing information |
-| **chat_evaluation_input Table (ChatInputTable)** | Structured input data storage | Questions, golden answers, citations, row-level metadata |
+| Java Class | Spring Annotation | Primary Responsibility |
+|------------|------------------|----------------------|
+| **TaskController** | RestController | Handle HTTP requests, JWT validation, request/response mapping |
+| **TaskService** | Service | Business logic coordination, transaction management |
+| **ExcelParsingService** | Service | Excel file parsing, sheet detection, data validation |
+| **TaskRepository** | Repository | Task entity CRUD operations |
+| **ChatEvaluationInputRepository** | Repository | Input data entity operations |
 
 ### Background Processing Flow Chart (Structured Data)
 ```mermaid

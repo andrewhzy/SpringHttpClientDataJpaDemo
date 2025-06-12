@@ -29,45 +29,26 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: POST /rest/v1/tasks<br/>Authorization: Bearer <jwt_token><br/>Content-Type: multipart/form-data<br/>File: chat_evaluation.xlsx (3 sheets)
-    API->>API: Authenticate and Extract user context from JWT<br/>user_id: "user_123"
+    FE->>API: POST /rest/v1/tasks (Excel file upload)
+    API->>API: Authenticate user
     API->>API: Validate file format and size
-    API->>API: Parse Excel file and extract all sheets<br/>Sheet1: "Questions" (question, golden_answer, golden_citations)<br/>Sheet2: "More_Questions" (question, golden_answer, golden_citations)<br/>Sheet3: "Test_Questions" (question, golden_answer, golden_citations)
-    
-    API->>API: Analyze each sheet for chat evaluation structure<br/>Sheet1: VALID (has required columns)<br/>Sheet2: VALID (has required columns)<br/>Sheet3: VALID (has required columns)
+    API->>API: Parse Excel and extract sheets
+    API->>API: Analyze sheets for chat evaluation structure
     
     API->>DB: BEGIN TRANSACTION
-    API->>API: Generate upload_batch_id: "batch_456"
+    API->>API: Generate upload batch ID
     
-    Note over API: Process Sheet1 (Chat Evaluation)
-    API->>DB: INSERT INTO tasks<br/>(id: "task_1", user_id: "user_123", sheet_name: "Questions", task_type: "chat-evaluation", row_count: 5, upload_batch_id: "batch_456")
-    DB-->>API: Task created: task_id "task_1"
-    
-    loop For each row in Sheet1 (5 rows)
-        API->>DB: INSERT INTO chat_evaluation_input<br/>(task_id: "task_1", row_number, question, golden_answer, golden_citations)
-        DB-->>API: Row inserted successfully
-    end
-    
-    Note over API: Process Sheet2 (Chat Evaluation)
-    API->>DB: INSERT INTO tasks<br/>(id: "task_2", user_id: "user_123", sheet_name: "More_Questions", task_type: "chat-evaluation", row_count: 10, upload_batch_id: "batch_456")
-    DB-->>API: Task created: task_id "task_2"
-    
-    loop For each row in Sheet2 (10 rows)
-        API->>DB: INSERT INTO chat_evaluation_input<br/>(task_id: "task_2", row_number, question, golden_answer, golden_citations)
-        DB-->>API: Row inserted successfully
-    end
-    
-    Note over API: Process Sheet3 (Chat Evaluation)
-    API->>DB: INSERT INTO tasks<br/>(id: "task_3", user_id: "user_123", sheet_name: "Test_Questions", task_type: "chat-evaluation", row_count: 3, upload_batch_id: "batch_456")
-    DB-->>API: Task created: task_id "task_3"
-    
-    loop For each row in Sheet3 (3 rows)
-        API->>DB: INSERT INTO chat_evaluation_input<br/>(task_id: "task_3", row_number, question, golden_answer, golden_citations)
-        DB-->>API: Row inserted successfully
+    loop For each valid sheet
+        API->>DB: Create task record
+        DB-->>API: Return task ID
+        
+        loop For each data row
+            API->>DB: Insert structured input data
+        end
     end
     
     API->>DB: COMMIT TRANSACTION
-    API-->>FE: 201 Created<br/>{upload_batch_id: "batch_456", tasks: [<br/>{task_id: "task_1", sheet_name: "Questions", task_type: "chat-evaluation", row_count: 5},<br/>{task_id: "task_2", sheet_name: "More_Questions", task_type: "chat-evaluation", row_count: 10},<br/>{task_id: "task_3", sheet_name: "Test_Questions", task_type: "chat-evaluation", row_count: 3}<br/>], total_sheets: 3}
+    API-->>FE: Return created tasks summary
 ```
 
 ### Error Flow - Missing Required Columns
@@ -76,12 +57,12 @@ sequenceDiagram
     participant FE as Frontend App
     participant API as Backend API Service
     
-    FE->>API: POST /rest/v1/tasks<br/>File: unknown_format.xlsx (columns: "name", "email", "phone")
-    API->>API: Extract user context from JWT
+    FE->>API: POST /rest/v1/tasks (invalid Excel format)
+    API->>API: Authenticate user
     API->>API: Validate file format and size
-    API->>API: Parse Excel and analyze sheet structure
-    API->>API: Chat evaluation detection - FAILED<br/>Missing required columns for chat evaluation
-    API-->>FE: 400 Bad Request<br/>{"error": {"code": "MISSING_REQUIRED_COLUMNS", <br/>"message": "Excel file missing required columns for chat evaluation", <br/>"details": "Excel must contain columns: question, golden_answer, golden_citations"}}
+    API->>API: Parse Excel and analyze structure
+    API->>API: Validation failed - missing required columns
+    API-->>FE: Return validation error
 ```
 
 ### Error Flow - Mixed Valid/Invalid Sheets
@@ -91,18 +72,18 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: POST /rest/v1/tasks<br/>File: partial_valid.xlsx (3 sheets)<br/>Sheet1: Valid chat evaluation<br/>Sheet2: Invalid structure<br/>Sheet3: Valid chat evaluation
+    FE->>API: POST /rest/v1/tasks (mixed valid/invalid sheets)
     API->>API: Parse and analyze all sheets
-    API->>API: Sheet1: CHAT_EVALUATION ✓<br/>Sheet2: INVALID ✗<br/>Sheet3: CHAT_EVALUATION ✓
+    API->>API: Filter valid sheets, skip invalid ones
     
     API->>DB: BEGIN TRANSACTION
     
-    Note over API: Process valid sheets only
-    API->>DB: INSERT tasks and data for Sheet1 (chat evaluation)
-    API->>DB: INSERT tasks and data for Sheet3 (chat evaluation)
+    loop For each valid sheet only
+        API->>DB: Create task and insert data
+    end
     
     API->>DB: COMMIT TRANSACTION
-    API-->>FE: 201 Created (Partial Success)<br/>{upload_batch_id: "batch_789", tasks: [<br/>{task_id: "task_1", sheet_name: "Sheet1", task_type: "chat-evaluation"},<br/>{task_id: "task_3", sheet_name: "Sheet3", task_type: "chat-evaluation"}<br/>], total_sheets: 2, warnings: ["Sheet2 skipped: invalid structure"]}
+    API-->>FE: Return partial success with warnings
 ```
 
 ## 2. GET /rest/v1/tasks - List User Tasks (Metadata Only)
@@ -114,18 +95,18 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: GET /rest/v1/tasks?task_type=chat-evaluation&status=completed&page=1&per_page=10<br/>Authorization: Bearer <jwt_token>
-    API->>API: Extract user context from JWT<br/>user_id: "user_123"
-    API->>API: Parse query parameters and build filters
+    FE->>API: GET /rest/v1/tasks (with filters and pagination)
+    API->>API: Authenticate user
+    API->>API: Parse query parameters
     
-    API->>DB: SELECT id, user_id, original_filename, sheet_name, task_type, task_status, upload_batch_id, row_count, processed_rows, progress_percentage, created_at, updated_at<br/>FROM tasks WHERE user_id = 'user_123' AND task_type = 'chat-evaluation' AND task_status = 'completed'<br/>ORDER BY created_at DESC LIMIT 10 OFFSET 0<br/>(structured metadata only, no input/output data)
-    DB-->>API: Return task list (3 completed chat evaluation tasks)
+    API->>DB: Query tasks with filters
+    DB-->>API: Return filtered task list
     
-    API->>DB: SELECT COUNT(*)<br/>WHERE user_id = 'user_123' AND task_type = 'chat-evaluation' AND task_status = 'completed'
-    DB-->>API: Return total count (15)
+    API->>DB: Count total matching tasks
+    DB-->>API: Return total count
     
     API->>API: Build paginated response
-    API-->>FE: 200 OK<br/>{data: [3 tasks with metadata], meta: {page: 1, total: 15, has_next: true}}
+    API-->>FE: Return task list with metadata
 ```
 
 ## 3. GET /rest/v1/tasks/{id} - Get Task with Structured Input and Results Data
@@ -137,24 +118,22 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: GET /rest/v1/tasks/123e4567-e89b-12d3-a456-426614174000<br/>Authorization: Bearer <jwt_token>
-    API->>API: Extract user context from JWT<br/>user_id: "user_123", task_id: "123e4567"
-    API->>API: Validate task ID format
+    FE->>API: GET /rest/v1/tasks/{id}
+    API->>API: Authenticate user
+    API->>API: Validate task ID
     
-    API->>DB: SELECT * FROM tasks<br/>WHERE id = '123e4567' AND user_id = 'user_123'
-    DB-->>API: Return task metadata<br/>{id, task_type: "chat-evaluation", status: "completed", row_count: 2, processed_rows: 2}
+    API->>DB: Get task metadata
+    DB-->>API: Return task details
     
-    API->>DB: SELECT row_number, question, golden_answer, golden_citations, metadata<br/>FROM chat_evaluation_input WHERE task_id = '123e4567'<br/>ORDER BY row_number
-    DB-->>API: Return input data (2 rows)<br/>[{row: 1, question: "What is AI?", golden_answer: "...", golden_citations: [...]}, <br/>{row: 2, question: "What is ML?", golden_answer: "...", golden_citations: [...]}]
+    API->>DB: Get input data
+    DB-->>API: Return structured input rows
     
-    API->>DB: SELECT row_number, api_answer, api_citations, answer_similarity, citation_similarity, processing_time_ms<br/>FROM chat_evaluation_output WHERE task_id = '123e4567'<br/>ORDER BY row_number
-    DB-->>API: Return results data (2 rows)<br/>[{row: 1, api_answer: "...", similarity: 0.85}, <br/>{row: 2, api_answer: "...", similarity: 0.92}]
+    API->>DB: Get results data
+    DB-->>API: Return evaluation results
     
-    API->>API: Generate Excel file with complete evaluation results<br/>Include: input data + results + similarity scores<br/>Format: task_123e4567_evaluation_results.xlsx
-    API->>API: Encode Excel file as base64 for JSON response
-    
-    API->>API: Combine task metadata + input data + results data + Excel file
-    API-->>FE: 200 OK<br/>{task metadata, input_data: [2 structured rows], results_data: [2 results], results_excel_file: {filename, content, size, generated_at}}
+    API->>API: Generate Excel results file
+    API->>API: Combine all data
+    API-->>FE: Return complete task with results
 ```
 
 ### Success Flow - Chat Evaluation Task (Processing In Progress)
@@ -164,22 +143,21 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: GET /rest/v1/tasks/456e7890-e89b-12d3-a456-426614174000<br/>Authorization: Bearer <jwt_token>
-    API->>API: Extract user context from JWT
+    FE->>API: GET /rest/v1/tasks/{id}
+    API->>API: Authenticate user
     
-    API->>DB: SELECT * FROM tasks<br/>WHERE id = '456e7890' AND user_id = 'user_123'
-    DB-->>API: Return task metadata<br/>{id, task_type: "chat-evaluation", status: "processing", row_count: 100, processed_rows: 45}
+    API->>DB: Get task metadata
+    DB-->>API: Return task with processing status
     
-    API->>DB: SELECT row_number, question, golden_answer, golden_citations<br/>FROM chat_evaluation_input WHERE task_id = '456e7890'<br/>ORDER BY row_number
-    DB-->>API: Return input data (100 questions)
+    API->>DB: Get input data
+    DB-->>API: Return all input rows
     
-    API->>DB: SELECT row_number, api_answer, api_citations, answer_similarity, citation_similarity<br/>FROM chat_evaluation_output WHERE task_id = '456e7890'<br/>ORDER BY row_number
-    DB-->>API: Return partial results data (45 completed rows)
+    API->>DB: Get partial results
+    DB-->>API: Return completed results only
     
-    API->>API: Task not completed - no Excel file generation<br/>results_excel_file: null
-    
-    API->>API: Combine data with processing status
-    API-->>FE: 200 OK<br/>{task metadata, status: "processing", progress: 45%, input_data: [100 questions], results_data: [45 completed results], results_excel_file: null}
+    API->>API: Skip Excel generation (not completed)
+    API->>API: Combine data with progress status
+    API-->>FE: Return task with partial results
 ```
 
 ## 4. PUT /rest/v1/tasks/{id} - Update/Cancel Task
@@ -191,23 +169,23 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: PUT /rest/v1/tasks/123e4567<br/>Authorization: Bearer <jwt_token><br/>{"action": "cancel"}
-    API->>API: Extract user context from JWT<br/>user_id: "user_123", task_id: "123e4567"
-    API->>API: Parse request body and validate action
+    FE->>API: PUT /rest/v1/tasks/{id} (cancel action)
+    API->>API: Authenticate user
+    API->>API: Validate cancel action
     
-    API->>DB: SELECT id, task_status, task_type, processed_rows, row_count<br/>WHERE id = '123e4567' AND user_id = 'user_123' FOR UPDATE
-    DB-->>API: Return task<br/>{id, status: "processing", task_type: "chat-evaluation", processed_rows: 25, row_count: 100}
+    API->>DB: Get task for update
+    DB-->>API: Return task with current status
     
-    API->>API: Check if task can be cancelled<br/>(status = "queueing" or "processing") ✓
-    API->>API: Signal background processor to stop processing this task
+    API->>API: Check if cancellation allowed
+    API->>API: Signal background processor to stop
     
-    API->>DB: UPDATE tasks<br/>SET task_status = 'cancelled', cancelled_at = NOW(), updated_at = NOW()<br/>WHERE id = '123e4567'
-    DB-->>API: Update successful
+    API->>DB: Update task status to cancelled
+    DB-->>API: Confirm update
     
-    API->>DB: SELECT updated task metadata (no input/results data for PUT response)
-    DB-->>API: Return updated task with status "cancelled"
+    API->>DB: Get updated task metadata
+    DB-->>API: Return cancelled task
     
-    API-->>FE: 200 OK<br/>{task metadata with status: "cancelled", processed_rows: 25}
+    API-->>FE: Return updated task status
 ```
 
 ## 5. DELETE /rest/v1/tasks/{id} - Delete Task and Structured Data
@@ -219,22 +197,20 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: DELETE /rest/v1/tasks/123e4567<br/>Authorization: Bearer <jwt_token>
-    API->>API: Extract user context from JWT<br/>user_id: "user_123", task_id: "123e4567"
+    FE->>API: DELETE /rest/v1/tasks/{id}
+    API->>API: Authenticate user
     
-    API->>DB: SELECT id, task_status, task_type<br/>WHERE id = '123e4567' AND user_id = 'user_123' FOR UPDATE
-    DB-->>API: Return task<br/>{id, status: "completed", task_type: "chat-evaluation"}
+    API->>DB: Get task for validation
+    DB-->>API: Return task details
     
-    API->>API: Check if task can be deleted<br/>(status != "processing") ✓
+    API->>API: Check if deletion allowed
     
     API->>DB: BEGIN TRANSACTION
-    
-    Note over API: Delete structured data (CASCADE will handle this automatically)
-    API->>DB: DELETE FROM tasks WHERE id = '123e4567'
-    Note over DB: Foreign key constraints automatically delete:<br/>- chat_evaluation_input rows<br/>- chat_evaluation_output rows
-    
+    API->>DB: Delete task (cascades to related data)
+    Note over DB: Foreign key constraints handle cleanup
     API->>DB: COMMIT TRANSACTION
-    API-->>FE: 204 No Content
+    
+    API-->>FE: Return success (no content)
 ```
 
 ### Error Flow - Cannot Delete Processing Task
@@ -244,14 +220,14 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: DELETE /rest/v1/tasks/processing-task<br/>Authorization: Bearer <jwt_token>
-    API->>API: Extract user context from JWT
+    FE->>API: DELETE /rest/v1/tasks/{id}
+    API->>API: Authenticate user
     
-    API->>DB: SELECT id, task_status FROM tasks<br/>WHERE id = 'processing-task' AND user_id = 'user_123'
-    DB-->>API: Return task<br/>{status: "processing"}
+    API->>DB: Get task status
+    DB-->>API: Return processing task
     
-    API->>API: Check deletion eligibility<br/>Cannot delete processing task ✗
-    API-->>FE: 400 Bad Request<br/>{"error": {"code": "INVALID_STATUS", "message": "Cannot delete task in processing status", "details": "Cancel the task first, then delete it"}}
+    API->>API: Check deletion eligibility - denied
+    API-->>FE: Return error (cannot delete processing task)
 ```
 
 ## Request/Response Flow Summary

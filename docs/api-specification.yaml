@@ -509,7 +509,7 @@ paths:
         - Format: .xlsx or .xls
         - Maximum size: 50MB
         - Maximum sheets: 20 per file
-        - Maximum rows per sheet: 10,000
+        - Maximum rows per sheet: 1,000
         
         **Processing:**
         - Files are parsed immediately during upload
