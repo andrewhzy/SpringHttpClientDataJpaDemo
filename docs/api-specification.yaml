@@ -70,7 +70,7 @@ components:
               type: string
               format: date-time
               example: "2024-01-01T00:00:00Z"
-            trace_id:
+            request_id:
               type: string
               example: "request_12345"
               description: "Request ID for debugging"
@@ -418,7 +418,7 @@ components:
                   message: "File must be Excel format (.xlsx or .xls)"
                   details: "Uploaded file has MIME type text/plain"
                   timestamp: "2024-01-01T00:00:00Z"
-                  trace_id: "request_12345"
+                  request_id: "request_12345"
                   user_id: "user_123"
             missing_columns:
               summary: Missing required columns
@@ -428,7 +428,7 @@ components:
                   message: "Excel file missing required columns for chat evaluation"
                   details: "Excel must contain columns: question, golden_answer, golden_citations"
                   timestamp: "2024-01-01T00:00:00Z"
-                  trace_id: "request_12345"
+                  request_id: "request_12345"
                   user_id: "user_123"
     
     Unauthorized:
@@ -443,7 +443,7 @@ components:
               message: "Invalid or expired JWT token"
               details: "Please refresh your authentication token"
               timestamp: "2024-01-01T00:00:00Z"
-              trace_id: "request_12345"
+              request_id: "request_12345"
     
     Forbidden:
       description: Forbidden - Insufficient permissions
@@ -457,7 +457,7 @@ components:
               message: "Access denied to task"
               details: "You can only access your own tasks"
               timestamp: "2024-01-01T00:00:00Z"
-              trace_id: "request_12345"
+              request_id: "request_12345"
               user_id: "user_123"
     
     NotFound:
@@ -479,7 +479,7 @@ components:
               message: "File size exceeds maximum limit"
               details: "Maximum file size is 50MB"
               timestamp: "2024-01-01T00:00:00Z"
-              trace_id: "request_12345"
+              request_id: "request_12345"
               user_id: "user_123"
     
     InternalServerError:

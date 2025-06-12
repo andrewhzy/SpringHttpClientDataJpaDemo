@@ -51,9 +51,6 @@ graph TB
     API[Backend API Service<br/>RESTful Endpoints + Excel Parsing]
     BGP[Background Processing<br/>Chat Evaluation Handler]
     
-    %% Observability Layer
-    OTEL[OpenTelemetry<br/>Logging & Tracing]
-    
     %% External Services
     subgraph "External Services"
         Glean[Glean Service<br/>Chat API]
@@ -74,24 +71,20 @@ graph TB
     API -.-> SSO
     API --> TasksTable
     API --> ChatInput
-    API --> OTEL
     BGP --> TasksTable
     BGP --> ChatInput
     BGP --> ChatOutput
-    BGP --> OTEL
     BGP --> Glean
     BGP --> LLM
     
     %% Styling
     classDef frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef backend fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    classDef observability fill:#fff3e0,stroke:#ff9800,stroke-width:2px
     classDef external fill:#fce4ec,stroke:#c2185b,stroke-width:2px
     classDef database fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     
     class FE,SSO frontend
     class API,BGP backend
-    class OTEL observability
     class Glean,LLM external
     class DB,TasksTable,ChatInput,ChatOutput database
 ```
@@ -113,20 +106,13 @@ graph TB
   - Structured data storage in appropriate tables
   - Task lifecycle management (CRUD operations)
   - Response formatting with structured data
-  - OpenTelemetry instrumentation for request tracing and metrics
 - **Background Processing Engine**:
   - FIFO queue management for structured tasks
   - Chat evaluation processing with external service integration
   - Processes pre-structured data from input tables
   - External service integration (Glean Platform, LLM Similarity)
   - Precise progress tracking using processed_rows counters
-  - OpenTelemetry instrumentation for background job tracing
-- **OpenTelemetry (OTEL)**:
-  - Distributed tracing across all service components
-  - Structured logging with correlation IDs
-  - Performance metrics and monitoring
-  - Error tracking and alerting
-  - Observability data export to monitoring systems
+
 - **External Services**:
   - Glean Platform Services for chat evaluation
   - LLM Similarity Service for response comparison
@@ -281,14 +267,13 @@ flowchart TD
 |-----------|----------------------|---------------|
 | **Frontend Applications** | User interface, file upload, task management | → Backend API Service (via JWT) |
 | **SSO Server** | Single Sign-On authentication, JWT token issuance and validation | → Backend API Service |
-| **Backend API Service** | RESTful endpoints, JWT validation, request/response handling | → Task Management, Database, OTEL |
+| **Backend API Service** | RESTful endpoints, JWT validation, request/response handling | → Task Management, Database |
 | **Excel File Parser** | Multi-sheet parsing, data validation | → Data Structurer |
 | **Data Structurer** | Row-by-row data structuring and validation | → Task Manager |
 | **Task Manager** | Task CRUD operations, status updates, lifecycle management | → Database |
 | **Query Handler** | Task listing, filtering, structured data queries | → Database |
-| **Background Task Processor** | FIFO queue management, task routing | → Task Handlers, OTEL |
-| **Chat Evaluation Handler** | Business logic for chat evaluation processing | → External APIs, Database, OTEL |
-| **OpenTelemetry (OTEL)** | Distributed tracing, logging, metrics, and observability | ← All Service Components |
+| **Background Task Processor** | FIFO queue management, task routing | → Task Handlers |
+| **Chat Evaluation Handler** | Business logic for chat evaluation processing | → External APIs, Database |
 | **Database Tables** | Structured data persistence, relationships | ← All Components |
 | **External Service Clients** | API integration with Glean Platform Services and LLM Similarity Service | ← Task Handlers |
 
@@ -424,13 +409,13 @@ For detailed API endpoint sequence diagrams and request/response flows, refer to
 - **Size Limits**: Maximum file size, sheet count, and row count restrictions
 - **User Isolation**: Users can only access their own tasks and structured data
 - **Access Control**: Task ownership validation for all operations
-- **OpenTelemetry Audit Logging**: Complete request audit trail with correlation IDs for security compliance
+- **Audit Logging**: Complete request audit trail for security compliance
 
 ### Data Protection
 - **PII Handling**: Secure processing of structured data from Excel files
 - **Access Control**: Task ownership validation for all operations
-- **OpenTelemetry Audit Logging**: Complete request audit trail with correlation IDs for security compliance
-- **Network Security**: Internal service communication over encrypted channels with OTEL tracing
+- **Audit Logging**: Complete request audit trail for security compliance
+- **Network Security**: Internal service communication over encrypted channels
 - **Data Retention**: Configurable data retention policies with secure deletion of structured data
 - **Compliance**: GDPR, SOX, and industry-standard compliance measures
 
@@ -440,6 +425,5 @@ For detailed API endpoint sequence diagrams and request/response flows, refer to
 3. [ ] Update background processing to read from structured input tables
 4. [ ] Modify API responses to return structured data instead of blobs
 5. [ ] Implement precise progress tracking with processed_rows counters
-6. [ ] Set up OpenTelemetry instrumentation for processing steps
-7. [ ] Design user interface for structured data display and management
+6. [ ] Design user interface for structured data display and management
 8. [ ] Performance testing with structured data approach 

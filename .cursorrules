@@ -123,8 +123,7 @@ public class Document {
 - Use SLF4J with Logback
 - Include structured logging with MDC where appropriate
 - Add proper log levels (DEBUG, INFO, WARN, ERROR)
-- Include correlation IDs for request tracing
-- Add metrics and health checks using Actuator
+- Add health checks using Actuator
 
 ### Security Considerations
 - Validate all input parameters
@@ -173,7 +172,7 @@ public class Document {
 - Spring Boot Starter Test
 - Lombok
 - MapStruct (for DTO mapping)
-- Micrometer (for metrics)
+
 - Resilience4j (for circuit breaker patterns)
 
 ## Code Review Checklist
