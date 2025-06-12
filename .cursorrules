@@ -1,0 +1,202 @@
+# Java Spring Boot Project Rules for Cursor AI
+
+## Project Context
+This is an Internal Task Management API for chat evaluation that:
+- Processes Excel files with immediate parsing (no blob storage)
+- Manages chat evaluation tasks with questions, golden answers, and citations
+- Integrates with Glean Platform Services and LLM Similarity Services
+- Uses JWT authentication from internal SSO
+- Implements background processing with precise progress tracking
+- Stores structured data in MariaDB/PostgreSQL (need to decide)
+
+## Code Style and Formatting
+- Use Java 17+ features where appropriate
+- Follow Google Java Style Guide conventions
+- Use 4 spaces for indentation, no tabs
+- Maximum line length: 120 characters
+- Use meaningful variable and method names
+- Prefer composition over inheritance
+- Use final keyword for immutable variables and parameters
+
+## Spring Boot Specific Guidelines
+
+### Application Structure
+- Follow standard Maven/Gradle project structure
+- Organize packages by feature/domain, not by layer
+- Use `@SpringBootApplication` only in the main application class
+- Keep configuration classes separate and well-documented
+
+### Dependency Injection
+- Prefer constructor injection over field injection
+- Use `@RequiredArgsConstructor` from Lombok when appropriate
+- Avoid `@Autowired` on fields, use constructor injection instead
+- Mark services as `@Service`, repositories as `@Repository`, etc.
+
+### HTTP Interface Best Practices
+- Create dedicated client interfaces for external services
+- Use proper HTTP status code handling
+- Implement retry mechanisms with `@Retryable` where appropriate
+- Add proper timeout configurations
+- Use `@HttpExchange` annotations consistently
+- Create separate DTOs for request/response objects
+- Handle exceptions gracefully with custom exception handlers
+
+```java
+// Example HTTP Interface structure
+@HttpExchange("/api/v1")
+public interface GleanServiceClient {
+    @GetExchange("/search")
+    ResponseEntity<SearchResponse> search(@RequestParam String query);
+    
+    @PostExchange("/index")
+    ResponseEntity<Void> indexDocument(@RequestBody DocumentRequest request);
+}
+
+@HttpExchange("/api/llm")
+public interface LlmServiceClient {
+    @PostExchange("/generate")
+    ResponseEntity<GenerationResponse> generate(@RequestBody GenerationRequest request);
+}
+```
+
+### JPA and Database Guidelines
+- Use proper entity relationships with `@OneToMany`, `@ManyToOne`, etc.
+- Implement `equals()` and `hashCode()` for entities
+- Use `@Transactional` appropriately (prefer on service layer)
+- Create custom repository methods using method naming conventions
+- Use DTOs to transfer data between layers
+- Implement proper database migration scripts
+- Use `@Query` for complex queries when method naming isn't sufficient
+
+```java
+// Example JPA Entity structure
+@Entity
+@Table(name = "documents")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Document {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false)
+    private String title;
+    
+    @Lob
+    private String content;
+    
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+    
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+}
+```
+
+### Configuration Management
+- Use `@ConfigurationProperties` for complex configurations
+- Externalize all environment-specific values
+- Create separate profiles for different environments
+- Use validation annotations on configuration classes
+- Document configuration properties in `application.yml`
+
+### Error Handling
+- Create custom exception classes that extend appropriate base exceptions
+- Use `@ControllerAdvice` for global exception handling
+- Return proper HTTP status codes
+- Include meaningful error messages and error codes
+- Log exceptions appropriately with proper log levels
+
+### Testing Guidelines
+- Write unit tests for all service methods
+- Use `@MockBean` for mocking dependencies in tests
+- Create integration tests with `@SpringBootTest`
+- Test HTTP interfaces with `@WebMvcTest` or mock servers
+- Test JPA repositories with `@DataJpaTest`
+- Maintain minimum 80% code coverage
+- Use TestContainers for integration tests requiring database
+
+### Logging and Monitoring
+- Use SLF4J with Logback
+- Include structured logging with MDC where appropriate
+- Add proper log levels (DEBUG, INFO, WARN, ERROR)
+- Include correlation IDs for request tracing
+- Add metrics and health checks using Actuator
+
+### Security Considerations
+- Validate all input parameters
+- Use HTTPS for all external service calls
+- Implement proper authentication and authorization
+- Don't log sensitive information
+- Use environment variables for secrets
+
+### Performance Optimization
+- Use connection pooling for database and HTTP clients
+- Implement caching where appropriate with `@Cacheable`
+- Use async processing with `@Async` for long-running operations
+- Optimize database queries and avoid N+1 problems
+- Monitor and tune JVM settings
+
+## File and Naming Conventions
+- Controllers: `*Controller.java`
+- Services: `*Service.java` and `*ServiceImpl.java`
+- Repositories: `*Repository.java`
+- DTOs: `*Request.java`, `*Response.java`, `*Dto.java`
+- Entities: Use singular nouns
+- HTTP Clients: `*Client.java`
+- Configuration: `*Config.java`
+- Exceptions: `*Exception.java`
+
+## Code Generation Preferences
+- Generate complete methods with proper error handling
+- Include JavaDoc comments for public methods and classes
+- Add validation annotations where appropriate
+- Generate corresponding test classes when creating new components
+- Include proper imports and package declarations
+- Use Lombok annotations to reduce boilerplate code
+
+## Common Patterns to Follow
+- Use Builder pattern for complex object creation
+- Implement the Repository pattern for data access
+- Use Factory pattern for creating different types of clients
+- Apply Strategy pattern for different LLM or processing strategies
+- Use Command pattern for complex business operations
+
+## Dependencies to Suggest
+- Spring Boot Starter Web
+- Spring Boot Starter Data JPA
+- Spring Boot Starter Validation
+- Spring Boot Starter Actuator
+- Spring Boot Starter Test
+- Lombok
+- MapStruct (for DTO mapping)
+- Micrometer (for metrics)
+- Resilience4j (for circuit breaker patterns)
+
+## Code Review Checklist
+- [ ] All public methods have JavaDoc
+- [ ] Exception handling is implemented
+- [ ] Input validation is present
+- [ ] Tests are written and passing
+- [ ] No hardcoded values (use configuration)
+- [ ] Proper logging is in place
+- [ ] Security considerations are addressed
+- [ ] Performance implications are considered
+
+### Excel File Processing
+- Use Apache POI for Excel parsing (xlsx/xls support)
+- Implement streaming parsing for large files to avoid memory issues
+- Validate Excel structure during upload (required columns: question, golden_answer, golden_citations)
+- Use @RequestParam MultipartFile for file uploads
+- Implement proper file size and format validation
+- Store parsed data immediately in structured tables (no blob storage)
+
+// Example Excel processing pattern
+@PostMapping(value = "/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+public ResponseEntity<UploadResponse> uploadTasks(
+    @RequestParam("file") MultipartFile file,
+    @RequestParam(required = false) String description) {
+    // Implementation
+}
