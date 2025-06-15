@@ -21,39 +21,38 @@ Primary table storing task metadata and processing status. No file blobs stored.
 
 ```sql
 CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id VARCHAR(255) NOT NULL,
-    original_filename VARCHAR(500) NOT NULL,
-    sheet_name VARCHAR(255) NOT NULL,
-    task_type VARCHAR(50) NOT NULL,
-    task_status VARCHAR(50) NOT NULL DEFAULT 'queueing',
-    upload_batch_id UUID NOT NULL,
-    row_count INTEGER NOT NULL DEFAULT 0,
-    processed_rows INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    started_at TIMESTAMP WITH TIME ZONE,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    cancelled_at TIMESTAMP WITH TIME ZONE,
-    error_message TEXT,
-    progress_percentage INTEGER DEFAULT 0,
-    metadata JSONB,
-    created_by VARCHAR(255) NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),  -- Primary identifier for the task, auto-generated UUID
+    user_id VARCHAR(255) NOT NULL,  -- User identifier from JWT token, links task to specific user
+    filename VARCHAR(500) NOT NULL,  -- Original uploaded file name for user reference and audit trail
+    sheet_name VARCHAR(255) NOT NULL,  -- Name of the Excel sheet being processed (from multi-sheet files)
+    task_type VARCHAR(50) NOT NULL,  -- Type of task being processed (currently only 'chat-evaluation')
+    task_status VARCHAR(50) NOT NULL DEFAULT 'queueing',  -- Current processing status of the task
+    upload_batch_id UUID NOT NULL,  -- Groups multiple tasks from same Excel upload together
+    row_count INTEGER NOT NULL DEFAULT 0,  -- Total number of data rows parsed from Excel sheet
+    processed_rows INTEGER NOT NULL DEFAULT 0,  -- Number of rows completed by background processing
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  -- Timestamp when task record was created
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  -- Timestamp of last task update (auto-updated on changes)
+    started_at TIMESTAMP WITH TIME ZONE,  -- Timestamp when background processing started
+    completed_at TIMESTAMP WITH TIME ZONE,  -- Timestamp when task processing completed successfully
+    cancelled_at TIMESTAMP WITH TIME ZONE,  -- Timestamp when task was cancelled by user
+    error_message TEXT,  -- Error message if task failed during processing
+    progress_percentage INTEGER DEFAULT 0,  -- Calculated percentage of completion (0-100)
+    metadata JSONB,  -- Additional task metadata in JSON format
+    created_by VARCHAR(255) NOT NULL,  -- User who created the task (same as user_id in most cases)
     
-    CONSTRAINT valid_status CHECK (task_status IN ('queueing', 'processing', 'completed', 'cancelled', 'failed')),
-    CONSTRAINT valid_progress CHECK (progress_percentage >= 0 AND progress_percentage <= 100),
-    CONSTRAINT valid_task_type CHECK (task_type IN ('chat-evaluation')),
-    CONSTRAINT valid_row_counts CHECK (processed_rows >= 0 AND processed_rows <= row_count)
+    CONSTRAINT valid_status CHECK (task_status IN ('queueing', 'processing', 'completed', 'cancelled', 'failed')),  -- Ensures task_status contains only valid status values
+    CONSTRAINT valid_progress CHECK (progress_percentage >= 0 AND progress_percentage <= 100),  -- Ensures progress_percentage is within valid range
+    CONSTRAINT valid_task_type CHECK (task_type IN ('chat-evaluation')),  -- Ensures task_type contains only supported task types
+    CONSTRAINT valid_row_counts CHECK (processed_rows >= 0 AND processed_rows <= row_count)  -- Ensures processed_rows never exceeds total row_count and is never negative
 );
 
--- Indexes for performance optimization  
-CREATE INDEX idx_tasks_user_id ON tasks(user_id);
-CREATE INDEX idx_tasks_status ON tasks(task_status);
-CREATE INDEX idx_tasks_type_status ON tasks(task_type, task_status);
-CREATE INDEX idx_tasks_upload_batch ON tasks(upload_batch_id);
-CREATE INDEX idx_tasks_created_at ON tasks(created_at DESC);
-CREATE INDEX idx_tasks_user_status ON tasks(user_id, task_status);
-CREATE INDEX idx_tasks_background_processing ON tasks(task_type, task_status, created_at) WHERE task_status = 'queueing';
+CREATE INDEX idx_tasks_user_id ON tasks(user_id);  -- Optimizes user-specific task queries (GET /tasks by user)
+CREATE INDEX idx_tasks_status ON tasks(task_status);  -- Optimizes task filtering by status
+CREATE INDEX idx_tasks_type_status ON tasks(task_type, task_status);  -- Optimizes combined task type and status filtering
+CREATE INDEX idx_tasks_upload_batch ON tasks(upload_batch_id);  -- Optimizes batch-related queries (tasks from same Excel upload)
+CREATE INDEX idx_tasks_created_at ON tasks(created_at DESC);  -- Optimizes task listing with newest-first ordering
+CREATE INDEX idx_tasks_user_status ON tasks(user_id, task_status);  -- Optimizes user-specific status filtering (user's active tasks)
+CREATE INDEX idx_tasks_background_processing ON tasks(task_type, task_status, created_at) WHERE task_status = 'queueing';  -- Optimizes background processor task selection (only queueing tasks)
 ```
 
 #### Key Features:
@@ -74,27 +73,24 @@ Primary storage for chat evaluation tasks. Data is inserted directly during Exce
 
 ```sql
 CREATE TABLE chat_evaluation_input (
-    id BIGSERIAL PRIMARY KEY,
-    task_id UUID NOT NULL,
-    row_number INTEGER NOT NULL,
-    question TEXT NOT NULL,
-    golden_answer TEXT NOT NULL,
-    golden_citations JSONB NOT NULL,
-    metadata JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    -- Constraints
-    CONSTRAINT unique_task_row_content UNIQUE (task_id, row_number),
-    CONSTRAINT fk_task_content FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
-    CONSTRAINT valid_row_number CHECK (row_number > 0),
-    CONSTRAINT valid_citations_format CHECK (JSON_TYPE(golden_citations) = 'ARRAY')
+    id BIGSERIAL PRIMARY KEY,  -- Auto-incrementing primary key for internal record identification
+    task_id UUID NOT NULL,  -- Links to parent task in tasks table
+    row_number INTEGER NOT NULL,  -- Sequential row number from Excel sheet (1, 2, 3, ...)
+    question TEXT NOT NULL,  -- User's question text to be evaluated (from Excel 'question' column)
+    golden_answer TEXT NOT NULL,  -- Expected/correct answer for the question (from Excel 'golden_answer' column)
+    golden_citations JSONB NOT NULL,  -- Array of expected citation URLs in JSON format (from Excel 'golden_citations' column)
+    metadata JSONB,  -- Additional data from extra Excel columns stored as JSON
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  -- Timestamp when input record was created during Excel parsing
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  -- Timestamp of last update to this input record
+    CONSTRAINT unique_task_row_content UNIQUE (task_id, row_number),  -- Ensures no duplicate row numbers within the same task
+    CONSTRAINT fk_task_content FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,  -- Maintains referential integrity with tasks table, cascades on delete
+    CONSTRAINT valid_row_number CHECK (row_number > 0),  -- Ensures row numbers are positive (Excel rows start from 1)
+    CONSTRAINT valid_citations_format CHECK (JSON_TYPE(golden_citations) = 'ARRAY')  -- Ensures golden_citations is stored as JSON array format
 );
 
--- Indexes
-CREATE INDEX idx_chat_eval_input_task_id ON chat_evaluation_input(task_id);
-CREATE INDEX idx_chat_eval_input_row_number ON chat_evaluation_input(task_id, row_number);
-CREATE INDEX idx_chat_eval_input_created_at ON chat_evaluation_input(created_at DESC);
+CREATE INDEX idx_chat_eval_input_task_id ON chat_evaluation_input(task_id);  -- Optimizes queries filtering by task_id (get all input for a task)
+CREATE INDEX idx_chat_eval_input_row_number ON chat_evaluation_input(task_id, row_number);  -- Optimizes lookup of specific row within a task
+CREATE INDEX idx_chat_eval_input_created_at ON chat_evaluation_input(created_at DESC);  -- Optimizes chronological ordering of input records
 ```
 
 #### Column Descriptions:
@@ -108,93 +104,27 @@ Stores processing results and similarity scores for each evaluated question.
 
 ```sql
 CREATE TABLE chat_evaluation_output (
-    id BIGSERIAL PRIMARY KEY,
-    task_id UUID NOT NULL,
-    row_number INTEGER NOT NULL,
-    api_answer TEXT NOT NULL,
-    api_citations JSONB NOT NULL,
-    answer_similarity DECIMAL(5,4) NOT NULL,
-    citation_similarity DECIMAL(5,4) NOT NULL,
-    processing_time_ms INTEGER,
-    api_response_metadata JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    -- Constraints
-    CONSTRAINT unique_task_row_results UNIQUE (task_id, row_number),
-    CONSTRAINT fk_task_results FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
-    CONSTRAINT valid_row_number_results CHECK (row_number > 0),
-    CONSTRAINT valid_answer_similarity CHECK (answer_similarity >= 0 AND answer_similarity <= 1),
-    CONSTRAINT valid_citation_similarity CHECK (citation_similarity >= 0 AND citation_similarity <= 1),
-    CONSTRAINT valid_processing_time CHECK (processing_time_ms >= 0),
-    CONSTRAINT valid_api_citations_format CHECK (JSON_TYPE(api_citations) = 'ARRAY')
+    id BIGSERIAL PRIMARY KEY,  -- Auto-incrementing primary key for internal record identification
+    task_id UUID NOT NULL,  -- Links to parent task in tasks table
+    row_number INTEGER NOT NULL,  -- Corresponds to row_number in chat_evaluation_input table
+    api_answer TEXT NOT NULL,  -- Answer returned by the API/LLM service for evaluation
+    api_citations JSONB NOT NULL,  -- Array of citation URLs returned by the API/LLM service
+    answer_similarity DECIMAL(5,4) NOT NULL,  -- Similarity score between api_answer and golden_answer (0.0 to 1.0)
+    citation_similarity DECIMAL(5,4) NOT NULL,  -- Similarity score between api_citations and golden_citations (0.0 to 1.0)
+    processing_time_ms INTEGER,  -- Time in milliseconds taken to process this specific row
+    api_response_metadata JSONB,  -- Full API response metadata for debugging and analysis
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  -- Timestamp when evaluation result was created by background processor
+    CONSTRAINT unique_task_row_results UNIQUE (task_id, row_number),  -- Ensures only one result per task row (1:1 with input)
+    CONSTRAINT fk_task_results FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,  -- Maintains referential integrity with tasks table, cascades on delete
+    CONSTRAINT valid_row_number_results CHECK (row_number > 0),  -- Ensures row numbers are positive and match input table
+    CONSTRAINT valid_answer_similarity CHECK (answer_similarity >= 0 AND answer_similarity <= 1),  -- Ensures answer similarity is valid percentage (0-100% as 0.0-1.0)
+    CONSTRAINT valid_citation_similarity CHECK (citation_similarity >= 0 AND citation_similarity <= 1),  -- Ensures citation similarity is valid percentage (0-100% as 0.0-1.0)
+    CONSTRAINT valid_processing_time CHECK (processing_time_ms >= 0),  -- Ensures processing time is non-negative
+    CONSTRAINT valid_api_citations_format CHECK (JSON_TYPE(api_citations) = 'ARRAY')  -- Ensures api_citations is stored as JSON array format
 );
 
--- Indexes
-CREATE INDEX idx_chat_eval_output_task_id ON chat_evaluation_output(task_id);
-CREATE INDEX idx_chat_eval_output_row_number ON chat_evaluation_output(task_id, row_number);
-CREATE INDEX idx_chat_eval_output_similarity ON chat_evaluation_output(answer_similarity, citation_similarity);
-CREATE INDEX idx_chat_eval_output_created_at ON chat_evaluation_output(created_at DESC);
+CREATE INDEX idx_chat_eval_output_task_id ON chat_evaluation_output(task_id);  -- Optimizes queries filtering by task_id (get all results for a task)
+CREATE INDEX idx_chat_eval_output_row_number ON chat_evaluation_output(task_id, row_number);  -- Optimizes lookup of specific result row within a task
+CREATE INDEX idx_chat_eval_output_similarity ON chat_evaluation_output(answer_similarity, citation_similarity);  -- Optimizes filtering and sorting by similarity scores for analysis
+CREATE INDEX idx_chat_eval_output_created_at ON chat_evaluation_output(created_at DESC);  -- Optimizes chronological ordering of evaluation results
 ```
-
-## Table Relationships and Data Flow
-
-### Relationship Diagram
-```
-tasks (metadata table)
-├── chat_evaluation_input (1:many) - PRIMARY DATA STORAGE
-    └── chat_evaluation_output (1:1 via task_id + row_number)
-```
-
-### Data Flow Pattern
-1. **Upload Processing**: Excel → Parse → Store rows in chat_evaluation_input table → Create task record
-2. **Background Processing**: Input table → Process rows → Store results in output table → Update task status
-3. **Result Retrieval**: JOIN input + output tables for complete view
-
-## Chat Evaluation Task Requirements
-
-### Excel Structure Detection
-Excel files are identified as chat evaluation tasks if they contain columns:
-- **question** (required): Column containing questions to evaluate
-- **golden_answer** (required): Column with expected answers
-- **golden_citations** (required): Column with expected citation URLs
-- Additional columns stored in metadata
-
-## Performance Considerations
-
-### Upload Performance
-- **Bulk Insert Optimization**: Use batch inserts for input tables
-- **Transaction Management**: Single transaction per sheet to ensure consistency
-- **Memory Management**: Stream processing for large Excel files
-- **Column Detection**: Efficient column header analysis
-
-### Query Performance
-- **Structured Data**: No blob parsing overhead - data is immediately queryable
-- **Optimized Joins**: Efficient joins between input and output tables
-- **Progress Tracking**: Real-time progress via processed_rows counter
-
-### Storage Efficiency
-- **Structured Format**: Better compression and indexing
-- **Selective Queries**: Can query specific columns without loading full records
-
-## Data Types and Constraints Explanation
-
-### JSONB Fields
-- **golden_citations**: Array of citation URLs `["url1", "url2", "url3"]`
-- **api_citations**: Array of API-returned citation URLs  
-- **metadata**: Flexible storage for additional Excel columns
-- **api_response_metadata**: Full API response details for debugging
-
-### Similarity Scores
-- **DECIMAL(5,4)**: Allows values like 0.8567 (4 decimal places)
-- **Range**: 0.0000 to 1.0000 (0% to 100% similarity)
-
-### New Fields
-- **row_count**: Total rows parsed from Excel sheet
-- **processed_rows**: Rows completed by background processing
-
-## Next Steps
-
-1. **Phase 1**: Update application to parse Excel during upload
-2. **Phase 2**: Implement chat evaluation task detection logic
-3. **Phase 3**: Modify background processing to read from input tables directly
-4. **Phase 4**: Update API responses to return structured data instead of blobs 
