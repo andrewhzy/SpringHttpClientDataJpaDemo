@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: task-management-api
+  
+  # R2DBC Configuration for MariaDB
+  r2dbc:
+    url: r2dbc:mariadb://localhost:3306/task_management
+    username: taskuser
+    password: taskpassword
+    pool:
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 30m
+      validation-query: SELECT 1
+
+  # WebFlux Configuration
+  webflux:
+    multipart:
+      max-in-memory-size: 10MB
+      max-disk-usage-per-part: 100MB
+      max-parts: 10
+
+  # Jackson Configuration
+  jackson:
+    default-property-inclusion: NON_NULL
+    time-zone: UTC
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+
+# Logging Configuration
+logging:
+  level:
+    com.example.springhttpclientdatajpademo: INFO
+    org.springframework.data.r2dbc: DEBUG
+    io.r2dbc.spi: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Server Configuration
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# Management/Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Application-specific Configuration
+app:
+  file:
+    max-size: 100MB
+    allowed-types: .xlsx,.xls
+  excel:
+    max-sheets: 10
+    max-rows-per-sheet: 10000
+  jwt:
+    # JWT configuration would go here in real implementation
+    issuer: internal-sso-server 
