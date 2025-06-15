@@ -1,6 +1,7 @@
 package com.example.springhttpclientdatajpademo.controller;
 
 import com.example.springhttpclientdatajpademo.dto.CreateTaskResponse;
+import com.example.springhttpclientdatajpademo.service.JwtService;
 import com.example.springhttpclientdatajpademo.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import reactor.core.publisher.Mono;
 public class TaskController {
 
     private final TaskService taskService;
+    private final JwtService jwtService;
 
     /**
      * Upload Excel file and create tasks
@@ -30,8 +32,8 @@ public class TaskController {
         
         log.info("Received task creation request");
         
-        // Extract user ID from JWT token (simplified for demo)
-        String userId = extractUserIdFromToken(authHeader);
+        // Extract user ID from JWT token using dedicated service
+        String userId = jwtService.extractUserIdFromToken(authHeader);
         
         return filePartMono
             .doOnNext(filePart -> log.info("Processing file: {}", filePart.filename()))
@@ -41,22 +43,5 @@ public class TaskController {
             .doOnError(error -> log.error("Task creation failed for user: {}", userId, error));
     }
 
-    /**
-     * Extract user ID from JWT token
-     * This is a simplified implementation - in real app, use proper JWT validation
-     */
-    private String extractUserIdFromToken(String authHeader) {
-        // TODO: Implement proper JWT token validation
-        // - Verify token signature
-        // - Extract user claims
-        // - Validate token expiration
-        // - Return user_id from token claims
-        
-        // For demo purposes, return a mock user ID
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return "demo-user-123"; // Mock user ID
-        }
-        
-        throw new IllegalArgumentException("Invalid or missing Authorization header");
-    }
+
 } 
