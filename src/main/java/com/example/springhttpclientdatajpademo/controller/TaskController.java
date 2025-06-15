@@ -1,8 +1,7 @@
 package com.example.springhttpclientdatajpademo.controller;
 
 import com.example.springhttpclientdatajpademo.dto.CreateTaskResponse;
-import com.example.springhttpclientdatajpademo.service.JwtService;
-import com.example.springhttpclientdatajpademo.service.TaskService;
+import com.example.springhttpclientdatajpademo.service.TaskRequestService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -17,8 +16,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class TaskController {
 
-    private final TaskService taskService;
-    private final JwtService jwtService;
+    private final TaskRequestService taskRequestService;
 
     /**
      * Upload Excel file and create tasks
@@ -32,16 +30,6 @@ public class TaskController {
         
         log.info("Received task creation request");
         
-        // Extract user ID from JWT token using dedicated service
-        String userId = jwtService.extractUserIdFromToken(authHeader);
-        
-        return filePartMono
-            .doOnNext(filePart -> log.info("Processing file: {}", filePart.filename()))
-            .flatMap(filePart -> taskService.createTasks(filePart, userId))
-            .doOnSuccess(response -> log.info("Task creation completed for user: {} with batch: {}", 
-                userId, response.getUploadBatchId()))
-            .doOnError(error -> log.error("Task creation failed for user: {}", userId, error));
+        return taskRequestService.handleTaskCreationRequest(filePartMono, authHeader);
     }
-
-
-} 
+}
