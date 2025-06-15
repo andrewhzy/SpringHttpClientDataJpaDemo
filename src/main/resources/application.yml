@@ -1,6 +1,8 @@
 spring:
   application:
     name: task-management-api
+  profiles:
+    active: dev
   
   # R2DBC Configuration for MariaDB
   r2dbc:

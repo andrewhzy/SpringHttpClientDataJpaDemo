@@ -1,0 +1,32 @@
+spring:
+  # R2DBC Configuration for H2 (Development only)
+  r2dbc:
+    url: r2dbc:h2:mem:///task_management;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    pool:
+      initial-size: 5
+      max-size: 20
+      max-idle-time: 30m
+
+  # SQL initialization for development
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-h2.sql
+
+  # H2 Console (for debugging)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+# Logging Configuration for Development
+logging:
+  level:
+    com.example.springhttpclientdatajpademo: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    io.r2dbc.spi: DEBUG
+    org.springframework.r2dbc: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n" 
