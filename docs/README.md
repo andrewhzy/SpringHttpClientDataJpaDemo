@@ -141,59 +141,68 @@ graph TB
 
 ## System Components and Data Flow
 
-### Backend Java Classes Flow (POST /tasks - Excel Upload)
+### Backend Java Components and Responsibilities
 ```mermaid
 flowchart TD
     %% Frontend
     FE[Frontend Application]
-    
+
     %% Backend Spring Boot Classes
     subgraph "Spring Boot Backend"
-        Controller[TaskController<br/>RestController]
-        Service[TaskService<br/>Service]
-        ExcelService[ExcelParsingService<br/>Service]
-        Repository[TaskRepository<br/>Repository]
-        InputRepo[ChatEvaluationInputRepository<br/>Repository]
+        Controller[TaskController]
+        Service[TaskService]
+        ExcelService[ExcelParsingService]
+        TaskRepo[TaskRepo]
+        InputRepo[InputRepo]
+        OutputRepo[OutputRepo]
+        ExceptionHandler[GlobalExceptionHandler]
     end
-    
+
     %% Database
     DB[(MariaDB Database)]
-    
-    %% Simple Linear Flow for POST /tasks
-    FE -->|POST /tasks<br/>MultipartFile| Controller
-    Controller -->|Validate and Forward requests| Service
-    Service -->|Parse Excel| ExcelService
-    ExcelService -->|Return Parsed Data| Service
-    Service -->|Save Task Metadata| Repository
-    Service -->|Save Input Data| InputRepo
-    Repository -->|Write| DB
-    InputRepo -->|Write| DB
+
+    %% Generalized Flows for All Task Management APIs
+    FE -->|API Requests POST/GET/PUT/DELETE tasks| Controller
+    Controller -->|Validate & Map Requests| Service
+    Service -->|Business Logic| ExcelService
+    Service -->|CRUD Operations| TaskRepo
+    Service -->|Input Data Ops| InputRepo
+    Service -->|Output Data Ops| OutputRepo
+    TaskRepo -->|DB Access| DB
+    InputRepo -->|DB Access| DB
+    OutputRepo -->|DB Access| DB
+    Controller -->|Error Handling| ExceptionHandler
+    ExceptionHandler -->|Error Response| FE
     Service -->|Return Response| Controller
     Controller -->|JSON Response| FE
-    
+
     %% Styling
     classDef frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef controller fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef service fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
     classDef repository fill:#fff3e0,stroke:#ff9800,stroke-width:2px
     classDef database fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    
+    classDef error fill:#ffebee,stroke:#d32f2f,stroke-width:2px
+
     class FE frontend
     class Controller controller
     class Service,ExcelService service
-    class Repository,InputRepo repository
+    class TaskRepo,InputRepo,OutputRepo repository
     class DB database
+    class ExceptionHandler error
 ```
 
-#### Backend Java Classes Responsibilities
+#### Backend Java Components Responsibilities
 
-| Java Class | Spring Annotation | Primary Responsibility |
-|------------|------------------|----------------------|
-| **TaskController** | RestController | Handle HTTP requests, JWT validation, request/response mapping |
-| **TaskService** | Service | Business logic coordination, transaction management |
-| **ExcelParsingService** | Service | Excel file parsing, sheet detection, data validation |
-| **TaskRepository** | Repository | Task entity CRUD operations |
-| **ChatEvaluationInputRepository** | Repository | Input data entity operations |
+| Component | Major Responsibilities |
+|-----------|------------------------|
+| **TaskController** | Handle all HTTP requests for task management (create, query, update, delete), JWT validation, request/response mapping |
+| **TaskService** | Core business logic for all task operations, transaction management, coordination between repositories and Excel parsing |
+| **ExcelParsingService** | Excel file parsing, sheet detection, data validation (used during task creation) |
+| **TaskRepo** | CRUD operations for task metadata |
+| **InputRepo** | CRUD operations for input data (questions, answers, citations) |
+| **OutputRepo** | CRUD operations for output/results data |
+| **GlobalExceptionHandler** | Centralized error handling for all API endpoints |
 
 ### Background Processing Flow Chart (Structured Data)
 ```mermaid
