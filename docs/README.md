@@ -153,8 +153,8 @@ flowchart TD
         Service[TaskService]
         ExcelService[ExcelParsingService]
         TaskRepo[TaskRepo]
-        InputRepo[InputRepo]
-        OutputRepo[OutputRepo]
+        InputRepo[TaskInputRepo]
+        OutputRepo[TaskOutputRepo]
         ExceptionHandler[GlobalExceptionHandler]
     end
 
