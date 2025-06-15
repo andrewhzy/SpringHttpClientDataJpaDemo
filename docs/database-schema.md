@@ -36,23 +36,12 @@ CREATE TABLE tasks (
     completed_at TIMESTAMP WITH TIME ZONE,  -- Timestamp when task processing completed successfully
     cancelled_at TIMESTAMP WITH TIME ZONE,  -- Timestamp when task was cancelled by user
     error_message TEXT,  -- Error message if task failed during processing
-    progress_percentage INTEGER DEFAULT 0,  -- Calculated percentage of completion (0-100)
-    metadata JSONB,  -- Additional task metadata in JSON format
-    created_by VARCHAR(255) NOT NULL,  -- User who created the task (same as user_id in most cases)
-    
-    CONSTRAINT valid_status CHECK (task_status IN ('queueing', 'processing', 'completed', 'cancelled', 'failed')),  -- Ensures task_status contains only valid status values
-    CONSTRAINT valid_progress CHECK (progress_percentage >= 0 AND progress_percentage <= 100),  -- Ensures progress_percentage is within valid range
-    CONSTRAINT valid_task_type CHECK (task_type IN ('chat-evaluation')),  -- Ensures task_type contains only supported task types
-    CONSTRAINT valid_row_counts CHECK (processed_rows >= 0 AND processed_rows <= row_count)  -- Ensures processed_rows never exceeds total row_count and is never negative
+    CONSTRAINT valid_row_counts CHECK (processed_rows >= 0 AND processed_rows <= row_count),
+    CONSTRAINT valid_answer_similarity CHECK (answer_similarity >= 0 AND answer_similarity <= 1),
+    -- Note: task_status and task_type validation handled at application level for flexibility
 );
 
 CREATE INDEX idx_tasks_user_id ON tasks(user_id);  -- Optimizes user-specific task queries (GET /tasks by user)
-CREATE INDEX idx_tasks_status ON tasks(task_status);  -- Optimizes task filtering by status
-CREATE INDEX idx_tasks_type_status ON tasks(task_type, task_status);  -- Optimizes combined task type and status filtering
-CREATE INDEX idx_tasks_upload_batch ON tasks(upload_batch_id);  -- Optimizes batch-related queries (tasks from same Excel upload)
-CREATE INDEX idx_tasks_created_at ON tasks(created_at DESC);  -- Optimizes task listing with newest-first ordering
-CREATE INDEX idx_tasks_user_status ON tasks(user_id, task_status);  -- Optimizes user-specific status filtering (user's active tasks)
-CREATE INDEX idx_tasks_background_processing ON tasks(task_type, task_status, created_at) WHERE task_status = 'queueing';  -- Optimizes background processor task selection (only queueing tasks)
 ```
 
 #### Key Features:
@@ -89,8 +78,6 @@ CREATE TABLE chat_evaluation_input (
 );
 
 CREATE INDEX idx_chat_eval_input_task_id ON chat_evaluation_input(task_id);  -- Optimizes queries filtering by task_id (get all input for a task)
-CREATE INDEX idx_chat_eval_input_row_number ON chat_evaluation_input(task_id, row_number);  -- Optimizes lookup of specific row within a task
-CREATE INDEX idx_chat_eval_input_created_at ON chat_evaluation_input(created_at DESC);  -- Optimizes chronological ordering of input records
 ```
 
 #### Column Descriptions:
@@ -106,7 +93,7 @@ Stores processing results and similarity scores for each evaluated question.
 CREATE TABLE chat_evaluation_output (
     id BIGSERIAL PRIMARY KEY,  -- Auto-incrementing primary key for internal record identification
     task_id UUID NOT NULL,  -- Links to parent task in tasks table
-    row_number INTEGER NOT NULL,  -- Corresponds to row_number in chat_evaluation_input table
+    input_id BIGINT NOT NULL,  -- Links to specific input row in chat_evaluation_input table
     api_answer TEXT NOT NULL,  -- Answer returned by the API/LLM service for evaluation
     api_citations JSONB NOT NULL,  -- Array of citation URLs returned by the API/LLM service
     answer_similarity DECIMAL(5,4) NOT NULL,  -- Similarity score between api_answer and golden_answer (0.0 to 1.0)
@@ -114,17 +101,13 @@ CREATE TABLE chat_evaluation_output (
     processing_time_ms INTEGER,  -- Time in milliseconds taken to process this specific row
     api_response_metadata JSONB,  -- Full API response metadata for debugging and analysis
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  -- Timestamp when evaluation result was created by background processor
-    CONSTRAINT unique_task_row_results UNIQUE (task_id, row_number),  -- Ensures only one result per task row (1:1 with input)
-    CONSTRAINT fk_task_results FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,  -- Maintains referential integrity with tasks table, cascades on delete
-    CONSTRAINT valid_row_number_results CHECK (row_number > 0),  -- Ensures row numbers are positive and match input table
+    CONSTRAINT unique_input_result UNIQUE (input_id),  -- Ensures only one result per input row (1:1 relationship)
+    CONSTRAINT fk_input_result FOREIGN KEY (input_id) REFERENCES chat_evaluation_input(id) ON DELETE CASCADE,  -- Maintains referential integrity with input table, cascades on delete
     CONSTRAINT valid_answer_similarity CHECK (answer_similarity >= 0 AND answer_similarity <= 1),  -- Ensures answer similarity is valid percentage (0-100% as 0.0-1.0)
     CONSTRAINT valid_citation_similarity CHECK (citation_similarity >= 0 AND citation_similarity <= 1),  -- Ensures citation similarity is valid percentage (0-100% as 0.0-1.0)
     CONSTRAINT valid_processing_time CHECK (processing_time_ms >= 0),  -- Ensures processing time is non-negative
     CONSTRAINT valid_api_citations_format CHECK (JSON_TYPE(api_citations) = 'ARRAY')  -- Ensures api_citations is stored as JSON array format
 );
 
-CREATE INDEX idx_chat_eval_output_task_id ON chat_evaluation_output(task_id);  -- Optimizes queries filtering by task_id (get all results for a task)
-CREATE INDEX idx_chat_eval_output_row_number ON chat_evaluation_output(task_id, row_number);  -- Optimizes lookup of specific result row within a task
-CREATE INDEX idx_chat_eval_output_similarity ON chat_evaluation_output(answer_similarity, citation_similarity);  -- Optimizes filtering and sorting by similarity scores for analysis
-CREATE INDEX idx_chat_eval_output_created_at ON chat_evaluation_output(created_at DESC);  -- Optimizes chronological ordering of evaluation results
+CREATE INDEX idx_chat_eval_output_input_id ON chat_evaluation_output(input_id);  -- Optimizes queries filtering by input_id (get result for specific input)
 ```
