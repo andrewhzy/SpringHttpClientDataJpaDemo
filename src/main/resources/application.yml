@@ -72,7 +72,7 @@ management:
 # Application-specific Configuration
 app:
   file:
-    max-size: 100MB
+    max-size: 104857600  # 100MB in bytes
     allowed-types: .xlsx,.xls
   excel:
     max-sheets: 10
