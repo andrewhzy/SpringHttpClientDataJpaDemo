@@ -43,10 +43,10 @@ public class TaskService {
         String filename = filePart.filename();
         Flux<DataBuffer> fileContent = filePart.content();
         
-        return excelParsingService.validateExcelFile(filename, null)
+        return excelParsingService.validateExcelFile(filename, fileContent)
             .flatMap(isValid -> {
                 if (!isValid) {
-                    return Mono.error(new IllegalArgumentException("Invalid Excel file format"));
+                    return Mono.error(new IllegalArgumentException("Invalid Excel file format or structure"));
                 }
                 return excelParsingService.parseExcelFile(fileContent, filename);
             })

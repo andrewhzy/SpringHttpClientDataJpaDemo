@@ -27,16 +27,17 @@ public class ExcelParsingService {
     }
 
     /**
-     * Validate Excel file format and size
+     * Validate Excel file format and structure
      * @param filename Original filename
-     * @param fileSize File size in bytes
+     * @param fileContent Reactive stream of file data
      * @return Validation result
      */
-    public Mono<Boolean> validateExcelFile(String filename, Long fileSize) {
+    public Mono<Boolean> validateExcelFile(String filename, Flux<DataBuffer> fileContent) {
         // TODO: Implement file validation
         // - Check file extension (.xlsx, .xls)
-        // - Validate file size limits
-        // - Basic file format validation
+        // - Validate file structure and headers
+        // - Check for required columns: question, golden_answer, golden_citations
+        // - Validate Excel format integrity
         
         throw new UnsupportedOperationException("Excel validation not yet implemented");
     }
