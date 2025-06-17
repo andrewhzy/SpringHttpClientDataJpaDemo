@@ -23,7 +23,7 @@ import java.util.UUID;
            @Index(name = "idx_chat_eval_input_task_id", columnList = "task_id")
        },
        uniqueConstraints = {
-           @UniqueConstraint(name = "unique_task_row_content", columnNames = {"task_id", "row_number"})
+           @UniqueConstraint(name = "unique_task_row_content", columnNames = {"task_id", "question_row"})
        })
 @Data
 @NoArgsConstructor
@@ -39,7 +39,7 @@ public class ChatEvaluationInput {
     @Column(name = "task_id", nullable = false)
     private UUID taskId;
     
-    @Column(name = "row_number", nullable = false)
+    @Column(name = "question_row", nullable = false)
     private Integer rowNumber;
     
     @Column(name = "question", nullable = false, columnDefinition = "TEXT")
