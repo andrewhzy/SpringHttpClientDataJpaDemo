@@ -1,0 +1,24 @@
+spring:
+  # Production-specific overrides
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Strict validation in production
+    show-sql: false       # Never show SQL in production
+  
+  # Production logging
+  logging:
+    level:
+      com.example.springhttpclientdatajpademo: WARN
+      org.springframework.web: WARN
+      org.hibernate.SQL: WARN
+      org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    pattern:
+      console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n"
+
+# Production-specific settings
+app:
+  file:
+    max-size: 52428800  # 50MB in production (smaller than dev)
+  excel:
+    max-sheets: 5       # More restrictive in production
+    max-rows-per-sheet: 5000 

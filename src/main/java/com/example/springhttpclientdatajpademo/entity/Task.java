@@ -17,7 +17,9 @@ import java.util.UUID;
  * Task entity representing a chat evaluation task
  */
 @Entity
-@Table(name = "tasks")
+@Table(name = "tasks", indexes = {
+    @Index(name = "idx_tasks_user_id", columnList = "user_id")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

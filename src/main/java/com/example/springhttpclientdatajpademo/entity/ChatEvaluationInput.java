@@ -1,6 +1,6 @@
 package com.example.springhttpclientdatajpademo.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,13 +12,19 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.UUID;
 
 /**
- * ChatEvaluationInput entity representing input data for chat evaluation tasks
+ * Chat evaluation input data entity
  */
 @Entity
-@Table(name = "chat_evaluation_input")
+@Table(name = "chat_evaluation_input", 
+       indexes = {
+           @Index(name = "idx_chat_eval_input_task_id", columnList = "task_id")
+       },
+       uniqueConstraints = {
+           @UniqueConstraint(name = "unique_task_row_content", columnNames = {"task_id", "row_number"})
+       })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,10 +36,8 @@ public class ChatEvaluationInput {
     @Column(name = "id")
     private Long id;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id", nullable = false)
-    @JsonIgnore
-    private Task task;
+    @Column(name = "task_id", nullable = false)
+    private UUID taskId;
     
     @Column(name = "row_number", nullable = false)
     private Integer rowNumber;
@@ -46,11 +50,11 @@ public class ChatEvaluationInput {
     
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "golden_citations", nullable = false, columnDefinition = "JSON")
-    private List<String> goldenCitations;
+    private JsonNode goldenCitations;
     
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata", columnDefinition = "JSON")
-    private Object metadata;
+    private JsonNode metadata;
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -59,6 +63,11 @@ public class ChatEvaluationInput {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+    
+    // Many-to-one relationship with Task
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "task_id", insertable = false, updatable = false)
+    private Task task;
     
     // One-to-one relationship with output data
     @OneToOne(mappedBy = "input", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
