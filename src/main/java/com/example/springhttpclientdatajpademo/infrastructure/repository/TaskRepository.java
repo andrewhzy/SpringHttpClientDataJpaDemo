@@ -1,6 +1,6 @@
-package com.example.springhttpclientdatajpademo.domain.repository;
+package com.example.springhttpclientdatajpademo.infrastructure.repository;
 
-import com.example.springhttpclientdatajpademo.domain.model.Task;
+import com.example.springhttpclientdatajpademo.domain.task.model.Task;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,20 +11,19 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Repository for Task aggregate root
  * Combines domain interface with JPA implementation
  */
 @Repository
-public interface TaskRepository extends JpaRepository<Task, UUID> {
+public interface TaskRepository extends JpaRepository<Task, Long> {
     
     // Basic domain queries
-    Optional<Task> findByIdAndUserId(UUID id, String userId);
+    Optional<Task> findByIdAndUserId(Long id, String userId);
     List<Task> findByUserId(String userId);
     List<Task> findByUserIdAndTaskStatus(String userId, Task.TaskStatus status);
-    List<Task> findByUploadBatchIdOrderByCreatedAtDesc(UUID uploadBatchId);
+    List<Task> findByUploadBatchIdOrderByCreatedAtDesc(Long uploadBatchId);
     long countByUserId(String userId);
     long countByUserIdAndTaskStatus(String userId, Task.TaskStatus status);
     
@@ -42,9 +41,9 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
     
     @Query("SELECT t FROM Task t WHERE t.id = :taskId AND t.userId = :userId " +
            "AND t.taskStatus IN ('QUEUEING', 'PROCESSING')")
-    Optional<Task> findCancellableTask(@Param("taskId") UUID taskId, @Param("userId") String userId);
+    Optional<Task> findCancellableTask(@Param("taskId") Long taskId, @Param("userId") String userId);
     
     @Query("SELECT t FROM Task t WHERE t.id = :taskId AND t.userId = :userId " +
            "AND t.taskStatus != 'PROCESSING'")
-    Optional<Task> findDeletableTask(@Param("taskId") UUID taskId, @Param("userId") String userId);
+    Optional<Task> findDeletableTask(@Param("taskId") Long taskId, @Param("userId") String userId);
 } 

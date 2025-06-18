@@ -1,6 +1,6 @@
 package com.example.springhttpclientdatajpademo.infrastructure.web.exception;
 
-import com.example.springhttpclientdatajpademo.dto.ErrorResponse;
+import com.example.springhttpclientdatajpademo.application.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

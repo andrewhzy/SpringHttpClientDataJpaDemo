@@ -1,13 +1,12 @@
-package com.example.springhttpclientdatajpademo.domain.event;
+package com.example.springhttpclientdatajpademo.domain.task.event;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * Domain event raised when a task starts processing
  */
 public record TaskStartedEvent(
-    UUID taskId,
+    Long taskId,
     LocalDateTime startedAt,
     Integer totalRows
 ) {

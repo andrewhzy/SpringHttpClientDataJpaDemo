@@ -1,5 +1,6 @@
-package com.example.springhttpclientdatajpademo.domain.model;
+package com.example.springhttpclientdatajpademo.domain.chatevaluation.model;
 
+import com.example.springhttpclientdatajpademo.domain.task.model.Task;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -7,11 +8,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * Entity representing output/results of chat evaluation tasks
@@ -29,9 +28,9 @@ import java.util.UUID;
 public class ChatEvaluationOutput {
     
     @Id
-    @UuidGenerator
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+    private Long id;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_id", nullable = false)

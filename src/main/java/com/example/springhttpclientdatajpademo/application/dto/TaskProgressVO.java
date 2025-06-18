@@ -1,4 +1,4 @@
-package com.example.springhttpclientdatajpademo.dto;
+package com.example.springhttpclientdatajpademo.application.dto;
 
 import lombok.Value;
 

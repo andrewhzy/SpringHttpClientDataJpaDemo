@@ -2,8 +2,7 @@ package com.example.springhttpclientdatajpademo.infrastructure.web;
 
 import com.example.springhttpclientdatajpademo.application.dto.CreateTaskCommand;
 import com.example.springhttpclientdatajpademo.application.service.TaskApplicationService;
-import com.example.springhttpclientdatajpademo.dto.UploadResponse;
-import jakarta.validation.Valid;
+import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;

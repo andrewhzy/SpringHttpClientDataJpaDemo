@@ -1,7 +1,9 @@
-package com.example.springhttpclientdatajpademo.domain.model;
+package com.example.springhttpclientdatajpademo.domain.task.model;
 
-import com.example.springhttpclientdatajpademo.domain.event.TaskCompletedEvent;
-import com.example.springhttpclientdatajpademo.domain.event.TaskStartedEvent;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationOutput;
+import com.example.springhttpclientdatajpademo.domain.task.event.TaskCompletedEvent;
+import com.example.springhttpclientdatajpademo.domain.task.event.TaskStartedEvent;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,13 +11,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Task aggregate root representing a chat evaluation task
@@ -32,9 +32,9 @@ import java.util.UUID;
 public class Task {
     
     @Id
-    @UuidGenerator
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+    private Long id;
     
     @Column(name = "user_id", nullable = false)
     private String userId;
@@ -55,7 +55,7 @@ public class Task {
     private TaskStatus taskStatus = TaskStatus.QUEUEING;
     
     @Column(name = "upload_batch_id", nullable = false)
-    private UUID uploadBatchId;
+    private Long uploadBatchId;
     
     @Column(name = "row_count", nullable = false)
     @Builder.Default
@@ -221,64 +221,64 @@ public class Task {
     }
     
     /**
-     * Calculate progress percentage based on processed rows
+     * Get progress percentage
      */
     public Integer getProgressPercentage() {
         if (rowCount == null || rowCount == 0) {
             return 0;
         }
-        return (int) Math.round((double) processedRows / rowCount * 100);
+        return Math.round((processedRows.floatValue() / rowCount.floatValue()) * 100);
     }
     
     /**
      * Get estimated completion time based on current progress
      */
     public LocalDateTime getEstimatedCompletionTime() {
-        if (this.startedAt == null || this.processedRows == 0) {
+        if (this.taskStatus != TaskStatus.PROCESSING || 
+            this.startedAt == null || 
+            this.processedRows == 0 || 
+            this.rowCount == 0) {
             return null;
         }
         
-        long elapsedSeconds = java.time.Duration.between(this.startedAt, LocalDateTime.now()).getSeconds();
-        double rowsPerSecond = (double) this.processedRows / elapsedSeconds;
-        
-        if (rowsPerSecond <= 0) {
-            return null;
+        long elapsedMinutes = java.time.Duration.between(this.startedAt, LocalDateTime.now()).toMinutes();
+        if (elapsedMinutes == 0) {
+            elapsedMinutes = 1; // Avoid division by zero
         }
         
+        double avgMinutesPerRow = (double) elapsedMinutes / this.processedRows;
         int remainingRows = this.rowCount - this.processedRows;
-        long estimatedRemainingSeconds = (long) (remainingRows / rowsPerSecond);
+        long estimatedRemainingMinutes = Math.round(avgMinutesPerRow * remainingRows);
         
-        return LocalDateTime.now().plusSeconds(estimatedRemainingSeconds);
+        return LocalDateTime.now().plusMinutes(estimatedRemainingMinutes);
     }
     
     /**
-     * Get input data count safely
+     * Get count of input data records
      */
     public int getInputDataCount() {
         return inputData != null ? inputData.size() : 0;
     }
     
     /**
-     * Get output data count safely
+     * Get count of output data records
      */
     public int getOutputDataCount() {
         return outputData != null ? outputData.size() : 0;
     }
     
-    // Domain Events Management
-    
     /**
-     * Get domain events (immutable view)
+     * Get domain events for publishing
      */
     public List<Object> getDomainEvents() {
         return Collections.unmodifiableList(domainEvents);
     }
     
     /**
-     * Clear domain events (typically called after publishing)
+     * Clear domain events after publishing
      */
     public void clearDomainEvents() {
-        this.domainEvents.clear();
+        domainEvents.clear();
     }
     
     /**

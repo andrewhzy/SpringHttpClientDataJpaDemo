@@ -1,8 +1,8 @@
-package com.example.springhttpclientdatajpademo.domain.service;
+package com.example.springhttpclientdatajpademo.domain.chatevaluation.service;
 
-import com.example.springhttpclientdatajpademo.domain.model.ChatEvaluationInput;
-import com.example.springhttpclientdatajpademo.domain.model.ChatEvaluationOutput;
-import com.example.springhttpclientdatajpademo.domain.model.Task;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationOutput;
+import com.example.springhttpclientdatajpademo.domain.task.model.Task;
 
 import java.math.BigDecimal;
 import java.util.List;

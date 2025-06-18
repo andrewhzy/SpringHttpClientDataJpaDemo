@@ -1,10 +1,9 @@
-package com.example.springhttpclientdatajpademo.dto;
+package com.example.springhttpclientdatajpademo.application.dto;
 
-import com.example.springhttpclientdatajpademo.domain.model.Task;
+import com.example.springhttpclientdatajpademo.domain.task.model.Task;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * Read-Only object for task list queries
@@ -12,7 +11,7 @@ import java.util.UUID;
  */
 public record TaskListRO(
     @JsonProperty("task_id")
-    UUID taskId,
+    Long taskId,
     
     @JsonProperty("filename") 
     String filename,

@@ -1,4 +1,4 @@
-package com.example.springhttpclientdatajpademo.dto;
+package com.example.springhttpclientdatajpademo.application.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Response DTO for Excel file upload operations
@@ -19,7 +18,7 @@ import java.util.UUID;
 public class UploadResponse {
     
     @JsonProperty("upload_batch_id")
-    private UUID uploadBatchId;
+    private Long uploadBatchId;
     
     @JsonProperty("tasks")
     private List<TaskSummary> tasks;
@@ -40,7 +39,7 @@ public class UploadResponse {
     public static class TaskSummary {
         
         @JsonProperty("task_id")
-        private UUID taskId;
+        private Long taskId;
         
         @JsonProperty("sheet_name")
         private String sheetName;

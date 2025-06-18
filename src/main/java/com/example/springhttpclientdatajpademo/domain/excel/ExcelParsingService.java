@@ -1,6 +1,6 @@
-package com.example.springhttpclientdatajpademo.infrastructure.external;
+package com.example.springhttpclientdatajpademo.domain.excel;
 
-import com.example.springhttpclientdatajpademo.domain.model.ChatEvaluationInput;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;

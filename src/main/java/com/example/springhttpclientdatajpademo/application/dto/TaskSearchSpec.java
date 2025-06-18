@@ -1,6 +1,6 @@
-package com.example.springhttpclientdatajpademo.dto;
+package com.example.springhttpclientdatajpademo.application.dto;
 
-import com.example.springhttpclientdatajpademo.domain.model.Task;
+import com.example.springhttpclientdatajpademo.domain.task.model.Task;
 import lombok.Builder;
 import lombok.Value;
 
