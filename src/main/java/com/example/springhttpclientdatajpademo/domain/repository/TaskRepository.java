@@ -1,6 +1,12 @@
 package com.example.springhttpclientdatajpademo.domain.repository;
 
 import com.example.springhttpclientdatajpademo.domain.model.Task;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -8,73 +14,37 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Domain repository interface for Task aggregate
- * Clean of infrastructure concerns
+ * Repository for Task aggregate root
+ * Combines domain interface with JPA implementation
  */
-public interface TaskRepository {
+@Repository
+public interface TaskRepository extends JpaRepository<Task, UUID> {
     
-    /**
-     * Save a task (create or update)
-     */
-    Task save(Task task);
-    
-    /**
-     * Find task by ID
-     */
-    Optional<Task> findById(UUID id);
-    
-    /**
-     * Find task by ID and user ID (for ownership validation)
-     */
+    // Basic domain queries
     Optional<Task> findByIdAndUserId(UUID id, String userId);
-    
-    /**
-     * Find all tasks for a user
-     */
     List<Task> findByUserId(String userId);
+    List<Task> findByUserIdAndTaskStatus(String userId, Task.TaskStatus status);
+    List<Task> findByUploadBatchIdOrderByCreatedAtDesc(UUID uploadBatchId);
+    long countByUserId(String userId);
+    long countByUserIdAndTaskStatus(String userId, Task.TaskStatus status);
     
-    /**
-     * Find tasks by user and status
-     */
-    List<Task> findByUserIdAndStatus(String userId, Task.TaskStatus status);
+    // Pagination queries
+    Page<Task> findByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
+    Page<Task> findByUserIdAndTaskStatusOrderByCreatedAtDesc(String userId, Task.TaskStatus taskStatus, Pageable pageable);
+    Page<Task> findByUserIdAndTaskTypeOrderByCreatedAtDesc(String userId, Task.TaskType taskType, Pageable pageable);
+    Page<Task> findByUserIdAndFilenameContainingIgnoreCaseOrderByCreatedAtDesc(String userId, String filename, Pageable pageable);
+    Page<Task> findByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(String userId, LocalDateTime createdAfter, Pageable pageable);
+    Page<Task> findByUserIdAndCreatedAtBeforeOrderByCreatedAtDesc(String userId, LocalDateTime createdBefore, Pageable pageable);
     
-    /**
-     * Find tasks by upload batch ID
-     */
-    List<Task> findByUploadBatchId(UUID uploadBatchId);
-    
-    /**
-     * Find tasks ready for processing (queued status)
-     */
+    // Business-specific queries
+    @Query("SELECT t FROM Task t WHERE t.taskStatus = 'QUEUEING' AND t.rowCount > 0 ORDER BY t.createdAt ASC")
     List<Task> findTasksReadyForProcessing();
     
-    /**
-     * Find tasks that can be cancelled
-     */
-    Optional<Task> findCancellableTask(UUID taskId, String userId);
+    @Query("SELECT t FROM Task t WHERE t.id = :taskId AND t.userId = :userId " +
+           "AND t.taskStatus IN ('QUEUEING', 'PROCESSING')")
+    Optional<Task> findCancellableTask(@Param("taskId") UUID taskId, @Param("userId") String userId);
     
-    /**
-     * Find tasks that can be deleted
-     */
-    Optional<Task> findDeletableTask(UUID taskId, String userId);
-    
-    /**
-     * Count tasks by user ID
-     */
-    long countByUserId(String userId);
-    
-    /**
-     * Count tasks by user ID and status
-     */
-    long countByUserIdAndStatus(String userId, Task.TaskStatus status);
-    
-    /**
-     * Delete a task
-     */
-    void delete(Task task);
-    
-    /**
-     * Check if task exists
-     */
-    boolean existsById(UUID id);
+    @Query("SELECT t FROM Task t WHERE t.id = :taskId AND t.userId = :userId " +
+           "AND t.taskStatus != 'PROCESSING'")
+    Optional<Task> findDeletableTask(@Param("taskId") UUID taskId, @Param("userId") String userId);
 } 

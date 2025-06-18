@@ -1,4 +1,4 @@
-package com.example.springhttpclientdatajpademo.exception;
+package com.example.springhttpclientdatajpademo.infrastructure.web.exception;
 
 import com.example.springhttpclientdatajpademo.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;

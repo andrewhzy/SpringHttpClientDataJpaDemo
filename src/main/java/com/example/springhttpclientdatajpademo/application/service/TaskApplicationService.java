@@ -6,7 +6,6 @@ import com.example.springhttpclientdatajpademo.domain.model.ChatEvaluationInput;
 import com.example.springhttpclientdatajpademo.domain.model.Task;
 import com.example.springhttpclientdatajpademo.domain.repository.ChatEvaluationInputRepository;
 import com.example.springhttpclientdatajpademo.domain.repository.TaskRepository;
-import com.example.springhttpclientdatajpademo.infrastructure.persistence.JpaChatEvaluationInputRepository;
 import com.example.springhttpclientdatajpademo.infrastructure.external.ExcelParsingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +30,7 @@ import java.util.UUID;
 public class TaskApplicationService {
     
     private final TaskRepository taskRepository;
-    private final JpaChatEvaluationInputRepository inputRepository;
+    private final ChatEvaluationInputRepository inputRepository;
     private final ExcelParsingService excelParsingService;
     private final ApplicationEventPublisher eventPublisher;
     
@@ -87,10 +86,8 @@ public class TaskApplicationService {
             log.info("Created task {} for sheet: {}, rows: {}", task.getId(), sheetName, inputData.size());
             
             // Associate input data with task and save
-            for (int i = 0; i < inputData.size(); i++) {
-                ChatEvaluationInput input = inputData.get(i);
+            for (ChatEvaluationInput input : inputData) {
                 input.setTask(task);
-                input.setRowNumber(i + 1); // Row numbers start from 1
             }
             
             inputRepository.saveAll(inputData);
@@ -218,7 +215,7 @@ public class TaskApplicationService {
      * @return list of tasks matching criteria
      */
     public List<Task> getTasksByStatusForUser(String userId, Task.TaskStatus status) {
-        return taskRepository.findByUserIdAndStatus(userId, status);
+        return taskRepository.findByUserIdAndTaskStatus(userId, status);
     }
     
     /**

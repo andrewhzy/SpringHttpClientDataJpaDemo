@@ -2,50 +2,20 @@ package com.example.springhttpclientdatajpademo.domain.repository;
 
 import com.example.springhttpclientdatajpademo.domain.model.ChatEvaluationOutput;
 import com.example.springhttpclientdatajpademo.domain.model.Task;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Domain repository interface for ChatEvaluationOutput
+ * Repository for ChatEvaluationOutput entities
  */
-public interface ChatEvaluationOutputRepository {
+@Repository
+public interface ChatEvaluationOutputRepository extends JpaRepository<ChatEvaluationOutput, UUID> {
     
-    /**
-     * Save output data
-     */
-    ChatEvaluationOutput save(ChatEvaluationOutput output);
-    
-
-    
-    /**
-     * Find output by ID
-     */
-    Optional<ChatEvaluationOutput> findById(UUID id);
-    
-    /**
-     * Find all outputs for a task
-     */
     List<ChatEvaluationOutput> findByTask(Task task);
-    
-    /**
-     * Find outputs by task ID
-     */
     List<ChatEvaluationOutput> findByTaskId(UUID taskId);
-    
-    /**
-     * Count outputs for a task
-     */
     long countByTask(Task task);
-    
-    /**
-     * Delete output
-     */
-    void delete(ChatEvaluationOutput output);
-    
-    /**
-     * Delete all outputs for a task
-     */
     void deleteByTask(Task task);
 } 
