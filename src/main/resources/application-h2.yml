@@ -1,0 +1,38 @@
+spring:
+  # JPA Configuration for H2 (Development only)
+  datasource:
+    url: jdbc:h2:mem:task_management;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+
+  # JPA/Hibernate Configuration for H2
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # Let Hibernate create tables automatically
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+  # Disable SQL initialization - let JPA handle table creation
+  sql:
+    init:
+      mode: never
+
+  # H2 Console (for debugging)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+# Logging Configuration for Development
+logging:
+  level:
+    com.example.springhttpclientdatajpademo: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n" 
