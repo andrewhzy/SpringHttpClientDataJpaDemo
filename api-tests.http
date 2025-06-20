@@ -17,6 +17,34 @@ Content-Disposition: form-data; name="description"
 API test upload
 --boundary123--
 
+### Expected Response:
+### HTTP/1.1 201 Created
+### Content-Type: application/json
+### {
+###   "upload_batch_id": "a827facc-b5b3-4769-b588-1c77cc4d50a7",
+###   "filename": "chat-evaluation-QnA.xlsx",
+###   "tasks": [
+###     {
+###       "task_id": "1",
+###       "filename": "chat-evaluation-QnA.xlsx",
+###       "sheet_name": "uc-1",
+###       "task_type": "chat-evaluation",
+###       "status": "queueing",
+###       "row_count": 13
+###     },
+###     {
+###       "task_id": "2", 
+###       "filename": "chat-evaluation-QnA.xlsx",
+###       "sheet_name": "uc-2",
+###       "task_type": "chat-evaluation", 
+###       "status": "queueing",
+###       "row_count": 11
+###     }
+###   ],
+###   "total_sheets": 2,
+###   "message": "Successfully created 2 tasks with 24 total questions"
+### }
+
 ###
 
 ### Get All Tasks (if endpoint exists)

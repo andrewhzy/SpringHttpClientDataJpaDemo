@@ -123,6 +123,7 @@ public class TaskApplicationService implements TaskService {
                 // Create task summary
                 final UploadResponse.TaskSummary taskSummary = UploadResponse.TaskSummary.builder()
                         .taskId(savedTask.getId().toString())
+                        .filename(command.getFile().getOriginalFilename())
                         .sheetName(sheetName)
                         .taskType(Task.TaskType.CHAT_EVALUATION.getValue())
                         .status(Task.TaskStatus.QUEUEING.getValue())
@@ -142,6 +143,7 @@ public class TaskApplicationService implements TaskService {
             // 5. Build response
             final UploadResponse response = UploadResponse.builder()
                     .uploadBatchId(uploadBatchId)
+                    .filename(command.getFile().getOriginalFilename())
                     .tasks(taskSummaries)
                     .totalSheets(taskSummaries.size())
                     .message(String.format("Successfully created %d tasks with %d total questions", 

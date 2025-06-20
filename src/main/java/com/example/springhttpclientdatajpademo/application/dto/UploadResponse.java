@@ -21,6 +21,9 @@ public class UploadResponse {
     @JsonProperty("upload_batch_id")
     private String uploadBatchId;
     
+    @JsonProperty("filename")
+    private String filename;
+    
     @JsonProperty("tasks")
     private List<TaskSummary> tasks;
     
@@ -41,6 +44,9 @@ public class UploadResponse {
         
         @JsonProperty("task_id")
         private String taskId;
+        
+        @JsonProperty("filename")
+        private String filename;
         
         @JsonProperty("sheet_name")
         private String sheetName;
