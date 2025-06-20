@@ -34,7 +34,7 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
     private static final String GOLDEN_CITATIONS_COLUMN = "golden_citations";
     
     @Override
-    public Map<String, List<ChatEvaluationInput>> parseExcelFile(MultipartFile file) throws IOException {
+    public Map<String, List<ChatEvaluationInput>> parseExcelFile(MultipartFile file) {
         log.info("Parsing Excel file: {}, size: {} bytes", file.getOriginalFilename(), file.getSize());
         
         // Validate file first
@@ -76,11 +76,15 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
                     result.values().stream().mapToInt(List::size).sum());
             
             return result;
+            
+        } catch (IOException e) {
+            log.error("Failed to parse Excel file: {}", file.getOriginalFilename(), e);
+            throw new IllegalArgumentException("Failed to parse Excel file: " + e.getMessage(), e);
         }
     }
     
     @Override
-    public void validateExcelFile(MultipartFile file) throws IOException {
+    public void validateExcelFile(MultipartFile file)  {
         // Basic file validation
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File cannot be null or empty");

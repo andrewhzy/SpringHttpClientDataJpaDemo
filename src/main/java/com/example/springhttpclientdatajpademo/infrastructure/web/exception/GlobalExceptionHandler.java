@@ -1,6 +1,7 @@
 package com.example.springhttpclientdatajpademo.infrastructure.web.exception;
 
 import com.example.springhttpclientdatajpademo.application.dto.ErrorResponse;
+import com.example.springhttpclientdatajpademo.application.service.TaskApplicationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -117,6 +118,42 @@ public class GlobalExceptionHandler {
         );
         
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+    
+    /**
+     * Handle custom file processing exceptions
+     */
+    @ExceptionHandler(TaskApplicationService.FileProcessingException.class)
+    public ResponseEntity<ErrorResponse> handleFileProcessingException(TaskApplicationService.FileProcessingException ex) {
+        log.error("File processing error: {}", ex.getMessage(), ex);
+        
+        ErrorResponse errorResponse = buildErrorResponse(
+                "FILE_PROCESSING_ERROR",
+                ex.getMessage(),
+                "Please ensure the file is a valid Excel file (.xlsx or .xls) and try again",
+                null
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+    
+    /**
+     * Handle custom task validation exceptions
+     */
+    @ExceptionHandler(TaskApplicationService.TaskValidationException.class)
+    public ResponseEntity<ErrorResponse> handleTaskValidationException(TaskApplicationService.TaskValidationException ex) {
+        log.warn("Task validation error: {}", ex.getMessage());
+        
+        String errorCode = determineErrorCode(ex.getMessage());
+        
+        ErrorResponse errorResponse = buildErrorResponse(
+                errorCode,
+                ex.getMessage(),
+                "Please check your Excel file structure and try again",
+                null
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
     
     /**

@@ -1,6 +1,7 @@
 package com.example.springhttpclientdatajpademo.domain.chatevaluation.model;
 
 import com.example.springhttpclientdatajpademo.domain.task.model.Task;
+import com.example.springhttpclientdatajpademo.infrastructure.converter.StringListConverter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -43,7 +44,8 @@ public class ChatEvaluationInput {
     @Column(name = "golden_answer", nullable = false, columnDefinition = "TEXT")
     private String goldenAnswer;
     
-    @Column(name = "golden_citations", columnDefinition = "JSON")
+    @Column(name = "golden_citations", columnDefinition = "TEXT")
+    @Convert(converter = StringListConverter.class)
     private List<String> goldenCitations;
     
     @CreationTimestamp

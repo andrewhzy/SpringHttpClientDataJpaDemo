@@ -3,13 +3,16 @@ package com.example.springhttpclientdatajpademo.application.excel;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Service interface for parsing Excel files for chat evaluation tasks
  * Focus on POST /rest/v1/tasks endpoint requirements
+ * 
+ * Note: This interface does not declare checked exceptions.
+ * Implementations should convert any checked exceptions to appropriate 
+ * unchecked exceptions for clean client code.
  */
 public interface ExcelParsingService {
     
@@ -25,10 +28,9 @@ public interface ExcelParsingService {
      * 
      * @param file the Excel file to parse
      * @return map of sheet names to list of chat evaluation inputs
-     * @throws IOException if file cannot be read or parsed
-     * @throws IllegalArgumentException if file validation fails
+     * @throws RuntimeException if file cannot be read or parsed (unchecked)
      */
-    Map<String, List<ChatEvaluationInput>> parseExcelFile(MultipartFile file) throws IOException;
+    Map<String, List<ChatEvaluationInput>> parseExcelFile(MultipartFile file);
     
     /**
      * Validate Excel file format and structure
@@ -41,8 +43,7 @@ public interface ExcelParsingService {
      * - No more than 1,000 rows per sheet
      * 
      * @param file the Excel file to validate
-     * @throws IllegalArgumentException if file validation fails
-     * @throws IOException if file cannot be read
+     * @throws RuntimeException if file validation fails (unchecked)
      */
-    void validateExcelFile(MultipartFile file) throws IOException;
+    void validateExcelFile(MultipartFile file);
 } 

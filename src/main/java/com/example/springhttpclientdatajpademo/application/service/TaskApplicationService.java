@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -28,7 +29,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class TaskApplicationService {
+public class TaskApplicationService implements TaskService {
 
     private final TaskRepository taskRepository;
     private final ChatEvaluationInputRepository inputRepository;
@@ -36,20 +37,43 @@ public class TaskApplicationService {
     private final ApplicationEventPublisher eventPublisher;
 
     /**
+     * Create task from Excel upload - simplified method for controller
+     *
+     * @param file the Excel file to process
+     * @param description optional description for the upload batch
+     * @return upload response with created tasks
+     * @throws FileProcessingException if file processing fails
+     * @throws TaskValidationException if file validation fails
+     */
+    public UploadResponse createTaskFromExcel(MultipartFile file, String description) {
+        // TODO: Extract user ID from JWT token when authentication is implemented
+        String userId = getCurrentUserId();
+
+        // Create command internally
+        CreateTaskCommand command = CreateTaskCommand.builder()
+                .file(file)
+                .userId(userId)
+                .description(description)
+                .build();
+
+        return createTaskFromExcel(command);
+    }
+
+    /**
      * Create task from Excel upload - main use case for POST /rest/v1/tasks
      *
      * @param command the create task command
      * @return upload response with created tasks
-     * @throws IOException              if file processing fails
-     * @throws IllegalArgumentException if file validation fails
+     * @throws FileProcessingException if file processing fails
+     * @throws TaskValidationException if file validation fails
      */
     @Transactional
-    public UploadResponse createTaskFromExcel(CreateTaskCommand command) throws IOException {
+    public UploadResponse createTaskFromExcel(CreateTaskCommand command) {
 
-        log.info("Processing Excel upload for user: {}, filename: {}", 
+        log.info("Processing Excel upload for user: {}, filename: {}",
                 command.getUserId(), command.getFile().getOriginalFilename());
 
-        // 1. Validate Excel file (includes file size, type, and structure validation)
+                // 1. Validate Excel file (includes file size, type, and structure validation)
         excelParsingService.validateExcelFile(command.getFile());
 
         // 2. Parse Excel file and extract all sheets with chat evaluation data
@@ -111,11 +135,11 @@ public class TaskApplicationService {
         }
 
         if (taskSummaries.isEmpty()) {
-            throw new IllegalArgumentException("No valid chat evaluation sheets found in Excel file. " +
+            throw new TaskValidationException("No valid chat evaluation sheets found in Excel file. " +
                     "Excel must contain sheets with required columns: question, golden_answer, golden_citations");
         }
 
-        // 5. Build response with correct Long type
+        // 5. Build response
         UploadResponse response = UploadResponse.builder()
                 .uploadBatchId(uploadBatchId)
                 .tasks(taskSummaries)
@@ -138,8 +162,8 @@ public class TaskApplicationService {
     private void publishTaskStartedEvent(Task task) {
         try {
             TaskStartedEvent event = new TaskStartedEvent(
-                    task.getId(), 
-                    LocalDateTime.now(), 
+                    task.getId(),
+                    LocalDateTime.now(),
                     task.getRowCount()
             );
             eventPublisher.publishEvent(event);
@@ -147,6 +171,41 @@ public class TaskApplicationService {
         } catch (Exception e) {
             log.warn("Failed to publish TaskStartedEvent for task: {}, error: {}", task.getId(), e.getMessage());
             // Don't fail the entire operation if event publishing fails
+        }
+    }
+
+    /**
+     * Get current user ID - placeholder implementation
+     * TODO: Extract from JWT token when authentication is implemented
+     *
+     * @return current user ID
+     */
+    private String getCurrentUserId() {
+        // Placeholder implementation - in real app would extract from security context/JWT
+        return "test-user";
+    }
+
+    // Custom Runtime Exceptions for better error handling
+
+    /**
+     * Exception thrown when file processing fails
+     */
+    public static class FileProcessingException extends RuntimeException {
+        public FileProcessingException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    /**
+     * Exception thrown when task validation fails
+     */
+    public static class TaskValidationException extends RuntimeException {
+        public TaskValidationException(String message) {
+            super(message);
+        }
+
+        public TaskValidationException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 } 
