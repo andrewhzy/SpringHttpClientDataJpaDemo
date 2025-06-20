@@ -2,8 +2,9 @@ package com.example.springhttpclientdatajpademo.application.service;
 
 import com.example.springhttpclientdatajpademo.application.dto.CreateTaskCommand;
 import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
-import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
 import com.example.springhttpclientdatajpademo.application.excel.ExcelParsingService;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
+import com.example.springhttpclientdatajpademo.domain.task.event.TaskStartedEvent;
 import com.example.springhttpclientdatajpademo.domain.task.model.Task;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationInputRepository;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.TaskRepository;
@@ -12,17 +13,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.UUID;
 
 /**
- * Application service for task management use cases
- * Orchestrates domain services and repositories
+ * Application service for task creation from Excel upload
+ * Focuses only on the POST /rest/v1/tasks endpoint functionality
  */
 @Service
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class TaskApplicationService {
     private final ApplicationEventPublisher eventPublisher;
 
     /**
-     * Use case: Create task from Excel upload
+     * Create task from Excel upload - main use case for POST /rest/v1/tasks
      *
      * @param command the create task command
      * @return upload response with created tasks
@@ -45,16 +46,20 @@ public class TaskApplicationService {
     @Transactional
     public UploadResponse createTaskFromExcel(CreateTaskCommand command) throws IOException {
 
-        log.info("Processing Excel upload for user: {}, filename: {}", command.getUserId(), command.getFile().getOriginalFilename());
+        log.info("Processing Excel upload for user: {}, filename: {}", 
+                command.getUserId(), command.getFile().getOriginalFilename());
 
-        // 1. Validate Excel file
+        // 1. Validate Excel file (includes file size, type, and structure validation)
         excelParsingService.validateExcelFile(command.getFile());
 
-        // 2. Parse Excel file and extract all sheets
+        // 2. Parse Excel file and extract all sheets with chat evaluation data
         Map<String, List<ChatEvaluationInput>> parsedData = excelParsingService.parseExcelFile(command.getFile());
 
-        // 3. Generate upload batch ID
-        Long uploadBatchId = ThreadLocalRandom.current().nextLong(1000000L, 10000000L);
+        // 3. Generate upload batch ID using UUID for better uniqueness
+        String uploadBatchId = UUID.randomUUID().toString();
+        
+        // Convert to Long for database storage (using hash of UUID for uniqueness)
+        Long uploadBatchIdLong = Math.abs(uploadBatchId.hashCode() % 10000000L) + 1000000L;
 
         // 4. Create tasks for each valid sheet
         List<UploadResponse.TaskSummary> taskSummaries = new ArrayList<>();
@@ -68,14 +73,14 @@ public class TaskApplicationService {
                 continue;
             }
 
-            // Create task using domain model
+            // Create task using domain model with correct field name
             Task task = Task.builder()
                     .userId(command.getUserId())
                     .filename(command.getFile().getOriginalFilename())
                     .sheetName(sheetName)
                     .taskType(Task.TaskType.CHAT_EVALUATION)
                     .taskStatus(Task.TaskStatus.QUEUEING)
-                    .uploadBatchId(uploadBatchId)
+                    .uploadBatchId(uploadBatchIdLong)
                     .rowCount(inputData.size())
                     .processedRows(0)
                     .build();
@@ -92,12 +97,12 @@ public class TaskApplicationService {
             inputRepository.saveAll(inputData);
             log.info("Saved {} input records for task {}", inputData.size(), task.getId());
 
-            // Publish domain events
-            publishDomainEvents(task);
+            // Publish domain event for task creation
+            publishTaskStartedEvent(task);
 
-            // Add to response
+            // Add to response with correct String type for task ID
             taskSummaries.add(UploadResponse.TaskSummary.builder()
-                    .taskId(task.getId())
+                    .taskId(task.getId().toString())
                     .sheetName(sheetName)
                     .taskType(task.getTaskType().getValue())
                     .status(task.getTaskStatus().getValue())
@@ -106,186 +111,42 @@ public class TaskApplicationService {
         }
 
         if (taskSummaries.isEmpty()) {
-            throw new IllegalArgumentException("No valid chat evaluation sheets found in Excel file");
+            throw new IllegalArgumentException("No valid chat evaluation sheets found in Excel file. " +
+                    "Excel must contain sheets with required columns: question, golden_answer, golden_citations");
         }
 
-        // 5. Build response
+        // 5. Build response with correct Long type
         UploadResponse response = UploadResponse.builder()
                 .uploadBatchId(uploadBatchId)
                 .tasks(taskSummaries)
                 .totalSheets(taskSummaries.size())
-                .message(String.format("Successfully created %d tasks from uploaded Excel file",
+                .message(String.format("Successfully created %d tasks from uploaded Excel file", 
                         taskSummaries.size()))
                 .build();
 
-        log.info("Upload processing completed for batch: {}, created {} tasks",
+        log.info("Upload processing completed for batch: {}, created {} tasks", 
                 uploadBatchId, taskSummaries.size());
 
         return response;
     }
 
     /**
-     * Use case: Start task processing
+     * Publish task started event for potential background processing
      *
-     * @param taskId the task ID
-     * @param userId the user ID for ownership validation
+     * @param task the task that was started
      */
-    @Transactional
-    public void startTaskProcessing(Long taskId, String userId) {
-        Task task = getTaskWithOwnershipValidation(taskId, userId);
-
-        // Use domain logic to start processing
-        task.startProcessing();
-
-        taskRepository.save(task);
-        publishDomainEvents(task);
-
-        log.info("Started processing for task: {}", taskId);
-    }
-
-    /**
-     * Use case: Cancel task
-     *
-     * @param taskId the task ID
-     * @param userId the user ID for ownership validation
-     */
-    @Transactional
-    public void cancelTask(Long taskId, String userId) {
-        Task task = taskRepository.findCancellableTask(taskId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("Task not found or cannot be cancelled"));
-
-        // Use domain logic to cancel
-        task.cancel();
-
-        taskRepository.save(task);
-        publishDomainEvents(task);
-
-        log.info("Cancelled task: {}", taskId);
-    }
-
-    /**
-     * Use case: Update task progress
-     *
-     * @param taskId        the task ID
-     * @param processedRows number of processed rows
-     * @param userId        the user ID for ownership validation
-     */
-    @Transactional
-    public void updateTaskProgress(Long taskId, int processedRows, String userId) {
-        Task task = getTaskWithOwnershipValidation(taskId, userId);
-
-        // Use domain logic to update progress
-        task.updateProgress(processedRows);
-
-        taskRepository.save(task);
-        publishDomainEvents(task);
-
-        log.info("Updated progress for task: {} to {}/{}", taskId, processedRows, task.getRowCount());
-    }
-
-    /**
-     * Use case: Get task with ownership validation
-     *
-     * @param taskId the task ID
-     * @param userId the user ID for ownership validation
-     * @return the task if found and owned by user
-     * @throws IllegalArgumentException if task not found or not owned by user
-     */
-    public Task getTaskWithOwnershipValidation(Long taskId, String userId) {
-        return taskRepository.findByIdAndUserId(taskId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("Task not found or access denied"));
-    }
-
-    /**
-     * Use case: Get tasks for user
-     *
-     * @param userId the user ID
-     * @return list of tasks for the user
-     */
-    public List<Task> getTasksForUser(String userId) {
-        return taskRepository.findByUserId(userId);
-    }
-
-    /**
-     * Use case: Get tasks by status for user
-     *
-     * @param userId the user ID
-     * @param status the task status
-     * @return list of tasks matching criteria
-     */
-    public List<Task> getTasksByStatusForUser(String userId, Task.TaskStatus status) {
-        return taskRepository.findByUserIdAndTaskStatus(userId, status);
-    }
-
-    /**
-     * Validate Excel file for chat evaluation requirements
-     *
-     * @param file the Excel file to validate
-     * @throws IllegalArgumentException if validation fails
-     */
-    public void validateExcelForChatEvaluation(MultipartFile file) throws IOException {
-        // Delegate to Excel parsing service
-        excelParsingService.validateExcelFile(file);
-
-        // Additional business logic validation can be added here
-        List<String> sheetNames = excelParsingService.getSheetNames(file);
-
-        boolean hasValidSheet = false;
-        for (String sheetName : sheetNames) {
-            if (excelParsingService.isValidChatEvaluationSheet(sheetName, file)) {
-                hasValidSheet = true;
-                break;
-            }
+    private void publishTaskStartedEvent(Task task) {
+        try {
+            TaskStartedEvent event = new TaskStartedEvent(
+                    task.getId(), 
+                    LocalDateTime.now(), 
+                    task.getRowCount()
+            );
+            eventPublisher.publishEvent(event);
+            log.debug("Published TaskStartedEvent for task: {}", task.getId());
+        } catch (Exception e) {
+            log.warn("Failed to publish TaskStartedEvent for task: {}, error: {}", task.getId(), e.getMessage());
+            // Don't fail the entire operation if event publishing fails
         }
-
-        if (!hasValidSheet) {
-            throw new IllegalArgumentException(
-                    "No valid chat evaluation sheets found. Sheets must contain columns: question, golden_answer, golden_citations");
-        }
-    }
-
-    /**
-     * Check if file size is within limits
-     *
-     * @param file         the file to check
-     * @param maxSizeBytes maximum allowed size in bytes
-     * @throws IllegalArgumentException if file is too large
-     */
-    public void validateFileSize(MultipartFile file, long maxSizeBytes) {
-        if (file.getSize() > maxSizeBytes) {
-            throw new IllegalArgumentException(
-                    String.format("File size %d bytes exceeds maximum limit of %d bytes",
-                            file.getSize(), maxSizeBytes));
-        }
-    }
-
-    /**
-     * Validate file type based on extension
-     *
-     * @param file              the file to validate
-     * @param allowedExtensions list of allowed extensions (e.g., [".xlsx", ".xls"])
-     * @throws IllegalArgumentException if file type is not allowed
-     */
-    public void validateFileType(MultipartFile file, List<String> allowedExtensions) {
-        String filename = file.getOriginalFilename();
-        if (filename == null || filename.trim().isEmpty()) {
-            throw new IllegalArgumentException("Filename cannot be empty");
-        }
-
-        boolean isValidType = allowedExtensions.stream()
-                .anyMatch(ext -> filename.toLowerCase().endsWith(ext.toLowerCase()));
-
-        if (!isValidType) {
-            throw new IllegalArgumentException(
-                    String.format("File type not supported. Allowed types: %s", allowedExtensions));
-        }
-    }
-
-    /**
-     * Publish domain events from aggregate
-     */
-    private void publishDomainEvents(Task task) {
-        task.getDomainEvents().forEach(eventPublisher::publishEvent);
-        task.clearDomainEvents();
     }
 } 

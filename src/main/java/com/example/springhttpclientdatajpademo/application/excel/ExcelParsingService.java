@@ -8,71 +8,41 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Service interface for parsing Excel files
- * Infrastructure service for external file processing
+ * Service interface for parsing Excel files for chat evaluation tasks
+ * Focus on POST /rest/v1/tasks endpoint requirements
  */
 public interface ExcelParsingService {
     
     /**
      * Parse Excel file and extract chat evaluation data from all sheets
      * 
+     * Validates file format and structure according to API specification:
+     * - File format: .xlsx or .xls
+     * - Maximum size: 50MB
+     * - Maximum sheets: 20 per file
+     * - Maximum rows per sheet: 1,000
+     * - Required columns: "question", "golden_answer", "golden_citations"
+     * 
      * @param file the Excel file to parse
      * @return map of sheet names to list of chat evaluation inputs
      * @throws IOException if file cannot be read or parsed
-     * @throws IllegalArgumentException if file format is invalid
+     * @throws IllegalArgumentException if file validation fails
      */
     Map<String, List<ChatEvaluationInput>> parseExcelFile(MultipartFile file) throws IOException;
     
     /**
      * Validate Excel file format and structure
      * 
+     * Validates according to API specification requirements:
+     * - File size within 50MB limit
+     * - Valid Excel format (.xlsx or .xls)
+     * - Contains at least one sheet with required columns
+     * - No more than 20 sheets
+     * - No more than 1,000 rows per sheet
+     * 
      * @param file the Excel file to validate
-     * @throws IllegalArgumentException if file is invalid
+     * @throws IllegalArgumentException if file validation fails
      * @throws IOException if file cannot be read
      */
     void validateExcelFile(MultipartFile file) throws IOException;
-    
-    /**
-     * Get list of sheet names from Excel file
-     * 
-     * @param file the Excel file
-     * @return list of sheet names
-     * @throws IOException if file cannot be read
-     */
-    List<String> getSheetNames(MultipartFile file) throws IOException;
-    
-    /**
-     * Check if a specific sheet contains valid chat evaluation data
-     * 
-     * @param sheetName the sheet name to check
-     * @param file the Excel file
-     * @return true if sheet has valid structure
-     * @throws IOException if file cannot be read
-     */
-    boolean isValidChatEvaluationSheet(String sheetName, MultipartFile file) throws IOException;
-    
-    /**
-     * Parse a specific sheet from Excel file
-     * 
-     * @param file the Excel file
-     * @param sheetName the sheet name to parse
-     * @return list of chat evaluation inputs from the sheet
-     * @throws IOException if file cannot be read or parsed
-     * @throws IllegalArgumentException if sheet format is invalid
-     */
-    List<ChatEvaluationInput> parseSheet(MultipartFile file, String sheetName) throws IOException;
-    
-    /**
-     * Get supported file extensions
-     * 
-     * @return list of supported extensions (e.g., [".xlsx", ".xls"])
-     */
-    List<String> getSupportedExtensions();
-    
-    /**
-     * Get maximum allowed file size in bytes
-     * 
-     * @return maximum file size in bytes
-     */
-    long getMaxFileSize();
 } 

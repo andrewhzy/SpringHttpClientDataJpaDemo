@@ -17,7 +17,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Global exception handler for centralized error handling across all API endpoints
+ * Global exception handler for POST /rest/v1/tasks endpoint
+ * Handles exceptions according to API specification requirements
  */
 @ControllerAdvice
 @Slf4j
@@ -25,6 +26,7 @@ public class GlobalExceptionHandler {
     
     /**
      * Handle file upload size exceeded exceptions
+     * API spec: Maximum file size is 50MB
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
@@ -33,7 +35,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = buildErrorResponse(
                 "FILE_TOO_LARGE",
                 "File size exceeds maximum limit",
-                "Maximum file size is 100MB",
+                "Maximum file size is 50MB",
                 null
         );
         
@@ -42,6 +44,7 @@ public class GlobalExceptionHandler {
     
     /**
      * Handle validation errors (file format, required fields, etc.)
+     * Covers API spec validation requirements for Excel files and columns
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleValidationError(IllegalArgumentException ex) {
@@ -61,6 +64,7 @@ public class GlobalExceptionHandler {
     
     /**
      * Handle IO exceptions (file processing errors)
+     * Covers Excel file parsing failures
      */
     @ExceptionHandler(IOException.class)
     public ResponseEntity<ErrorResponse> handleIOException(IOException ex) {
@@ -69,7 +73,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = buildErrorResponse(
                 "FILE_PROCESSING_ERROR",
                 "Error processing uploaded file",
-                "Please ensure the file is a valid Excel file and try again",
+                "Please ensure the file is a valid Excel file (.xlsx or .xls) and try again",
                 null
         );
         
@@ -99,23 +103,6 @@ public class GlobalExceptionHandler {
     }
     
     /**
-     * Handle UnsupportedOperationException (for unimplemented features)
-     */
-    @ExceptionHandler(UnsupportedOperationException.class)
-    public ResponseEntity<ErrorResponse> handleUnsupportedOperation(UnsupportedOperationException ex) {
-        log.error("Feature not implemented: {}", ex.getMessage());
-        
-        ErrorResponse errorResponse = buildErrorResponse(
-                "NOT_IMPLEMENTED",
-                "This feature is not yet implemented",
-                ex.getMessage(),
-                null
-        );
-        
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(errorResponse);
-    }
-    
-    /**
      * Handle all other unexpected exceptions
      */
     @ExceptionHandler(Exception.class)
@@ -133,7 +120,7 @@ public class GlobalExceptionHandler {
     }
     
     /**
-     * Build standardized error response
+     * Build standardized error response according to API specification
      */
     private ErrorResponse buildErrorResponse(String code, String message, String details, String userId) {
         String requestId = UUID.randomUUID().toString();
@@ -159,16 +146,26 @@ public class GlobalExceptionHandler {
     
     /**
      * Determine specific error code based on exception message
+     * Maps to API specification error codes
      */
     private String determineErrorCode(String message) {
-        if (message.contains("file format") || message.contains("Excel")) {
+        String lowerMessage = message.toLowerCase();
+        
+        if (lowerMessage.contains("file format") || lowerMessage.contains("excel") || 
+            lowerMessage.contains(".xlsx") || lowerMessage.contains(".xls")) {
             return "INVALID_FILE_FORMAT";
-        } else if (message.contains("required columns") || message.contains("golden_answer")) {
+        } else if (lowerMessage.contains("required columns") || lowerMessage.contains("question") || 
+                   lowerMessage.contains("golden_answer") || lowerMessage.contains("golden_citations")) {
             return "MISSING_REQUIRED_COLUMNS";
-        } else if (message.contains("sheet") || message.contains("empty")) {
+        } else if (lowerMessage.contains("sheet") && lowerMessage.contains("empty")) {
             return "INVALID_SHEET_STRUCTURE";
-        } else if (message.contains("size") || message.contains("limit")) {
+        } else if (lowerMessage.contains("size") || lowerMessage.contains("limit") || 
+                   lowerMessage.contains("exceeds")) {
             return "FILE_TOO_LARGE";
+        } else if (lowerMessage.contains("rows") && lowerMessage.contains("maximum")) {
+            return "TOO_MANY_ROWS";
+        } else if (lowerMessage.contains("sheets") && lowerMessage.contains("maximum")) {
+            return "TOO_MANY_SHEETS";
         } else {
             return "VALIDATION_ERROR";
         }
@@ -176,14 +173,14 @@ public class GlobalExceptionHandler {
     
     /**
      * Get current user ID from request context
-     * This would typically be extracted from JWT token in a real implementation
+     * Placeholder implementation - in real app would extract from JWT token
      */
     private String getCurrentUserId() {
         try {
             ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attrs != null) {
                 HttpServletRequest request = attrs.getRequest();
-                // In real implementation, extract from JWT token
+                // TODO: Extract from JWT token when authentication is implemented
                 return request.getHeader("X-User-ID"); // Placeholder
             }
         } catch (Exception e) {

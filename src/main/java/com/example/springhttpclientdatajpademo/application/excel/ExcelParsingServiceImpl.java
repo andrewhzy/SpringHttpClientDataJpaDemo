@@ -12,14 +12,21 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * Implementation of ExcelParsingService
- * Infrastructure service for parsing Excel files using Apache POI
+ * Implementation of ExcelParsingService for chat evaluation tasks
+ * Implements API specification requirements for POST /rest/v1/tasks
  */
 @Service
 @Slf4j
 public class ExcelParsingServiceImpl implements ExcelParsingService {
+    
+    // API specification constants
+    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    private static final int MAX_SHEETS = 20;
+    private static final int MAX_ROWS_PER_SHEET = 1000;
+    private static final List<String> SUPPORTED_EXTENSIONS = Arrays.asList(".xlsx", ".xls");
     
     // Required column names (case-insensitive)
     private static final String QUESTION_COLUMN = "question";
@@ -61,7 +68,8 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
             }
             
             if (result.isEmpty()) {
-                throw new IllegalArgumentException("No valid chat evaluation sheets found in Excel file");
+                throw new IllegalArgumentException("No valid chat evaluation sheets found in Excel file. " +
+                        "Excel must contain sheets with required columns: question, golden_answer, golden_citations");
             }
             
             log.info("Successfully parsed {} sheets with total {} records", result.size(), 
@@ -73,6 +81,7 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
     
     @Override
     public void validateExcelFile(MultipartFile file) throws IOException {
+        // Basic file validation
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File cannot be null or empty");
         }
@@ -82,85 +91,64 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
             throw new IllegalArgumentException("Filename cannot be empty");
         }
         
-        // Check file extension
-        if (!getSupportedExtensions().stream().anyMatch(ext -> 
+        // File size validation (API spec: max 50MB)
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException(
+                String.format("File size %d bytes exceeds maximum limit of %d bytes (50MB)", 
+                        file.getSize(), MAX_FILE_SIZE));
+        }
+        
+        // File extension validation (API spec: .xlsx or .xls)
+        if (!SUPPORTED_EXTENSIONS.stream().anyMatch(ext -> 
                 filename.toLowerCase().endsWith(ext.toLowerCase()))) {
             throw new IllegalArgumentException(
-                String.format("Unsupported file type. Allowed types: %s", getSupportedExtensions()));
+                String.format("File must be Excel format (.xlsx or .xls). Found: %s", 
+                        getFileExtension(filename)));
         }
         
-        // Check file size
-        if (file.getSize() > getMaxFileSize()) {
-            throw new IllegalArgumentException(
-                String.format("File size %d bytes exceeds maximum limit of %d bytes", 
-                        file.getSize(), getMaxFileSize()));
-        }
-        
-        // Try to open the file to validate it's a valid Excel file
+        // Excel structure validation
         try (InputStream inputStream = file.getInputStream();
              Workbook workbook = createWorkbook(inputStream, filename)) {
             
-            if (workbook.getNumberOfSheets() == 0) {
+            int numberOfSheets = workbook.getNumberOfSheets();
+            
+            if (numberOfSheets == 0) {
                 throw new IllegalArgumentException("Excel file contains no sheets");
+            }
+            
+            // API spec: max 20 sheets per file
+            if (numberOfSheets > MAX_SHEETS) {
+                throw new IllegalArgumentException(
+                    String.format("Excel file contains %d sheets, maximum allowed is %d", 
+                            numberOfSheets, MAX_SHEETS));
+            }
+            
+            // Validate each sheet
+            boolean hasValidSheet = false;
+            for (int i = 0; i < numberOfSheets; i++) {
+                Sheet sheet = workbook.getSheetAt(i);
+                
+                // API spec: max 1000 rows per sheet
+                if (sheet.getPhysicalNumberOfRows() > MAX_ROWS_PER_SHEET + 1) { // +1 for header
+                    throw new IllegalArgumentException(
+                        String.format("Sheet '%s' contains %d rows, maximum allowed is %d", 
+                                sheet.getSheetName(), sheet.getPhysicalNumberOfRows() - 1, MAX_ROWS_PER_SHEET));
+                }
+                
+                if (isValidChatEvaluationSheet(sheet)) {
+                    hasValidSheet = true;
+                }
+            }
+            
+            if (!hasValidSheet) {
+                throw new IllegalArgumentException(
+                    "Excel file must contain at least one sheet with required columns: question, golden_answer, golden_citations");
             }
             
             log.info("Excel file validation passed for: {}", filename);
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid Excel file format: " + e.getMessage(), e);
         }
-    }
-    
-    @Override
-    public List<String> getSheetNames(MultipartFile file) throws IOException {
-        List<String> sheetNames = new ArrayList<>();
-        
-        try (InputStream inputStream = file.getInputStream();
-             Workbook workbook = createWorkbook(inputStream, file.getOriginalFilename())) {
-            
-            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-                sheetNames.add(workbook.getSheetAt(i).getSheetName());
-            }
-        }
-        
-        return sheetNames;
-    }
-    
-    @Override
-    public boolean isValidChatEvaluationSheet(String sheetName, MultipartFile file) throws IOException {
-        try (InputStream inputStream = file.getInputStream();
-             Workbook workbook = createWorkbook(inputStream, file.getOriginalFilename())) {
-            
-            Sheet sheet = workbook.getSheet(sheetName);
-            if (sheet == null) {
-                return false;
-            }
-            
-            return isValidChatEvaluationSheet(sheet);
-        }
-    }
-    
-    @Override
-    public List<ChatEvaluationInput> parseSheet(MultipartFile file, String sheetName) throws IOException {
-        try (InputStream inputStream = file.getInputStream();
-             Workbook workbook = createWorkbook(inputStream, file.getOriginalFilename())) {
-            
-            Sheet sheet = workbook.getSheet(sheetName);
-            if (sheet == null) {
-                throw new IllegalArgumentException("Sheet not found: " + sheetName);
-            }
-            
-            return parseSheet(sheet);
-        }
-    }
-    
-    @Override
-    public List<String> getSupportedExtensions() {
-        return Arrays.asList(".xlsx", ".xls");
-    }
-    
-    @Override
-    public long getMaxFileSize() {
-        return 50 * 1024 * 1024; // 50MB
     }
     
     // Private helper methods
@@ -173,6 +161,11 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
         } else {
             throw new IllegalArgumentException("Unsupported file format: " + filename);
         }
+    }
+    
+    private String getFileExtension(String filename) {
+        int lastDotIndex = filename.lastIndexOf('.');
+        return lastDotIndex > 0 ? filename.substring(lastDotIndex) : "";
     }
     
     private boolean isValidChatEvaluationSheet(Sheet sheet) {
@@ -198,56 +191,35 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
         List<ChatEvaluationInput> results = new ArrayList<>();
         
         if (sheet.getPhysicalNumberOfRows() < 2) {
-            log.warn("Sheet {} has no data rows", sheet.getSheetName());
-            return results;
+            return results; // No data rows
         }
         
         // Get header row and find column indices
         Row headerRow = sheet.getRow(sheet.getFirstRowNum());
         Map<String, Integer> columnIndices = findColumnIndices(headerRow);
         
-        if (!columnIndices.containsKey(QUESTION_COLUMN) ||
-            !columnIndices.containsKey(GOLDEN_ANSWER_COLUMN) ||
-            !columnIndices.containsKey(GOLDEN_CITATIONS_COLUMN)) {
-            throw new IllegalArgumentException(
-                String.format("Sheet %s is missing required columns. Expected: %s, %s, %s", 
-                        sheet.getSheetName(), QUESTION_COLUMN, GOLDEN_ANSWER_COLUMN, GOLDEN_CITATIONS_COLUMN));
-        }
-        
-        int questionCol = columnIndices.get(QUESTION_COLUMN);
-        int goldenAnswerCol = columnIndices.get(GOLDEN_ANSWER_COLUMN);
-        int goldenCitationsCol = columnIndices.get(GOLDEN_CITATIONS_COLUMN);
+        // Get column indices for required fields
+        Integer questionIndex = columnIndices.get(QUESTION_COLUMN);
+        Integer answerIndex = columnIndices.get(GOLDEN_ANSWER_COLUMN);
+        Integer citationsIndex = columnIndices.get(GOLDEN_CITATIONS_COLUMN);
         
         // Parse data rows
-        for (int rowIndex = sheet.getFirstRowNum() + 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
-            Row row = sheet.getRow(rowIndex);
-            if (row == null) {
-                continue;
-            }
+        for (int rowNum = sheet.getFirstRowNum() + 1; rowNum <= sheet.getLastRowNum(); rowNum++) {
+            Row row = sheet.getRow(rowNum);
+            if (row == null) continue;
             
             try {
-                String question = getCellValueAsString(row.getCell(questionCol));
-                String goldenAnswer = getCellValueAsString(row.getCell(goldenAnswerCol));
-                String goldenCitationsStr = getCellValueAsString(row.getCell(goldenCitationsCol));
+                String question = getCellValueAsString(row.getCell(questionIndex));
+                String goldenAnswer = getCellValueAsString(row.getCell(answerIndex));
+                String citationsStr = getCellValueAsString(row.getCell(citationsIndex));
                 
-                // Skip empty rows
-                if (!StringUtils.hasText(question) && !StringUtils.hasText(goldenAnswer)) {
+                // Skip rows with empty required fields
+                if (!StringUtils.hasText(question) || !StringUtils.hasText(goldenAnswer)) {
+                    log.warn("Skipping row {} - missing required fields", rowNum + 1);
                     continue;
                 }
                 
-                // Validate required fields
-                if (!StringUtils.hasText(question)) {
-                    log.warn("Skipping row {} in sheet {}: missing question", rowIndex + 1, sheet.getSheetName());
-                    continue;
-                }
-                
-                if (!StringUtils.hasText(goldenAnswer)) {
-                    log.warn("Skipping row {} in sheet {}: missing golden_answer", rowIndex + 1, sheet.getSheetName());
-                    continue;
-                }
-                
-                // Parse citations (can be comma-separated or JSON-like format)
-                List<String> citations = parseCitations(goldenCitationsStr);
+                List<String> citations = parseCitations(citationsStr);
                 
                 ChatEvaluationInput input = ChatEvaluationInput.builder()
                         .question(question.trim())
@@ -258,7 +230,7 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
                 results.add(input);
                 
             } catch (Exception e) {
-                log.warn("Error parsing row {} in sheet {}: {}", rowIndex + 1, sheet.getSheetName(), e.getMessage());
+                log.warn("Error parsing row {}: {}", rowNum + 1, e.getMessage());
                 // Continue processing other rows
             }
         }
@@ -269,23 +241,17 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
     private Map<String, Integer> findColumnIndices(Row headerRow) {
         Map<String, Integer> columnIndices = new HashMap<>();
         
-        for (int cellIndex = 0; cellIndex < headerRow.getLastCellNum(); cellIndex++) {
-            Cell cell = headerRow.getCell(cellIndex);
-            if (cell != null) {
-                String cellValue = getCellValueAsString(cell);
-                if (StringUtils.hasText(cellValue)) {
-                    String normalizedValue = cellValue.trim().toLowerCase();
-                    
-                    // Map common variations
-                    if (normalizedValue.equals("question") || normalizedValue.equals("questions")) {
-                        columnIndices.put(QUESTION_COLUMN, cellIndex);
-                    } else if (normalizedValue.equals("golden_answer") || normalizedValue.equals("golden answer") ||
-                               normalizedValue.equals("goldenanswer") || normalizedValue.equals("answer")) {
-                        columnIndices.put(GOLDEN_ANSWER_COLUMN, cellIndex);
-                    } else if (normalizedValue.equals("golden_citations") || normalizedValue.equals("golden citations") ||
-                               normalizedValue.equals("goldencitations") || normalizedValue.equals("citations")) {
-                        columnIndices.put(GOLDEN_CITATIONS_COLUMN, cellIndex);
-                    }
+        for (Cell cell : headerRow) {
+            String columnName = getCellValueAsString(cell);
+            if (StringUtils.hasText(columnName)) {
+                String normalizedName = columnName.toLowerCase().trim();
+                
+                if (normalizedName.equals(QUESTION_COLUMN)) {
+                    columnIndices.put(QUESTION_COLUMN, cell.getColumnIndex());
+                } else if (normalizedName.equals(GOLDEN_ANSWER_COLUMN)) {
+                    columnIndices.put(GOLDEN_ANSWER_COLUMN, cell.getColumnIndex());
+                } else if (normalizedName.equals(GOLDEN_CITATIONS_COLUMN)) {
+                    columnIndices.put(GOLDEN_CITATIONS_COLUMN, cell.getColumnIndex());
                 }
             }
         }
@@ -298,41 +264,22 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
             return "";
         }
         
-        return switch (cell.getCellType()) {
-            case STRING -> cell.getStringCellValue();
-            case NUMERIC -> {
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    yield cell.getDateCellValue().toString();
-                } else {
-                    // Format as integer if it's a whole number
-                    double numericValue = cell.getNumericCellValue();
-                    if (numericValue == Math.floor(numericValue)) {
-                        yield String.valueOf((long) numericValue);
-                    } else {
-                        yield String.valueOf(numericValue);
-                    }
-                }
-            }
-            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
-            case FORMULA -> {
-                try {
-                    yield getCellValueAsString(cell.getCachedFormulaResultType(), cell);
-                } catch (Exception e) {
-                    yield cell.getCellFormula();
-                }
-            }
-            case BLANK -> "";
-            default -> "";
-        };
+        return getCellValueAsString(cell.getCellType(), cell);
     }
     
     private String getCellValueAsString(CellType cellType, Cell cell) {
-        return switch (cellType) {
-            case STRING -> cell.getStringCellValue();
-            case NUMERIC -> String.valueOf(cell.getNumericCellValue());
-            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
-            default -> "";
-        };
+        switch (cellType) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                return String.valueOf(cell.getNumericCellValue());
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                return getCellValueAsString(cell.getCachedFormulaResultType(), cell);
+            default:
+                return "";
+        }
     }
     
     private List<String> parseCitations(String citationsStr) {
@@ -340,46 +287,10 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
             return new ArrayList<>();
         }
         
-        // Handle different citation formats
-        String trimmed = citationsStr.trim();
-        
-        // If it looks like JSON array, try to parse it
-        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-            try {
-                // Simple JSON array parsing for citations
-                String content = trimmed.substring(1, trimmed.length() - 1);
-                if (content.trim().isEmpty()) {
-                    return new ArrayList<>();
-                }
-                
-                List<String> citations = new ArrayList<>();
-                String[] parts = content.split(",");
-                for (String part : parts) {
-                    String citation = part.trim();
-                    // Remove quotes if present
-                    if (citation.startsWith("\"") && citation.endsWith("\"")) {
-                        citation = citation.substring(1, citation.length() - 1);
-                    }
-                    if (StringUtils.hasText(citation)) {
-                        citations.add(citation.trim());
-                    }
-                }
-                return citations;
-            } catch (Exception e) {
-                log.warn("Failed to parse JSON-like citations format: {}", trimmed);
-            }
-        }
-        
-        // Fall back to comma-separated parsing
-        List<String> citations = new ArrayList<>();
-        String[] parts = trimmed.split(",");
-        for (String part : parts) {
-            String citation = part.trim();
-            if (StringUtils.hasText(citation)) {
-                citations.add(citation);
-            }
-        }
-        
-        return citations;
+        // Parse citations separated by comma, semicolon, or newline
+        return Arrays.stream(citationsStr.split("[,;\n]"))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toList());
     }
 } 

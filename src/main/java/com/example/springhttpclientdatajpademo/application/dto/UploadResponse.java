@@ -10,6 +10,7 @@ import java.util.List;
 
 /**
  * Response DTO for Excel file upload operations
+ * Matches API specification for POST /rest/v1/tasks
  */
 @Data
 @Builder
@@ -18,7 +19,7 @@ import java.util.List;
 public class UploadResponse {
     
     @JsonProperty("upload_batch_id")
-    private Long uploadBatchId;
+    private String uploadBatchId;
     
     @JsonProperty("tasks")
     private List<TaskSummary> tasks;
@@ -39,7 +40,7 @@ public class UploadResponse {
     public static class TaskSummary {
         
         @JsonProperty("task_id")
-        private Long taskId;
+        private String taskId;
         
         @JsonProperty("sheet_name")
         private String sheetName;
