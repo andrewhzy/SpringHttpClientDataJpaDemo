@@ -1,4 +1,4 @@
-package com.example.springhttpclientdatajpademo.domain.excel;
+package com.example.springhttpclientdatajpademo.application.excel;
 
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
 import org.springframework.web.multipart.MultipartFile;

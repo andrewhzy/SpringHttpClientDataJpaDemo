@@ -289,11 +289,31 @@ public class Task {
         
         private final String value;
         
-        TaskType(String value) {
+        private TaskType(String value) {
             this.value = value;
         }
         
         public String getValue() {
+            return value;
+        }
+        
+        /**
+         * Get TaskType from string value
+         * @param value the string value
+         * @return TaskType enum
+         * @throws IllegalArgumentException if value doesn't match any enum
+         */
+        public static TaskType fromValue(String value) {
+            for (TaskType type : TaskType.values()) {
+                if (type.value.equals(value)) {
+                    return type;
+                }
+            }
+            throw new IllegalArgumentException("Unknown TaskType value: " + value);
+        }
+        
+        @Override
+        public String toString() {
             return value;
         }
     }
@@ -315,6 +335,50 @@ public class Task {
         }
         
         public String getValue() {
+            return value;
+        }
+        
+        /**
+         * Get TaskStatus from string value
+         * @param value the string value
+         * @return TaskStatus enum
+         * @throws IllegalArgumentException if value doesn't match any enum
+         */
+        public static TaskStatus fromValue(String value) {
+            for (TaskStatus status : TaskStatus.values()) {
+                if (status.value.equals(value)) {
+                    return status;
+                }
+            }
+            throw new IllegalArgumentException("Unknown TaskStatus value: " + value);
+        }
+        
+        /**
+         * Check if this status represents a terminal state
+         * @return true if task cannot transition from this status
+         */
+        public boolean isTerminal() {
+            return this == COMPLETED || this == CANCELLED || this == FAILED;
+        }
+        
+        /**
+         * Check if this status represents an active state
+         * @return true if task is actively being processed
+         */
+        public boolean isActive() {
+            return this == PROCESSING;
+        }
+        
+        /**
+         * Check if this status allows cancellation
+         * @return true if task can be cancelled from this status
+         */
+        public boolean canBeCancelled() {
+            return this == QUEUEING || this == PROCESSING;
+        }
+        
+        @Override
+        public String toString() {
             return value;
         }
     }

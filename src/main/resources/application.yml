@@ -1,8 +1,12 @@
 spring:
+  threads:
+    virtual:
+      enabled: true
+
   application:
     name: task-management-api
   profiles:
-    active: dev
+    active: mariadb
   
   # JPA Configuration for MariaDB
   datasource:

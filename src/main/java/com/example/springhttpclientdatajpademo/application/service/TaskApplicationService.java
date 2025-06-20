@@ -3,7 +3,7 @@ package com.example.springhttpclientdatajpademo.application.service;
 import com.example.springhttpclientdatajpademo.application.dto.CreateTaskCommand;
 import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
-import com.example.springhttpclientdatajpademo.domain.excel.ExcelParsingService;
+import com.example.springhttpclientdatajpademo.application.excel.ExcelParsingService;
 import com.example.springhttpclientdatajpademo.domain.task.model.Task;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationInputRepository;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.TaskRepository;
