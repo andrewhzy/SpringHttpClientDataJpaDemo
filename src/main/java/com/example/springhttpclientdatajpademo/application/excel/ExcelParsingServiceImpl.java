@@ -249,7 +249,7 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
             String columnName = getCellValueAsString(cell);
             if (StringUtils.hasText(columnName)) {
                 String normalizedName = columnName.toLowerCase().trim();
-                
+                    
                 if (normalizedName.equals(QUESTION_COLUMN)) {
                     columnIndices.put(QUESTION_COLUMN, cell.getColumnIndex());
                 } else if (normalizedName.equals(GOLDEN_ANSWER_COLUMN)) {

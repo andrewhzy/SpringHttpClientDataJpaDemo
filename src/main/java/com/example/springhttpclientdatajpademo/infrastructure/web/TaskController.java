@@ -11,11 +11,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * REST Controller for task management operations - POST /rest/v1/tasks endpoint only
+ * REST Controller for task management operations - POST /rest/api/v1/tasks endpoint only
  * Infrastructure layer - web interface
  */
 @RestController
-@RequestMapping("/rest/v1")
+@RequestMapping("/rest/api/v1")
 @RequiredArgsConstructor
 @Slf4j
 public class TaskController {
@@ -34,14 +34,14 @@ public class TaskController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(required = false) String description) {
         
-        log.info("Received task upload request: filename={}, size={} bytes", 
-                file.getOriginalFilename(), file.getSize());
-        
+            log.info("Received task upload request: filename={}, size={} bytes", 
+                    file.getOriginalFilename(), file.getSize());
+            
         UploadResponse response = taskService.createTaskFromExcel(file, description);
-        
-        log.info("Task upload completed successfully: batch={}, tasks={}", 
-                response.getUploadBatchId(), response.getTotalSheets());
-        
+            
+            log.info("Task upload completed successfully: batch={}, tasks={}", 
+                    response.getUploadBatchId(), response.getTotalSheets());
+            
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 } 

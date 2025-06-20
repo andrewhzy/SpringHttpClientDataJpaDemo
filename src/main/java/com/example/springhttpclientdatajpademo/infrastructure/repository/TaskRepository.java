@@ -6,7 +6,9 @@ import org.springframework.stereotype.Repository;
 
 /**
  * Repository for Task entity
- * Simplified for POST /rest/v1/tasks endpoint
+ * Simplified for POST /rest/api/v1/tasks endpoint
+ * 
+ * Following Effective Java Item 64: Refer to objects by their interfaces
  */
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {

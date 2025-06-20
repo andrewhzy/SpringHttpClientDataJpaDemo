@@ -1,30 +1,38 @@
 package com.example.springhttpclientdatajpademo.domain.chatevaluation.model;
 
 import com.example.springhttpclientdatajpademo.domain.task.model.Task;
-import com.example.springhttpclientdatajpademo.infrastructure.converter.StringListConverter;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Entity representing input data for chat evaluation tasks
  * Contains questions, golden answers, and citations
+ * 
+ * Following Effective Java principles:
+ * - Item 11: Override equals and hashCode properly for JPA entities
+ * - Item 17: Minimize mutability where possible
  */
 @Entity
 @Table(name = "chat_evaluation_inputs", indexes = {
     @Index(name = "idx_chat_eval_input_task_id", columnList = "task_id")
 })
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA requirement
+@AllArgsConstructor(access = AccessLevel.PRIVATE)  // Builder usage only
 @Builder
 public class ChatEvaluationInput {
     
@@ -44,21 +52,53 @@ public class ChatEvaluationInput {
     @Column(name = "golden_answer", nullable = false, columnDefinition = "TEXT")
     private String goldenAnswer;
     
-    @Column(name = "golden_citations", columnDefinition = "TEXT")
-    @Convert(converter = StringListConverter.class)
+    // @Column(name = "golden_citations", columnDefinition = "TEXT")
+    // @Convert(converter = StringListConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)          // tell Hibernate "this is JSON text"
+    @Column(columnDefinition = "json")
     private List<String> goldenCitations;
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "task_status", nullable = false)
-    @Builder.Default
-    private Task.TaskStatus taskStatus = Task.TaskStatus.QUEUEING;
-
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * Set the task for this chat evaluation input
+     * Required for entity relationship management
+     */
+    public void setTask(final Task task) {
+        this.task = task;
+    }
+
+    /**
+     * Proper equals implementation for JPA entities
+     * Following Effective Java Item 11: Always override hashCode when you override equals
+     */
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        final ChatEvaluationInput that = (ChatEvaluationInput) obj;
+        // Use business key for equality - task and question should be unique together
+        return Objects.equals(task, that.task) &&
+               Objects.equals(question, that.question);
+    }
+    
+    /**
+     * Proper hashCode implementation for JPA entities
+     * Following Effective Java Item 11: Always override hashCode when you override equals
+     */
+    @Override
+    public int hashCode() {
+        // Use business key for hash code, not id
+        return Objects.hash(task, question);
+    }
 }

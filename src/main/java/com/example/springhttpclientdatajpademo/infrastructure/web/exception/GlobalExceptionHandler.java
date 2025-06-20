@@ -1,7 +1,8 @@
 package com.example.springhttpclientdatajpademo.infrastructure.web.exception;
 
 import com.example.springhttpclientdatajpademo.application.dto.ErrorResponse;
-import com.example.springhttpclientdatajpademo.application.service.TaskApplicationService;
+import com.example.springhttpclientdatajpademo.application.exception.FileProcessingException;
+import com.example.springhttpclientdatajpademo.application.exception.TaskValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +19,10 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Global exception handler for POST /rest/v1/tasks endpoint
+ * Global exception handler for POST /rest/api/v1/tasks endpoint
  * Handles exceptions according to API specification requirements
+ * 
+ * Following Effective Java Item 75: Include failure-capture information in detail messages
  */
 @ControllerAdvice
 @Slf4j
@@ -123,8 +126,8 @@ public class GlobalExceptionHandler {
     /**
      * Handle custom file processing exceptions
      */
-    @ExceptionHandler(TaskApplicationService.FileProcessingException.class)
-    public ResponseEntity<ErrorResponse> handleFileProcessingException(TaskApplicationService.FileProcessingException ex) {
+    @ExceptionHandler(FileProcessingException.class)
+    public ResponseEntity<ErrorResponse> handleFileProcessingException(FileProcessingException ex) {
         log.error("File processing error: {}", ex.getMessage(), ex);
         
         ErrorResponse errorResponse = buildErrorResponse(
@@ -140,8 +143,8 @@ public class GlobalExceptionHandler {
     /**
      * Handle custom task validation exceptions
      */
-    @ExceptionHandler(TaskApplicationService.TaskValidationException.class)
-    public ResponseEntity<ErrorResponse> handleTaskValidationException(TaskApplicationService.TaskValidationException ex) {
+    @ExceptionHandler(TaskValidationException.class)
+    public ResponseEntity<ErrorResponse> handleTaskValidationException(TaskValidationException ex) {
         log.warn("Task validation error: {}", ex.getMessage());
         
         String errorCode = determineErrorCode(ex.getMessage());
