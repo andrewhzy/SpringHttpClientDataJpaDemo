@@ -71,10 +71,77 @@ public class Task {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
     
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+    
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+    
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+    
+    @Column(name = "failed_at")
+    private LocalDateTime failedAt;
+    
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    private String errorMessage;
+    
     // One-to-many relationship with input data
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ChatEvaluationInput> inputData;
     
+    /**
+     * Mark task as started
+     */
+    public void markAsStarted() {
+        this.taskStatus = TaskStatus.PROCESSING;
+        this.startedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * Mark task as completed
+     */
+    public void markAsCompleted() {
+        this.taskStatus = TaskStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * Mark task as cancelled
+     */
+    public void markAsCancelled() {
+        this.taskStatus = TaskStatus.CANCELLED;
+        this.cancelledAt = LocalDateTime.now();
+    }
+    
+    /**
+     * Mark task as failed with error message
+     */
+    public void markAsFailed(final String errorMessage) {
+        this.taskStatus = TaskStatus.FAILED;
+        this.failedAt = LocalDateTime.now();
+        this.errorMessage = errorMessage;
+    }
+    
+    /**
+     * Check if task is in a terminal state
+     */
+    public boolean isTerminal() {
+        return taskStatus == TaskStatus.COMPLETED || 
+               taskStatus == TaskStatus.CANCELLED || 
+               taskStatus == TaskStatus.FAILED;
+    }
+    
+    /**
+     * Get the duration of task processing if completed
+     */
+    public java.time.Duration getProcessingDuration() {
+        if (startedAt != null && completedAt != null) {
+            return java.time.Duration.between(startedAt, completedAt);
+        }
+        return null;
+    }
+
     /**
      * Proper equals implementation for JPA entities
      * Following Effective Java Item 11: Always override hashCode when you override equals
