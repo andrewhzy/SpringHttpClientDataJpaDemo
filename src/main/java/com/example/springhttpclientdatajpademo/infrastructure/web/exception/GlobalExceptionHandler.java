@@ -12,8 +12,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -107,23 +109,6 @@ public class GlobalExceptionHandler {
     }
     
     /**
-     * Handle all other unexpected exceptions
-     */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
-        
-        ErrorResponse errorResponse = buildErrorResponse(
-                "INTERNAL_SERVER_ERROR",
-                "An unexpected error occurred",
-                "Please try again later or contact support if the problem persists",
-                null
-        );
-        
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
-    
-    /**
      * Handle custom file processing exceptions
      */
     @ExceptionHandler(FileProcessingException.class)
@@ -157,6 +142,76 @@ public class GlobalExceptionHandler {
         );
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+    
+    /**
+     * Handle constraint validation exceptions (e.g., @Min, @Max violations)
+     * This occurs when method-level validation fails
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException ex) {
+        log.warn("Constraint validation failed: {}", ex.getMessage());
+        
+        StringBuilder details = new StringBuilder();
+        ex.getConstraintViolations().forEach(violation -> {
+            String propertyPath = violation.getPropertyPath().toString();
+            // Remove method name prefix (e.g., "listTasks.maxTaskId" -> "maxTaskId")
+            String fieldName = propertyPath.contains(".") ? 
+                    propertyPath.substring(propertyPath.lastIndexOf(".") + 1) : propertyPath;
+            details.append(fieldName).append(": ").append(violation.getMessage()).append("; ");
+        });
+        
+        ErrorResponse errorResponse = buildErrorResponse(
+                "VALIDATION_ERROR",
+                "Request validation failed",
+                details.toString().trim(),
+                null
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+    
+    /**
+     * Handle method argument type mismatch (e.g., invalid Long values)
+     * This occurs when request parameters cannot be converted to expected types
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        final String parameterName = ex.getName();
+        final Object invalidValue = ex.getValue();
+        final String expectedType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown";
+        
+        final String message = String.format("Invalid value '%s' for parameter '%s'. Expected type: %s", 
+                invalidValue, parameterName, expectedType);
+        
+        log.warn("Method argument type mismatch - Parameter: {}, Value: {}, ExpectedType: {}", 
+                parameterName, invalidValue, expectedType);
+        
+        ErrorResponse errorResponse = buildErrorResponse(
+                "VALIDATION_ERROR",
+                message,
+                "Please provide a valid " + expectedType.toLowerCase() + " value",
+                null
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+    
+    /**
+     * Handle all other unexpected exceptions
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
+        
+        ErrorResponse errorResponse = buildErrorResponse(
+                "INTERNAL_SERVER_ERROR",
+                "An unexpected error occurred",
+                "Please try again later or contact support if the problem persists",
+                null
+        );
+        
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
     
     /**

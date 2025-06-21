@@ -180,66 +180,70 @@ public class TaskApplicationService implements TaskService {
     }
 
     /**
-     * List user tasks with filtering and pagination
+     * List user tasks with cursor-based pagination
      * Implementation for GET /rest/api/v1/tasks endpoint
      * 
      * @param userId the authenticated user's ID
-     * @param page page number (1-based)
      * @param perPage number of items per page (1-100)
-     * @param status optional status filter
-     * @param taskType optional task type filter  
-     * @param uploadBatchId optional upload batch ID filter
-     * @param filename optional filename filter (partial match)
-     * @param createdAfter optional created after date filter
-     * @param createdBefore optional created before date filter
-     * @return paginated task list response with metadata
+     * @param taskType task type filter (required)
+     * @param cursor optional cursor for pagination (null for first page)
+     * @return cursor-based paginated task list response with metadata
      * @throws TaskValidationException if pagination parameters are invalid
      */
     @Override
     @Transactional(readOnly = true)
     public TaskListResponse listUserTasks(
             final String userId,
-            final int page,
             final int perPage,
-            final String status,
             final String taskType,
-            final String uploadBatchId,
-            final String filename,
-            final LocalDateTime createdAfter,
-            final LocalDateTime createdBefore) {
+            final Long cursor) {
 
-        log.info("Listing tasks for user: {}, page: {}, perPage: {}", userId, page, perPage);
+        log.info("Listing tasks for user: {}, perPage: {}, taskType: {}, cursor: {}", 
+                userId, perPage, taskType, cursor);
 
         try {
             // Validate pagination parameters
-            validatePaginationParameters(page, perPage);
+            validatePaginationParameters(perPage);
 
-            // Convert string parameters to enum types
-            final Task.TaskStatus taskStatus = parseTaskStatus(status);
+            // Convert string taskType to enum
             final Task.TaskType taskTypeEnum = parseTaskType(taskType);
-            final Long uploadBatchIdLong = parseUploadBatchId(uploadBatchId);
 
-            // Create pageable (convert from 1-based to 0-based)
-            final Pageable pageable = PageRequest.of(page - 1, perPage);
+            // Create pageable for limit
+            final Pageable pageable = PageRequest.of(0, perPage + 1); // +1 to check if more results exist
 
-            // Query tasks with filters
-            final Page<Task> taskPage = taskRepository.findTasksWithFilters(
-                    userId, taskStatus, taskTypeEnum, uploadBatchIdLong, 
-                    filename, createdAfter, createdBefore, pageable);
+            // Query tasks based on cursor
+            final List<Task> tasks;
+            if (cursor == null) {
+                // First page - no cursor
+                tasks = taskRepository.findFirstPageByUserIdAndTaskType(userId, taskTypeEnum, pageable);
+            } else {
+                // Subsequent pages - use cursor
+                tasks = taskRepository.findNextPageByUserIdAndTaskTypeAfterCursor(
+                        userId, taskTypeEnum, cursor, pageable);
+            }
+
+            // Determine if there are more results
+            final boolean hasMore = tasks.size() > perPage;
+            final List<Task> resultTasks = hasMore ? tasks.subList(0, perPage) : tasks;
 
             // Convert to DTOs
-            final List<TaskSummaryDto> taskSummaries = taskPage.getContent().stream()
+            final List<TaskSummaryDto> taskSummaries = resultTasks.stream()
                     .map(this::convertToTaskSummaryDto)
                     .collect(Collectors.toList());
 
+            // Generate next cursor from last item (if more results exist)
+            final Long nextCursor = hasMore && !resultTasks.isEmpty() ? 
+                    resultTasks.get(resultTasks.size() - 1).getId() : null;
+
+            // Get total count for metadata
+            final long totalCount = taskRepository.countByUserIdAndTaskType(userId, taskTypeEnum);
+
             // Build pagination metadata
             final TaskListResponse.PaginationMeta meta = TaskListResponse.PaginationMeta.builder()
-                    .page(page)
                     .perPage(perPage)
-                    .total(taskPage.getTotalElements())
-                    .totalPages(taskPage.getTotalPages())
-                    .hasNext(taskPage.hasNext())
-                    .hasPrev(taskPage.hasPrevious())
+                    .total(totalCount)
+                    .nextCursor(nextCursor != null ? nextCursor.toString() : null)
+                    .hasMore(hasMore)
                     .build();
 
             final TaskListResponse response = TaskListResponse.builder()
@@ -247,43 +251,24 @@ public class TaskApplicationService implements TaskService {
                     .meta(meta)
                     .build();
 
-            log.info("Listed {} tasks for user: {}, total: {}", 
-                    taskSummaries.size(), userId, taskPage.getTotalElements());
+            log.info("Listed {} tasks for user: {}, total: {}, hasMore: {}", 
+                    taskSummaries.size(), userId, totalCount, hasMore);
 
             return response;
 
         } catch (final IllegalArgumentException ex) {
-            throw new TaskValidationException("Invalid filter parameters: " + ex.getMessage(), ex);
+            throw new TaskValidationException("Invalid parameters: " + ex.getMessage(), ex);
         } catch (final Exception ex) {
             throw new RuntimeException("Failed to list user tasks: " + ex.getMessage(), ex);
         }
     }
 
     /**
-     * Validate pagination parameters
+     * Validate pagination parameters for cursor-based pagination
      */
-    private void validatePaginationParameters(final int page, final int perPage) {
-        if (page < 1) {
-            throw new IllegalArgumentException("Page number must be >= 1");
-        }
+    private void validatePaginationParameters(final int perPage) {
         if (perPage < 1 || perPage > 100) {
             throw new IllegalArgumentException("Per page must be between 1 and 100");
-        }
-    }
-
-    /**
-     * Parse task status string to enum
-     */
-    private Task.TaskStatus parseTaskStatus(final String status) {
-        if (status == null || status.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            // Convert kebab-case to UPPER_CASE
-            final String enumName = status.toUpperCase().replace("-", "_");
-            return Task.TaskStatus.valueOf(enumName);
-        } catch (final IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Invalid task status: " + status);
         }
     }
 
@@ -300,25 +285,6 @@ public class TaskApplicationService implements TaskService {
             return Task.TaskType.valueOf(enumName);
         } catch (final IllegalArgumentException ex) {
             throw new IllegalArgumentException("Invalid task type: " + taskType);
-        }
-    }
-
-    /**
-     * Parse upload batch ID string to Long
-     */
-    private Long parseUploadBatchId(final String uploadBatchId) {
-        if (uploadBatchId == null || uploadBatchId.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            // For UUID strings, convert to Long using hash (matching upload logic)
-            if (uploadBatchId.contains("-")) {
-                return Math.abs(uploadBatchId.hashCode() % 10000000L) + 1000000L;
-            }
-            // For direct Long values
-            return Long.parseLong(uploadBatchId);
-        } catch (final NumberFormatException ex) {
-            throw new IllegalArgumentException("Invalid upload batch ID: " + uploadBatchId);
         }
     }
 

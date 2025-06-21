@@ -1,5 +1,6 @@
 package com.example.springhttpclientdatajpademo.application.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,7 +10,7 @@ import java.util.List;
 
 /**
  * Response DTO for GET /rest/api/v1/tasks endpoint
- * Contains paginated task list with metadata
+ * Contains paginated task list with cursor-based pagination metadata
  */
 @Data
 @NoArgsConstructor
@@ -25,11 +26,16 @@ public class TaskListResponse {
     @AllArgsConstructor
     @Builder
     public static class PaginationMeta {
-        private int page;
+        
+        @JsonProperty("per_page")
         private int perPage;
+        
         private long total;
-        private int totalPages;
-        private boolean hasNext;
-        private boolean hasPrev;
+        
+        @JsonProperty("next_cursor")
+        private String nextCursor;
+        
+        @JsonProperty("has_more")
+        private boolean hasMore;
     }
 } 

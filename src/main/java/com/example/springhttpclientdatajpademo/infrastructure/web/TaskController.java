@@ -3,16 +3,16 @@ package com.example.springhttpclientdatajpademo.infrastructure.web;
 import com.example.springhttpclientdatajpademo.application.dto.TaskListResponse;
 import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
 import com.example.springhttpclientdatajpademo.application.service.TaskService;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
 
 /**
  * REST Controller for task management operations
@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 @RequestMapping("/rest/api/v1")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 public class TaskController {
 
     private final TaskService taskService;
@@ -51,41 +52,29 @@ public class TaskController {
     }
 
     /**
-     * List user tasks with filtering and pagination
+     * List user tasks with cursor-based pagination
      *
-     * @param page          page number (1-based, default: 1)
-     * @param perPage       number of items per page (1-100, default: 20)
-     * @param status        optional status filter (queueing, processing, completed, cancelled, failed)
-     * @param taskType      optional task type filter (chat-evaluation)
-     * @param uploadBatchId optional upload batch ID filter
-     * @param filename      optional filename filter (partial match)
-     * @param createdAfter  optional created after date filter (ISO format)
-     * @param createdBefore optional created before date filter (ISO format)
+     * @param perPage         number of items per page (1-100)
+     * @param taskType        task type filter (chat-evaluation)
+     * @param cursorMaxTaskId optional cursor for pagination (null for first page)
      * @return paginated list of user tasks (metadata only)
      */
     @GetMapping("/tasks")
     public ResponseEntity<TaskListResponse> listTasks(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(name = "per_page", defaultValue = "20") int perPage,
+            @RequestParam(name = "per_page") int perPage,
             @RequestParam(name = "task_type") String taskType,
-            @RequestParam(required = false) String status,
-            @RequestParam(name = "upload_batch_id", required = false) String uploadBatchId,
-            @RequestParam(required = false) String filename,
-            @RequestParam(name = "created_after", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
-            @RequestParam(name = "created_before", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore) {
+            @RequestParam(name = "cursorMaxTaskId", defaultValue = "9223372036854775807") Long cursorMaxTaskId) {
 
-        log.info("Received task list request: page={}, perPage={}, status={}, taskType={}",
-                page, perPage, status, taskType);
+        log.info("Received task list request: perPage={}, taskType={}, cursor={}",
+                perPage, taskType, cursorMaxTaskId);
 
         // TODO: Extract user ID from JWT token when authentication is implemented
         String userId = getCurrentUserId();
 
-        TaskListResponse response = taskService.listUserTasks(
-                userId, page, perPage, status, taskType, uploadBatchId,
-                filename, createdAfter, createdBefore);
+        TaskListResponse response = taskService.listUserTasks(userId, perPage, taskType, cursorMaxTaskId);
 
-        log.info("Task list completed successfully: {} tasks returned, total={}",
-                response.getData().size(), response.getMeta().getTotal());
+        log.info("Task list completed successfully: {} tasks returned, hasMore={}",
+                response.getData().size(), response.getMeta().isHasMore());
 
         return ResponseEntity.ok(response);
     }

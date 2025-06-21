@@ -31,32 +31,22 @@ public interface TaskService {
     UploadResponse createTaskFromExcel(MultipartFile file, String description);
     
     /**
-     * List user tasks with filtering and pagination
+     * List user tasks with cursor-based pagination
      * 
-     * Returns a paginated list of task metadata for the authenticated user.
-     * Supports filtering by various criteria and always returns tasks ordered
-     * by creation date (newest first).
+     * Returns a list of task metadata for the authenticated user using cursor-based
+     * pagination for better performance and user experience. First request should not
+     * include cursor, subsequent requests should use next_cursor from previous response.
      * 
      * @param userId the authenticated user's ID
-     * @param page page number (1-based)
      * @param perPage number of items per page (1-100)
-     * @param status optional status filter
-     * @param taskType optional task type filter  
-     * @param uploadBatchId optional upload batch ID filter
-     * @param filename optional filename filter (partial match)
-     * @param createdAfter optional created after date filter
-     * @param createdBefore optional created before date filter
-     * @return paginated task list response with metadata
+     * @param taskType task type filter (required)
+     * @param cursor optional cursor for pagination (null for first page)
+     * @return cursor-based paginated task list response with metadata
      * @throws RuntimeException if filtering or data access fails (unchecked)
      */
     TaskListResponse listUserTasks(
             String userId,
-            int page,
             int perPage,
-            String status,
             String taskType,
-            String uploadBatchId,
-            String filename,
-            LocalDateTime createdAfter,
-            LocalDateTime createdBefore);
+            Long cursor);
 } 
