@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * Response DTO for Excel file upload operations
- * Matches API specification for POST /rest/v1/tasks
+ * Matches API specification for POST /rest/api/v1/tasks
  */
 @Data
 @Builder

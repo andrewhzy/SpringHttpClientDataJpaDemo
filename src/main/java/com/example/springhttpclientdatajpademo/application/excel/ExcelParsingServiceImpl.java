@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 
 /**
  * Implementation of ExcelParsingService for chat evaluation tasks
- * Implements API specification requirements for POST /rest/v1/tasks
+ * Implements API specification requirements for POST /rest/api/v1/tasks
  */
 @Service
 @Slf4j

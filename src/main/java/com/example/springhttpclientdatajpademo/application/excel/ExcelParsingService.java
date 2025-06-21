@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * Service interface for parsing Excel files for chat evaluation tasks
- * Focus on POST /rest/v1/tasks endpoint requirements
+ * Focus on POST /rest/api/v1/tasks endpoint requirements
  * 
  * Note: This interface does not declare checked exceptions.
  * Implementations should convert any checked exceptions to appropriate 

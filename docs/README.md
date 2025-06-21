@@ -131,11 +131,11 @@ graph TB
 
 | Method | Endpoint | Description | Auth Level |
 |--------|----------|-------------|------------|
-| POST   | `/rest/v1/tasks` | Upload Excel file with automatic parsing and task creation | User |
-| GET    | `/rest/v1/tasks` | List user's tasks with filtering (metadata only) | User |
-| GET    | `/rest/v1/tasks/{id}` | Get specific task details with structured input/results data | User |
-| PUT    | `/rest/v1/tasks/{id}` | Update/cancel a task | User |
-| DELETE | `/rest/v1/tasks/{id}` | Delete a task and associated structured data | User |
+| POST   | `/rest/api/v1/tasks` | Upload Excel file with automatic parsing and task creation | User |
+| GET    | `/rest/api/v1/tasks` | List user's tasks with filtering (metadata only) | User |
+| GET    | `/rest/api/v1/tasks/{id}` | Get specific task details with structured input/results data | User |
+| PUT    | `/rest/api/v1/tasks/{id}` | Update/cancel a task | User |
+| DELETE | `/rest/api/v1/tasks/{id}` | Delete a task and associated structured data | User |
 
 **Note**: All endpoints enforce task ownership at the application level - users can only access, modify, or delete their own tasks.
 

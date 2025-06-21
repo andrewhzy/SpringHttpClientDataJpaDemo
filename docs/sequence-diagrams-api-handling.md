@@ -14,13 +14,13 @@ Excel files are parsed during upload and stored as structured row data for chat 
 
 | Method | Endpoint | Description | Auth Level |
 |--------|----------|-------------|------------|
-| POST   | `/rest/v1/tasks` | Upload Excel file, parse and create structured chat evaluation tasks | User |
-| GET    | `/rest/v1/tasks` | List user's tasks (metadata only) | User |
-| GET    | `/rest/v1/tasks/{id}` | Get task details with structured input/results data | User |
-| PUT    | `/rest/v1/tasks/{id}` | Update/cancel a task | Owner |
-| DELETE | `/rest/v1/tasks/{id}` | Delete task and associated structured data | Owner |
+| POST   | `/rest/api/v1/tasks` | Upload Excel file, parse and create structured chat evaluation tasks | User |
+| GET    | `/rest/api/v1/tasks` | List user's tasks (metadata only) | User |
+| GET    | `/rest/api/v1/tasks/{id}` | Get task details with structured input/results data | User |
+| PUT    | `/rest/api/v1/tasks/{id}` | Update/cancel a task | Owner |
+| DELETE | `/rest/api/v1/tasks/{id}` | Delete task and associated structured data | Owner |
 
-## 1. POST /rest/v1/tasks - Excel Upload with Immediate Parsing
+## 1. POST /rest/api/v1/tasks - Excel Upload with Immediate Parsing
 
 ### Success Flow - Multi-Sheet Excel with Chat Evaluation Data
 ```mermaid
@@ -29,7 +29,7 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: POST /rest/v1/tasks (Excel file upload)
+    FE->>API: POST /rest/api/v1/tasks (Excel file upload)
     API->>API: Authenticate user
     API->>API: Validate file format and size
     API->>API: Parse Excel and extract sheets
@@ -57,7 +57,7 @@ sequenceDiagram
     participant FE as Frontend App
     participant API as Backend API Service
     
-    FE->>API: POST /rest/v1/tasks (invalid Excel format)
+    FE->>API: POST /rest/api/v1/tasks (invalid Excel format)
     API->>API: Authenticate user
     API->>API: Validate file format and size
     API->>API: Parse Excel and analyze structure
@@ -72,7 +72,7 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: POST /rest/v1/tasks (mixed valid/invalid sheets)
+    FE->>API: POST /rest/api/v1/tasks (mixed valid/invalid sheets)
     API->>API: Parse and analyze all sheets
     API->>API: Filter valid sheets, skip invalid ones
     
@@ -86,7 +86,7 @@ sequenceDiagram
     API-->>FE: Return partial success with warnings
 ```
 
-## 2. GET /rest/v1/tasks - List User Tasks (Metadata Only)
+## 2. GET /rest/api/v1/tasks - List User Tasks (Metadata Only)
 
 ### Success Flow with Task Filtering
 ```mermaid
@@ -95,7 +95,7 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: GET /rest/v1/tasks (with filters and pagination)
+    FE->>API: GET /rest/api/v1/tasks (with filters and pagination)
     API->>API: Authenticate user
     API->>API: Parse query parameters
     
@@ -109,7 +109,7 @@ sequenceDiagram
     API-->>FE: Return task list with metadata
 ```
 
-## 3. GET /rest/v1/tasks/{id} - Get Task with Structured Input and Results Data
+## 3. GET /rest/api/v1/tasks/{id} - Get Task with Structured Input and Results Data
 
 ### Success Flow - Chat Evaluation Task with Complete Data
 ```mermaid
@@ -118,7 +118,7 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: GET /rest/v1/tasks/{id}
+    FE->>API: GET /rest/api/v1/tasks/{id}
     API->>API: Authenticate user
     API->>API: Validate task ID
     
@@ -143,7 +143,7 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: GET /rest/v1/tasks/{id}
+    FE->>API: GET /rest/api/v1/tasks/{id}
     API->>API: Authenticate user
     
     API->>DB: Get task metadata
@@ -160,7 +160,7 @@ sequenceDiagram
     API-->>FE: Return task with partial results
 ```
 
-## 4. PUT /rest/v1/tasks/{id} - Update/Cancel Task
+## 4. PUT /rest/api/v1/tasks/{id} - Update/Cancel Task
 
 ### Success Flow - Cancel Processing Task
 ```mermaid
@@ -169,7 +169,7 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: PUT /rest/v1/tasks/{id} (cancel action)
+    FE->>API: PUT /rest/api/v1/tasks/{id} (cancel action)
     API->>API: Authenticate user
     API->>API: Validate cancel action
     
@@ -188,7 +188,7 @@ sequenceDiagram
     API-->>FE: Return updated task status
 ```
 
-## 5. DELETE /rest/v1/tasks/{id} - Delete Task and Structured Data
+## 5. DELETE /rest/api/v1/tasks/{id} - Delete Task and Structured Data
 
 ### Success Flow - Delete Completed Task
 ```mermaid
@@ -197,7 +197,7 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: DELETE /rest/v1/tasks/{id}
+    FE->>API: DELETE /rest/api/v1/tasks/{id}
     API->>API: Authenticate user
     
     API->>DB: Get task for validation
@@ -220,7 +220,7 @@ sequenceDiagram
     participant API as Backend API Service
     participant DB as Database
     
-    FE->>API: DELETE /rest/v1/tasks/{id}
+    FE->>API: DELETE /rest/api/v1/tasks/{id}
     API->>API: Authenticate user
     
     API->>DB: Get task status

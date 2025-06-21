@@ -29,9 +29,9 @@ info:
     url: https://internal.organization.com/licenses
 
 servers:
-  - url: https://internal-api.organization.com/rest/v1
+  - url: https://internal-api.organization.com/rest/api/v1
     description: Internal Production API Server
-  - url: https://staging-api.organization.com/rest/v1
+  - url: https://staging-api.organization.com/rest/api/v1
     description: Internal Staging API Server
 
 components:
