@@ -63,7 +63,7 @@ public class TaskController {
     public ResponseEntity<TaskListResponse> listTasks(
             @RequestParam(name = "per_page") int perPage,
             @RequestParam(name = "task_type") String taskType,
-            @RequestParam(name = "cursorMaxTaskId", defaultValue = "9223372036854775807") Long cursorMaxTaskId) {
+            @RequestParam(name = "cursor_max_task_id", defaultValue = "9223372036854775807") Long cursorMaxTaskId) {
 
         log.info("Received task list request: perPage={}, taskType={}, cursor={}",
                 perPage, taskType, cursorMaxTaskId);
