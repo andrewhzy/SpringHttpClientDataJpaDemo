@@ -1,0 +1,85 @@
+BadRequest:
+  description: Bad Request
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/error.yaml#/Error'
+      examples:
+        invalid_file:
+          summary: Invalid Excel file
+          value:
+            error:
+              code: "INVALID_FILE_FORMAT"
+              message: "File must be Excel format (.xlsx or .xls)"
+              details: "Uploaded file has MIME type text/plain"
+              timestamp: "2024-01-01T00:00:00Z"
+              request_id: "request_12345"
+              user_id: "user_123"
+        missing_columns:
+          summary: Missing required columns
+          value:
+            error:
+              code: "MISSING_REQUIRED_COLUMNS"
+              message: "Excel file missing required columns for chat evaluation"
+              details: "Excel must contain columns: question, golden_answer, golden_citations"
+              timestamp: "2024-01-01T00:00:00Z"
+              request_id: "request_12345"
+              user_id: "user_123"
+
+Unauthorized:
+  description: Unauthorized - Invalid or missing JWT token
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/error.yaml#/Error'
+      example:
+        error:
+          code: "UNAUTHORIZED"
+          message: "Invalid or expired JWT token"
+          details: "Please refresh your authentication token"
+          timestamp: "2024-01-01T00:00:00Z"
+          request_id: "request_12345"
+
+Forbidden:
+  description: Forbidden - Insufficient permissions
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/error.yaml#/Error'
+      example:
+        error:
+          code: "FORBIDDEN"
+          message: "Access denied to task"
+          details: "You can only access your own tasks"
+          timestamp: "2024-01-01T00:00:00Z"
+          request_id: "request_12345"
+          user_id: "user_123"
+
+NotFound:
+  description: Not Found
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/error.yaml#/Error'
+
+PayloadTooLarge:
+  description: Payload Too Large
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/error.yaml#/Error'
+      example:
+        error:
+          code: "FILE_TOO_LARGE"
+          message: "File size exceeds maximum limit"
+          details: "Maximum file size is 50MB"
+          timestamp: "2024-01-01T00:00:00Z"
+          request_id: "request_12345"
+          user_id: "user_123"
+
+InternalServerError:
+  description: Internal Server Error
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/error.yaml#/Error' 

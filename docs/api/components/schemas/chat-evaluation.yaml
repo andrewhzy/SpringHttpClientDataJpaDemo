@@ -1,0 +1,63 @@
+ChatEvaluationInputData:
+  type: object
+  required:
+    - row_number
+    - question
+    - golden_answer
+    - golden_citations
+  properties:
+    row_number:
+      type: integer
+      example: 1
+    question:
+      type: string
+      example: "What is artificial intelligence?"
+    golden_answer:
+      type: string
+      example: "AI is a branch of computer science..."
+    golden_citations:
+      type: array
+      items:
+        type: string
+      example: ["https://example.com/ai-definition", "https://example.com/ai-overview"]
+    metadata:
+      type: object
+      nullable: true
+      example: {"priority": "high", "category": "general"}
+
+ChatEvaluationOutputData:
+  type: object
+  required:
+    - row_number
+    - api_answer
+    - api_citations
+    - answer_similarity
+    - citation_similarity
+  properties:
+    row_number:
+      type: integer
+      example: 1
+    api_answer:
+      type: string
+      example: "Artificial intelligence (AI) refers to..."
+    api_citations:
+      type: array
+      items:
+        type: string
+      example: ["https://api-source.com/ai-definition"]
+    answer_similarity:
+      type: number
+      format: float
+      minimum: 0
+      maximum: 1
+      example: 0.8567
+    citation_similarity:
+      type: number
+      format: float
+      minimum: 0
+      maximum: 1
+      example: 0.7234
+    processing_time_ms:
+      type: integer
+      nullable: true
+      example: 1250 

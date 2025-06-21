@@ -1,0 +1,22 @@
+UserContext:
+  type: object
+  properties:
+    user_id:
+      type: string
+      example: "user_123"
+    name:
+      type: string
+      example: "John Doe"
+    email:
+      type: string
+      example: "john.doe@organization.com"
+    roles:
+      type: array
+      items:
+        type: string
+      example: ["user"]
+    departments:
+      type: array
+      items:
+        type: string
+      example: ["engineering"] 

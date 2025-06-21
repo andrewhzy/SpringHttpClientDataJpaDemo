@@ -1,0 +1,7 @@
+JWTAuth:
+  type: http
+  scheme: bearer
+  bearerFormat: JWT
+  description: |
+    JWT token from internal authentication service.
+    Token should contain user_id, roles, and permissions. 

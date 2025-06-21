@@ -1,0 +1,214 @@
+TaskStatus:
+  type: string
+  enum: [queueing, processing, completed, cancelled, failed]
+  description: |
+    Task status values:
+    - queueing: Task created with parsed data, waiting for background processing
+    - processing: Background processing is executing on the parsed rows
+    - completed: All rows processed successfully
+    - cancelled: Task cancelled by user
+    - failed: Background processing failed with error
+
+TaskType:
+  type: string
+  enum: [chat-evaluation]
+  description: |
+    Task type values:
+    - chat-evaluation: Chat evaluation task with questions and expected answers
+
+Task: 
+  type: object
+  required:
+    - id
+    - user_id
+    - original_filename
+    - sheet_name
+    - task_type
+    - task_status
+    - upload_batch_id
+    - row_count
+    - processed_rows
+    - created_at
+  properties:
+    id:
+      type: string
+      format: uuid
+      example: "123e4567-e89b-12d3-a456-426614174000"
+    user_id:
+      type: string
+      example: "user_123"
+    original_filename:
+      type: string
+      example: "monthly_reports.xlsx"
+    sheet_name:
+      type: string
+      example: "January_Data"
+    task_type:
+      $ref: '#/TaskType'
+    task_status:
+      $ref: '#/TaskStatus'
+    upload_batch_id:
+      type: string
+      format: uuid
+      example: "456e7890-e89b-12d3-a456-426614174000"
+      description: "Groups tasks from the same Excel file upload"
+    row_count:
+      type: integer
+      minimum: 0
+      example: 150
+      description: "Total number of rows parsed from Excel sheet"
+    processed_rows:
+      type: integer
+      minimum: 0
+      example: 75
+      description: "Number of rows completed by background processing"
+    progress_percentage:
+      type: integer
+      minimum: 0
+      maximum: 100
+      example: 50
+      description: "Calculated as (processed_rows / row_count * 100)"
+    error_message:
+      type: string
+      nullable: true
+      example: "API timeout on row 15"
+    metadata:
+      type: object
+      nullable: true
+      example: {"detected_columns": ["question", "golden_answer"], "extra_columns": ["priority"]}
+    created_at:
+      type: string
+      format: date-time
+      example: "2024-01-01T00:00:00Z"
+    updated_at:
+      type: string
+      format: date-time
+      example: "2024-01-01T00:05:00Z"
+    started_at:
+      type: string
+      format: date-time
+      nullable: true
+      example: "2024-01-01T00:01:00Z"
+    completed_at:
+      type: string
+      format: date-time
+      nullable: true
+      example: "2024-01-01T00:10:00Z"
+    cancelled_at:
+      type: string
+      format: date-time
+      nullable: true
+
+TaskList:
+  type: object
+  properties:
+    data:
+      type: array
+      items:
+        $ref: '#/Task'
+    meta:
+      $ref: '../pagination.yaml#/PaginationMeta'
+
+UploadResponse:
+  type: object
+  required:
+    - upload_batch_id
+    - tasks
+  properties:
+    upload_batch_id:
+      type: string
+      format: uuid
+      example: "456e7890-e89b-12d3-a456-426614174000"
+    tasks:
+      type: array
+      items:
+        type: object
+        properties:
+          task_id:
+            type: string
+            format: uuid
+          sheet_name:
+            type: string
+          task_type:
+            $ref: '#/TaskType'
+          status:
+            $ref: '#/TaskStatus'
+          row_count:
+            type: integer
+            description: "Number of rows parsed from this sheet"
+    total_sheets:
+      type: integer
+      example: 3
+    message:
+      type: string
+      example: "Successfully created 3 tasks from uploaded Excel file"
+
+TaskStats:
+  type: object
+  properties:
+    total_tasks:
+      type: integer
+      example: 25
+    pending_tasks:
+      type: integer
+      example: 5
+    processing_tasks:
+      type: integer
+      example: 3
+    completed_tasks:
+      type: integer
+      example: 15
+    cancelled_tasks:
+      type: integer
+      example: 1
+    failed_tasks:
+      type: integer
+      example: 1
+    total_upload_batches:
+      type: integer
+      example: 8
+    chat_evaluation_tasks:
+      type: integer
+      example: 25
+
+TaskWithData:
+  allOf:
+    - $ref: '#/Task'
+    - type: object
+      properties:
+        input_data:
+          type: array
+          items:
+            $ref: '../chat-evaluation.yaml#/ChatEvaluationInputData'
+          description: "Input data for chat evaluation tasks"
+        results_data:
+          type: array
+          items:
+            $ref: '../chat-evaluation.yaml#/ChatEvaluationOutputData'
+          nullable: true
+          description: "Results data (null if processing not completed)"
+        results_excel_file:
+          type: object
+          nullable: true
+          description: "Excel file containing all evaluation results (null if processing not completed)"
+          properties:
+            filename:
+              type: string
+              example: "task_123_evaluation_results.xlsx"
+              description: "Generated Excel filename"
+            content:
+              type: string
+              format: byte
+              description: "Base64-encoded Excel file content"
+            size:
+              type: integer
+              example: 15360
+              description: "File size in bytes"
+            mime_type:
+              type: string
+              example: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            generated_at:
+              type: string
+              format: date-time
+              example: "2024-01-01T00:10:00Z"
+              description: "When the Excel file was generated" 

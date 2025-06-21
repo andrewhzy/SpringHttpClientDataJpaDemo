@@ -1,0 +1,18 @@
+PaginationMeta:
+  type: object
+  properties:
+    per_page:
+      type: integer
+      example: 20
+    total:
+      type: integer
+      example: 100
+    next_cursor:
+      type: string
+      nullable: true
+      example: "123"
+      description: "Cursor for next page, null if no more results"
+    has_more:
+      type: boolean
+      example: true
+      description: "Whether there are more results available" 

@@ -1,0 +1,93 @@
+openapi: 3.1.0
+info:
+  title: Internal Task Management API
+  description: |
+    Internal Task Management API for organizational use with Excel file processing.
+    
+    This API allows users to upload Excel files containing chat evaluation data.
+    Files are immediately parsed during upload and stored as structured row data.
+    
+    **Core Features:**
+    - Upload Excel files with chat evaluation data (questions, golden answers, citations)
+    - Immediate parsing and structured data storage (no blob storage)
+    - Task lifecycle management (create, query, cancel, delete)
+    - Background processing with progress tracking
+    - Structured data responses for easy frontend integration
+    
+    **Chat Evaluation Requirements:**
+    - Excel columns "question", "golden_answer", "golden_citations"
+    
+    **Authentication:**
+    - JWT-based authentication from internal SSO
+    - User-scoped access to tasks and operations
+  version: 1.0.0
+  contact:
+    name: Internal API Team
+    email: api-team@organization.com
+  license:
+    name: Internal Use Only
+    url: https://internal.organization.com/licenses
+
+servers:
+  - url: https://internal-api.organization.com/rest/api/v1
+    description: Internal Production API Server
+  - url: https://staging-api.organization.com/rest/api/v1
+    description: Internal Staging API Server
+
+security:
+  - JWTAuth: []
+
+components:
+  securitySchemes:
+    JWTAuth:
+      $ref: './components/security/jwt.yaml#/JWTAuth'
+  
+  schemas:
+    # Error handling
+    Error:
+      $ref: './components/schemas/error.yaml#/Error'
+    
+    # User and pagination
+    UserContext:
+      $ref: './components/schemas/user.yaml#/UserContext'
+    PaginationMeta:
+      $ref: './components/schemas/pagination.yaml#/PaginationMeta'
+    
+    # Task-related schemas
+    TaskStatus:
+      $ref: './components/schemas/task.yaml#/TaskStatus'
+    TaskType:
+      $ref: './components/schemas/task.yaml#/TaskType'
+    Task:
+      $ref: './components/schemas/task.yaml#/Task'
+    TaskList:
+      $ref: './components/schemas/task.yaml#/TaskList'
+    TaskWithData:
+      $ref: './components/schemas/task.yaml#/TaskWithData'
+    UploadResponse:
+      $ref: './components/schemas/task.yaml#/UploadResponse'
+    TaskStats:
+      $ref: './components/schemas/task.yaml#/TaskStats'
+    
+    # Chat evaluation schemas
+    ChatEvaluationInputData:
+      $ref: './components/schemas/chat-evaluation.yaml#/ChatEvaluationInputData'
+    ChatEvaluationOutputData:
+      $ref: './components/schemas/chat-evaluation.yaml#/ChatEvaluationOutputData'
+  
+  responses:
+    BadRequest:
+      $ref: './components/responses/common.yaml#/BadRequest'
+    Unauthorized:
+      $ref: './components/responses/common.yaml#/Unauthorized'
+    Forbidden:
+      $ref: './components/responses/common.yaml#/Forbidden'
+    NotFound:
+      $ref: './components/responses/common.yaml#/NotFound'
+    PayloadTooLarge:
+      $ref: './components/responses/common.yaml#/PayloadTooLarge'
+    InternalServerError:
+      $ref: './components/responses/common.yaml#/InternalServerError'
+
+paths:
+  $ref: './paths/tasks.yaml' 

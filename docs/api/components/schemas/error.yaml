@@ -1,0 +1,32 @@
+Error:
+  type: object
+  required:
+    - error
+  properties:
+    error:
+      type: object
+      required:
+        - code
+        - message
+        - timestamp
+      properties:
+        code:
+          type: string
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          example: "Invalid Excel file format"
+        details:
+          type: string
+          example: "File must be .xlsx or .xls format"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        request_id:
+          type: string
+          example: "request_12345"
+          description: "Request ID for debugging"
+        user_id:
+          type: string
+          example: "user_123" 
