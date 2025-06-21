@@ -16,7 +16,7 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
 
-  # Disable SQL initialization - let JPA handle table creation
+  # Explicitly disable SQL initialization to prevent schema-h2.sql issues
   sql:
     init:
       mode: never

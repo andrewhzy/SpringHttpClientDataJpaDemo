@@ -1,6 +1,8 @@
 package com.example.springhttpclientdatajpademo.application.service;
 
 import com.example.springhttpclientdatajpademo.application.dto.CreateTaskCommand;
+import com.example.springhttpclientdatajpademo.application.dto.TaskListResponse;
+import com.example.springhttpclientdatajpademo.application.dto.TaskSummaryDto;
 import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
 import com.example.springhttpclientdatajpademo.application.excel.ExcelParsingService;
 import com.example.springhttpclientdatajpademo.application.exception.FileProcessingException;
@@ -11,6 +13,9 @@ import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEva
 import com.example.springhttpclientdatajpademo.infrastructure.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Application service for task creation from Excel upload
@@ -171,5 +177,176 @@ public class TaskApplicationService implements TaskService {
     private String getCurrentUserId() {
         // Placeholder implementation - in real app, extract from JWT token
         return "system-user";
+    }
+
+    /**
+     * List user tasks with filtering and pagination
+     * Implementation for GET /rest/api/v1/tasks endpoint
+     * 
+     * @param userId the authenticated user's ID
+     * @param page page number (1-based)
+     * @param perPage number of items per page (1-100)
+     * @param status optional status filter
+     * @param taskType optional task type filter  
+     * @param uploadBatchId optional upload batch ID filter
+     * @param filename optional filename filter (partial match)
+     * @param createdAfter optional created after date filter
+     * @param createdBefore optional created before date filter
+     * @return paginated task list response with metadata
+     * @throws TaskValidationException if pagination parameters are invalid
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public TaskListResponse listUserTasks(
+            final String userId,
+            final int page,
+            final int perPage,
+            final String status,
+            final String taskType,
+            final String uploadBatchId,
+            final String filename,
+            final LocalDateTime createdAfter,
+            final LocalDateTime createdBefore) {
+
+        log.info("Listing tasks for user: {}, page: {}, perPage: {}", userId, page, perPage);
+
+        try {
+            // Validate pagination parameters
+            validatePaginationParameters(page, perPage);
+
+            // Convert string parameters to enum types
+            final Task.TaskStatus taskStatus = parseTaskStatus(status);
+            final Task.TaskType taskTypeEnum = parseTaskType(taskType);
+            final Long uploadBatchIdLong = parseUploadBatchId(uploadBatchId);
+
+            // Create pageable (convert from 1-based to 0-based)
+            final Pageable pageable = PageRequest.of(page - 1, perPage);
+
+            // Query tasks with filters
+            final Page<Task> taskPage = taskRepository.findTasksWithFilters(
+                    userId, taskStatus, taskTypeEnum, uploadBatchIdLong, 
+                    filename, createdAfter, createdBefore, pageable);
+
+            // Convert to DTOs
+            final List<TaskSummaryDto> taskSummaries = taskPage.getContent().stream()
+                    .map(this::convertToTaskSummaryDto)
+                    .collect(Collectors.toList());
+
+            // Build pagination metadata
+            final TaskListResponse.PaginationMeta meta = TaskListResponse.PaginationMeta.builder()
+                    .page(page)
+                    .perPage(perPage)
+                    .total(taskPage.getTotalElements())
+                    .totalPages(taskPage.getTotalPages())
+                    .hasNext(taskPage.hasNext())
+                    .hasPrev(taskPage.hasPrevious())
+                    .build();
+
+            final TaskListResponse response = TaskListResponse.builder()
+                    .data(taskSummaries)
+                    .meta(meta)
+                    .build();
+
+            log.info("Listed {} tasks for user: {}, total: {}", 
+                    taskSummaries.size(), userId, taskPage.getTotalElements());
+
+            return response;
+
+        } catch (final IllegalArgumentException ex) {
+            throw new TaskValidationException("Invalid filter parameters: " + ex.getMessage(), ex);
+        } catch (final Exception ex) {
+            throw new RuntimeException("Failed to list user tasks: " + ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Validate pagination parameters
+     */
+    private void validatePaginationParameters(final int page, final int perPage) {
+        if (page < 1) {
+            throw new IllegalArgumentException("Page number must be >= 1");
+        }
+        if (perPage < 1 || perPage > 100) {
+            throw new IllegalArgumentException("Per page must be between 1 and 100");
+        }
+    }
+
+    /**
+     * Parse task status string to enum
+     */
+    private Task.TaskStatus parseTaskStatus(final String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            // Convert kebab-case to UPPER_CASE
+            final String enumName = status.toUpperCase().replace("-", "_");
+            return Task.TaskStatus.valueOf(enumName);
+        } catch (final IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid task status: " + status);
+        }
+    }
+
+    /**
+     * Parse task type string to enum
+     */
+    private Task.TaskType parseTaskType(final String taskType) {
+        if (taskType == null || taskType.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            // Convert kebab-case to UPPER_CASE
+            final String enumName = taskType.toUpperCase().replace("-", "_");
+            return Task.TaskType.valueOf(enumName);
+        } catch (final IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid task type: " + taskType);
+        }
+    }
+
+    /**
+     * Parse upload batch ID string to Long
+     */
+    private Long parseUploadBatchId(final String uploadBatchId) {
+        if (uploadBatchId == null || uploadBatchId.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            // For UUID strings, convert to Long using hash (matching upload logic)
+            if (uploadBatchId.contains("-")) {
+                return Math.abs(uploadBatchId.hashCode() % 10000000L) + 1000000L;
+            }
+            // For direct Long values
+            return Long.parseLong(uploadBatchId);
+        } catch (final NumberFormatException ex) {
+            throw new IllegalArgumentException("Invalid upload batch ID: " + uploadBatchId);
+        }
+    }
+
+    /**
+     * Convert Task entity to TaskSummaryDto
+     */
+    private TaskSummaryDto convertToTaskSummaryDto(final Task task) {
+        // Calculate progress percentage
+        final int progressPercentage = task.getRowCount() > 0 ? 
+                (int) Math.round((double) 0 / task.getRowCount() * 100) : 0; // TODO: Add processed_rows to Task entity
+
+        return TaskSummaryDto.builder()
+                .id(task.getId().toString())
+                .userId(task.getUserId())
+                .originalFilename(task.getFilename())
+                .sheetName(task.getSheetName())
+                .taskType(task.getTaskType().getValue())
+                .taskStatus(task.getTaskStatus().getValue())
+                .uploadBatchId(task.getUploadBatchId().toString())
+                .rowCount(task.getRowCount())
+                .processedRows(0) // TODO: Add processed_rows to Task entity
+                .progressPercentage(progressPercentage)
+                .errorMessage(task.getErrorMessage())
+                .createdAt(task.getCreatedAt())
+                .updatedAt(task.getUpdatedAt())
+                .startedAt(task.getStartedAt())
+                .completedAt(task.getCompletedAt())
+                .cancelledAt(task.getCancelledAt())
+                .build();
     }
 } 

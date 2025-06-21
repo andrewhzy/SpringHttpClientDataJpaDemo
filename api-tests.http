@@ -47,8 +47,44 @@ API test upload
 
 ###
 
-### Get All Tasks (if endpoint exists)
+### List All Tasks (Basic)
 GET {{baseUrl}}/rest/api/v1/tasks
+Accept: application/json
+
+###
+
+### List Tasks with Pagination
+GET {{baseUrl}}/rest/api/v1/tasks?page=1&per_page=10&task_type=chat-evaluation
+Accept: application/json
+
+###
+
+### List Tasks with Status Filter
+GET {{baseUrl}}/rest/api/v1/tasks?status=queueing
+Accept: application/json
+
+###
+
+### List Tasks with Task Type Filter
+GET {{baseUrl}}/rest/api/v1/tasks?task_type=chat-evaluation
+Accept: application/json
+
+###
+
+### List Tasks with Filename Filter
+GET {{baseUrl}}/rest/api/v1/tasks?filename=chat-evaluation
+Accept: application/json
+
+###
+
+### List Tasks with Multiple Filters
+GET {{baseUrl}}/rest/api/v1/tasks?status=queueing&task_type=chat-evaluation&page=1&per_page=5
+Accept: application/json
+
+###
+
+### List Tasks with Date Range Filter
+GET {{baseUrl}}/rest/api/v1/tasks?created_after=2024-01-01T00:00:00&created_before=2024-12-31T23:59:59
 Accept: application/json
 
 ###
