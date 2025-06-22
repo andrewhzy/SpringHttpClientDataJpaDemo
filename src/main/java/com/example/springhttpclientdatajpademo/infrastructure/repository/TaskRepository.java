@@ -3,6 +3,7 @@ package com.example.springhttpclientdatajpademo.infrastructure.repository;
 import com.example.springhttpclientdatajpademo.domain.task.model.Task;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -10,44 +11,54 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * Repository for Task entity
- * Enhanced for cursor-based pagination in GET /rest/api/v1/tasks endpoint
- * 
- * Following Effective Java Item 64: Refer to objects by their interfaces
+ * Repository for Task entities
+ * Includes methods for background processing support
  */
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
     
-    // JpaRepository provides save() method needed for task creation
+    /**
+     * Find tasks by user ID and task type with cursor-based pagination
+     */
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND (:taskType IS NULL OR t.taskType = :taskType) " +
+           "AND (:cursor IS NULL OR t.id < :cursor) ORDER BY t.id DESC")
+    List<Task> findByUserIdAndTaskTypeWithCursor(@Param("userId") String userId, 
+                                                  @Param("taskType") Task.TaskType taskType,
+                                                  @Param("cursor") Long cursor, 
+                                                  Pageable pageable);
     
     /**
-     * Find first page of tasks for a user with task type filter
-     * Ordered by created_at DESC, id DESC for consistent pagination
+     * Count tasks by user ID and task type
      */
-    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.taskType = :taskType " +
-           "ORDER BY t.createdAt DESC, t.id DESC")
-    List<Task> findFirstPageByUserIdAndTaskType(
-            @Param("userId") String userId,
-            @Param("taskType") Task.TaskType taskType,
-            Pageable pageable);
+    @Query("SELECT COUNT(t) FROM Task t WHERE t.userId = :userId AND (:taskType IS NULL OR t.taskType = :taskType)")
+    long countByUserIdAndTaskType(@Param("userId") String userId, @Param("taskType") Task.TaskType taskType);
     
     /**
-     * Find next page of tasks after cursor for a user with task type filter
-     * Cursor is the ID of the last item from previous page
-     * Ordered by created_at DESC, id DESC for consistent pagination
+     * Find tasks by task type and status with pagination (for background processing)
+     * Used by ChatEvaluationBackgroundProcessor to get queued tasks in FIFO order
      */
-    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.taskType = :taskType " +
-           "AND t.id < :cursor " +
-           "ORDER BY t.createdAt DESC, t.id DESC")
-    List<Task> findNextPageByUserIdAndTaskTypeAfterCursor(
-            @Param("userId") String userId,
-            @Param("taskType") Task.TaskType taskType,
-            @Param("cursor") Long cursor,
-            Pageable pageable);
+    @Query("SELECT t FROM Task t WHERE t.taskType = :taskType AND t.taskStatus = :taskStatus ORDER BY t.createdAt ASC")
+    List<Task> findByTaskTypeAndTaskStatus(@Param("taskType") Task.TaskType taskType, 
+                                          @Param("taskStatus") Task.TaskStatus taskStatus, 
+                                          Pageable pageable);
     
     /**
-     * Count total tasks for a user with task type filter
-     * Used for total count in response metadata
+     * Atomically update task status from queueing to processing
+     * Prevents race conditions in background processing
      */
-    long countByUserIdAndTaskType(String userId, Task.TaskType taskType);
+    @Modifying
+    @Query("UPDATE Task t SET t.taskStatus = :newStatus, t.startedAt = CURRENT_TIMESTAMP " +
+           "WHERE t.id = :taskId AND t.taskStatus = :currentStatus")
+    int updateTaskStatusFromQueueingToProcessing(@Param("taskId") Long taskId, 
+                                                @Param("currentStatus") Task.TaskStatus currentStatus,
+                                                @Param("newStatus") Task.TaskStatus newStatus);
+    
+    /**
+     * Update task progress with processed row count
+     * Used during background processing to track progress
+     */
+    @Modifying
+    @Query("UPDATE Task t SET t.processedRows = :processedRows, t.updatedAt = CURRENT_TIMESTAMP " +
+           "WHERE t.id = :taskId")
+    int updateTaskProgress(@Param("taskId") Long taskId, @Param("processedRows") int processedRows);
 } 

@@ -38,4 +38,30 @@ logging:
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.springframework.jdbc.core: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n" 
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Application Configuration for Development
+app:
+  # Background processor settings
+  background-processor:
+    check-interval-ms: 30000  # Check for queued tasks every 30 seconds
+    
+  # Mock External Services Configuration for Development
+  mock:
+    glean:
+      enabled: true
+      min-delay-ms: 800
+      max-delay-ms: 2500
+      failure-rate: 0.1
+      simulate-timeouts: true
+      smart-answers: true
+      citation-count: 3
+    llm:
+      enabled: true
+      min-delay-ms: 300
+      max-delay-ms: 1000
+      failure-rate: 0.05
+      intelligent-similarity: true
+      identical-text-similarity: 0.95
+      min-random-similarity: 0.3
+      max-random-similarity: 0.9 

@@ -203,16 +203,9 @@ public class TaskApplicationService implements TaskService {
             final Pageable pageable = PageRequest.of(0, query.getPerPage() + 1); // +1 to check if more results exist
 
             // Query tasks based on cursor
-            final List<Task> tasks;
-            if (query.isFirstPage()) {
-                // First page - no cursor
-                tasks = taskRepository.findFirstPageByUserIdAndTaskType(
-                        query.getUserId(), taskTypeEnum, pageable);
-            } else {
-                // Subsequent pages - use cursor
-                tasks = taskRepository.findNextPageByUserIdAndTaskTypeAfterCursor(
-                        query.getUserId(), taskTypeEnum, query.getCursor(), pageable);
-            }
+            final Long cursorValue = query.isFirstPage() ? null : query.getCursor();
+            final List<Task> tasks = taskRepository.findByUserIdAndTaskTypeWithCursor(
+                    query.getUserId(), taskTypeEnum, cursorValue, pageable);
 
             // Determine if there are more results
             final boolean hasMore = tasks.size() > query.getPerPage();
@@ -317,10 +310,6 @@ public class TaskApplicationService implements TaskService {
      * Convert Task entity to TaskSummaryDto
      */
     private TaskSummaryDto convertToTaskSummaryDto(final Task task) {
-        // Calculate progress percentage
-        final int progressPercentage = task.getRowCount() > 0 ? 
-                (int) Math.round((double) 0 / task.getRowCount() * 100) : 0; // TODO: Add processed_rows to Task entity
-
         return TaskSummaryDto.builder()
                 .id(task.getId().toString())
                 .userId(task.getUserId())
@@ -330,8 +319,8 @@ public class TaskApplicationService implements TaskService {
                 .taskStatus(task.getTaskStatus().getValue())
                 .uploadBatchId(task.getUploadBatchId().toString())
                 .rowCount(task.getRowCount())
-                .processedRows(0) // TODO: Add processed_rows to Task entity
-                .progressPercentage(progressPercentage)
+                .processedRows(task.getProcessedRows())
+                .progressPercentage(task.getProgressPercentage())
                 .errorMessage(task.getErrorMessage())
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())

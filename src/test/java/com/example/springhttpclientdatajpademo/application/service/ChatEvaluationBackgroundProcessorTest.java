@@ -1,0 +1,304 @@
+package com.example.springhttpclientdatajpademo.application.service;
+
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationOutput;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.service.ChatEvaluationService;
+import com.example.springhttpclientdatajpademo.domain.task.model.Task;
+import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationInputRepository;
+import com.example.springhttpclientdatajpademo.infrastructure.repository.TaskRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * Comprehensive test for ChatEvaluationBackgroundProcessor
+ * Tests the complete background processing workflow following DDD principles
+ */
+@ExtendWith(MockitoExtension.class)
+class ChatEvaluationBackgroundProcessorTest {
+
+    @Mock
+    private TaskRepository taskRepository;
+
+    @Mock
+    private ChatEvaluationInputRepository inputRepository;
+
+    @Mock
+    private ChatEvaluationService chatEvaluationService;
+
+    @InjectMocks
+    private ChatEvaluationBackgroundProcessor processor;
+
+    private Task testTask;
+    private List<ChatEvaluationInput> testInputs;
+
+    @BeforeEach
+    void setUp() {
+        // Create test task
+        testTask = Task.builder()
+                .id(1L)
+                .userId("test-user")
+                .filename("test.xlsx")
+                .sheetName("Sheet1")
+                .taskType(Task.TaskType.CHAT_EVALUATION)
+                .taskStatus(Task.TaskStatus.QUEUEING)
+                .rowCount(2)
+                .processedRows(0)
+                .build();
+
+        // Create test inputs
+        ChatEvaluationInput input1 = ChatEvaluationInput.builder()
+                .id(1L)
+                .task(testTask)
+                .question("What is AI?")
+                .goldenAnswer("AI is artificial intelligence")
+                .goldenCitations(Arrays.asList("https://example.com/ai"))
+                .build();
+
+        ChatEvaluationInput input2 = ChatEvaluationInput.builder()
+                .id(2L)
+                .task(testTask)
+                .question("What is ML?")
+                .goldenAnswer("ML is machine learning")
+                .goldenCitations(Arrays.asList("https://example.com/ml"))
+                .build();
+
+        testInputs = Arrays.asList(input1, input2);
+    }
+
+    @Test
+    void processQueuedTasks_ShouldProcessTaskWhenQueuedTasksExist() {
+        // Given
+        Pageable pageable = PageRequest.of(0, 1, Sort.by("createdAt").ascending());
+        when(taskRepository.findByTaskTypeAndTaskStatus(
+                Task.TaskType.CHAT_EVALUATION, 
+                Task.TaskStatus.QUEUEING, 
+                pageable))
+                .thenReturn(Arrays.asList(testTask));
+
+        // When
+        processor.processQueuedTasks();
+
+        // Then
+        verify(taskRepository).findByTaskTypeAndTaskStatus(
+                Task.TaskType.CHAT_EVALUATION, 
+                Task.TaskStatus.QUEUEING, 
+                pageable);
+        // Note: processTaskAsync is async, so we can't directly verify its execution
+    }
+
+    @Test
+    void processQueuedTasks_ShouldDoNothingWhenNoQueuedTasks() {
+        // Given
+        Pageable pageable = PageRequest.of(0, 1, Sort.by("createdAt").ascending());
+        when(taskRepository.findByTaskTypeAndTaskStatus(
+                Task.TaskType.CHAT_EVALUATION, 
+                Task.TaskStatus.QUEUEING, 
+                pageable))
+                .thenReturn(Arrays.asList());
+
+        // When
+        processor.processQueuedTasks();
+
+        // Then
+        verify(taskRepository).findByTaskTypeAndTaskStatus(
+                Task.TaskType.CHAT_EVALUATION, 
+                Task.TaskStatus.QUEUEING, 
+                pageable);
+        verifyNoMoreInteractions(taskRepository, inputRepository, chatEvaluationService);
+    }
+
+    @Test
+    void markTaskAsProcessing_ShouldReturnTrueWhenSuccessfulUpdate() {
+        // Given
+        when(taskRepository.updateTaskStatusFromQueueingToProcessing(
+                testTask.getId(), 
+                Task.TaskStatus.QUEUEING, 
+                Task.TaskStatus.PROCESSING))
+                .thenReturn(1);
+
+        // When
+        boolean result = processor.markTaskAsProcessing(testTask);
+
+        // Then
+        verify(taskRepository).updateTaskStatusFromQueueingToProcessing(
+                testTask.getId(), 
+                Task.TaskStatus.QUEUEING, 
+                Task.TaskStatus.PROCESSING);
+        assert result;
+    }
+
+    @Test
+    void markTaskAsProcessing_ShouldReturnFalseWhenNoUpdate() {
+        // Given
+        when(taskRepository.updateTaskStatusFromQueueingToProcessing(
+                testTask.getId(), 
+                Task.TaskStatus.QUEUEING, 
+                Task.TaskStatus.PROCESSING))
+                .thenReturn(0);
+
+        // When
+        boolean result = processor.markTaskAsProcessing(testTask);
+
+        // Then
+        verify(taskRepository).updateTaskStatusFromQueueingToProcessing(
+                testTask.getId(), 
+                Task.TaskStatus.QUEUEING, 
+                Task.TaskStatus.PROCESSING);
+        assert !result;
+    }
+
+    @Test
+    void getTaskInputs_ShouldReturnInputsOrderedById() {
+        // Given
+        when(inputRepository.findByTaskOrderByIdAsc(testTask))
+                .thenReturn(testInputs);
+
+        // When
+        List<ChatEvaluationInput> result = processor.getTaskInputs(testTask);
+
+        // Then
+        verify(inputRepository).findByTaskOrderByIdAsc(testTask);
+        assert result.size() == 2;
+        assert result.get(0).getId().equals(1L);
+        assert result.get(1).getId().equals(2L);
+    }
+
+    @Test
+    void isTaskCancelled_ShouldReturnTrueWhenTaskIsCancelled() {
+        // Given
+        Task cancelledTask = Task.builder()
+                .id(1L)
+                .taskStatus(Task.TaskStatus.CANCELLED)
+                .build();
+        
+        when(taskRepository.findById(testTask.getId()))
+                .thenReturn(Optional.of(cancelledTask));
+
+        // When
+        boolean result = processor.isTaskCancelled(testTask);
+
+        // Then
+        verify(taskRepository).findById(testTask.getId());
+        assert result;
+    }
+
+    @Test
+    void isTaskCancelled_ShouldReturnFalseWhenTaskIsNotCancelled() {
+        // Given
+        when(taskRepository.findById(testTask.getId()))
+                .thenReturn(Optional.of(testTask));
+
+        // When
+        boolean result = processor.isTaskCancelled(testTask);
+
+        // Then
+        verify(taskRepository).findById(testTask.getId());
+        assert !result;
+    }
+
+    @Test
+    void updateTaskProgress_ShouldUpdateProgressSuccessfully() {
+        // Given
+        int processedRows = 5;
+
+        // When
+        processor.updateTaskProgress(testTask, processedRows);
+
+        // Then
+        verify(taskRepository).updateTaskProgress(testTask.getId(), processedRows);
+        assert testTask.getProcessedRows().equals(processedRows);
+    }
+
+    @Test
+    void markTaskAsCompleted_ShouldSaveCompletedTask() {
+        // When
+        processor.markTaskAsCompleted(testTask);
+
+        // Then
+        verify(taskRepository).save(testTask);
+        assert testTask.getTaskStatus() == Task.TaskStatus.COMPLETED;
+        assert testTask.getCompletedAt() != null;
+    }
+
+    @Test
+    void markTaskAsFailed_ShouldSaveFailedTaskWithErrorMessage() {
+        // Given
+        String errorMessage = "Test error";
+
+        // When
+        processor.markTaskAsFailed(testTask, errorMessage);
+
+        // Then
+        verify(taskRepository).save(testTask);
+        assert testTask.getTaskStatus() == Task.TaskStatus.FAILED;
+        assert testTask.getErrorMessage().equals(errorMessage);
+        assert testTask.getFailedAt() != null;
+    }
+
+    /**
+     * Integration test for the complete processing workflow
+     * This test verifies the happy path scenario
+     */
+    @Test
+    void processTaskAsync_ShouldCompleteSuccessfully() {
+        // Given - Setup successful processing scenario
+        when(taskRepository.updateTaskStatusFromQueueingToProcessing(any(), any(), any()))
+                .thenReturn(1);
+        when(inputRepository.findByTaskOrderByIdAsc(testTask))
+                .thenReturn(testInputs);
+        when(chatEvaluationService.isAlreadyEvaluated(any()))
+                .thenReturn(false);
+        
+        // Mock successful evaluation outputs
+        ChatEvaluationOutput output1 = mockChatEvaluationOutput(testInputs.get(0));
+        ChatEvaluationOutput output2 = mockChatEvaluationOutput(testInputs.get(1));
+        
+        when(chatEvaluationService.evaluateInput(testInputs.get(0)))
+                .thenReturn(output1);
+        when(chatEvaluationService.evaluateInput(testInputs.get(1)))
+                .thenReturn(output2);
+
+        // When
+        processor.processTaskAsync(testTask);
+
+        // Then - Verify the complete workflow
+        verify(taskRepository).updateTaskStatusFromQueueingToProcessing(
+                testTask.getId(), Task.TaskStatus.QUEUEING, Task.TaskStatus.PROCESSING);
+        verify(inputRepository).findByTaskOrderByIdAsc(testTask);
+        verify(chatEvaluationService, times(2)).isAlreadyEvaluated(any());
+        verify(chatEvaluationService).evaluateInput(testInputs.get(0));
+        verify(chatEvaluationService).evaluateInput(testInputs.get(1));
+        verify(taskRepository, times(2)).updateTaskProgress(eq(testTask.getId()), anyInt());
+        verify(taskRepository).save(testTask);
+        
+        assert testTask.getTaskStatus() == Task.TaskStatus.COMPLETED;
+        assert testTask.getCompletedAt() != null;
+    }
+
+    private ChatEvaluationOutput mockChatEvaluationOutput(ChatEvaluationInput input) {
+        return ChatEvaluationOutput.builder()
+                .id(input.getId())
+                .input(input)
+                .apiAnswer("Mock API answer")
+                .apiCitations(Arrays.asList("https://mock-api.com/citation"))
+                .answerSimilarity(BigDecimal.valueOf(0.85))
+                .citationSimilarity(BigDecimal.valueOf(0.75))
+                .processingTimeMs(1000)
+                .build();
+    }
+} 

@@ -13,7 +13,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for ListTasksQuery command
+ * Unit tests for ListTasksCommand command
  * Demonstrates consistent command pattern usage for queries
  */
 class ListTasksQueryTest {

@@ -63,6 +63,10 @@ public class Task {
     @Builder.Default
     private Integer rowCount = 0;
     
+    @Column(name = "processed_rows", nullable = false)
+    @Builder.Default
+    private Integer processedRows = 0;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -121,6 +125,37 @@ public class Task {
         this.taskStatus = TaskStatus.FAILED;
         this.failedAt = LocalDateTime.now();
         this.errorMessage = errorMessage;
+    }
+    
+    /**
+     * Update progress by incrementing processed rows
+     */
+    public void incrementProcessedRows() {
+        this.processedRows++;
+    }
+    
+    /**
+     * Set processed rows to a specific value
+     */
+    public void setProcessedRows(final Integer processedRows) {
+        this.processedRows = processedRows;
+    }
+    
+    /**
+     * Calculate progress percentage
+     */
+    public Integer getProgressPercentage() {
+        if (rowCount == null || rowCount == 0) {
+            return 0;
+        }
+        return (int) Math.round((double) processedRows / rowCount * 100);
+    }
+    
+    /**
+     * Check if task processing is complete
+     */
+    public boolean isProcessingComplete() {
+        return processedRows != null && rowCount != null && processedRows.equals(rowCount);
     }
     
     /**
