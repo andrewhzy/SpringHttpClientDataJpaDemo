@@ -1,5 +1,6 @@
 package com.example.springhttpclientdatajpademo.infrastructure.web;
 
+import com.example.springhttpclientdatajpademo.application.dto.ListTasksCommand;
 import com.example.springhttpclientdatajpademo.application.dto.TaskListResponse;
 import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
 import com.example.springhttpclientdatajpademo.application.service.TaskService;
@@ -52,26 +53,34 @@ public class TaskController {
     }
 
     /**
-     * List user tasks with cursor-based pagination
+     * List user tasks with cursor-based pagination using query command pattern
      *
      * @param perPage         number of items per page (1-100)
      * @param taskType        task type filter (chat-evaluation)
-     * @param cursorMaxTaskId optional cursor for pagination (null for first page)
+     * @param cursor optional cursor for pagination (null for first page)
      * @return paginated list of user tasks (metadata only)
      */
     @GetMapping("/tasks")
     public ResponseEntity<TaskListResponse> listTasks(
-            @RequestParam(name = "per_page") int perPage,
+            @RequestParam(name = "per_page") @Max(500) int perPage,
             @RequestParam(name = "task_type") String taskType,
-            @RequestParam(name = "cursor_max_task_id", defaultValue = "9223372036854775807") Long cursorMaxTaskId) {
+            @RequestParam(name = "cursor", defaultValue = "9223372036854775807") Long cursor) {
 
         log.info("Received task list request: perPage={}, taskType={}, cursor={}",
-                perPage, taskType, cursorMaxTaskId);
+                perPage, taskType, cursor);
 
         // TODO: Extract user ID from JWT token when authentication is implemented
         String userId = getCurrentUserId();
 
-        TaskListResponse response = taskService.listUserTasks(userId, perPage, taskType, cursorMaxTaskId);
+        // Create query command for consistent command pattern usage
+        ListTasksCommand query = ListTasksCommand.builder()
+                .userId(userId)
+                .perPage(perPage)
+                .taskType(taskType)
+                .cursor(cursor)
+                .build();
+
+        TaskListResponse response = taskService.listUserTasks(query);
 
         log.info("Task list completed successfully: {} tasks returned, hasMore={}",
                 response.getData().size(), response.getMeta().isHasMore());

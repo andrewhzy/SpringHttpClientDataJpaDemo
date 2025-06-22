@@ -30,7 +30,7 @@ class ListTasksQueryTest {
     @DisplayName("Should create valid query with all required fields")
     void shouldCreateValidQuery() {
         // Given
-        ListTasksQuery query = ListTasksQuery.builder()
+        ListTasksCommand query = ListTasksCommand.builder()
                 .userId("user-123")
                 .perPage(20)
                 .taskType("chat-evaluation")
@@ -38,7 +38,7 @@ class ListTasksQueryTest {
                 .build();
 
         // When
-        Set<ConstraintViolation<ListTasksQuery>> violations = validator.validate(query);
+        Set<ConstraintViolation<ListTasksCommand>> violations = validator.validate(query);
 
         // Then
         assertTrue(violations.isEmpty());
@@ -49,7 +49,7 @@ class ListTasksQueryTest {
     @DisplayName("Should create valid query with cursor for subsequent pages")
     void shouldCreateValidQueryWithCursor() {
         // Given
-        ListTasksQuery query = ListTasksQuery.builder()
+        ListTasksCommand query = ListTasksCommand.builder()
                 .userId("user-123")
                 .perPage(10)
                 .taskType("chat-evaluation")
@@ -57,7 +57,7 @@ class ListTasksQueryTest {
                 .build();
 
         // When
-        Set<ConstraintViolation<ListTasksQuery>> violations = validator.validate(query);
+        Set<ConstraintViolation<ListTasksCommand>> violations = validator.validate(query);
 
         // Then
         assertTrue(violations.isEmpty());
@@ -69,7 +69,7 @@ class ListTasksQueryTest {
     @DisplayName("Should use static factory method for first page")
     void shouldUseStaticFactoryForFirstPage() {
         // When
-        ListTasksQuery query = ListTasksQuery.firstPage("user-123", 20, "chat-evaluation");
+        ListTasksCommand query = ListTasksCommand.firstPage("user-123", 20, "chat-evaluation");
 
         // Then
         assertEquals("user-123", query.getUserId());
@@ -83,7 +83,7 @@ class ListTasksQueryTest {
     @DisplayName("Should use static factory method for next page")
     void shouldUseStaticFactoryForNextPage() {
         // When
-        ListTasksQuery query = ListTasksQuery.nextPage("user-123", 20, "chat-evaluation", 456L);
+        ListTasksCommand query = ListTasksCommand.nextPage("user-123", 20, "chat-evaluation", 456L);
 
         // Then
         assertEquals("user-123", query.getUserId());
@@ -97,14 +97,14 @@ class ListTasksQueryTest {
     @DisplayName("Should fail validation when userId is blank")
     void shouldFailValidationWhenUserIdIsBlank() {
         // Given
-        ListTasksQuery query = ListTasksQuery.builder()
+        ListTasksCommand query = ListTasksCommand.builder()
                 .userId("")
                 .perPage(20)
                 .taskType("chat-evaluation")
                 .build();
 
         // When
-        Set<ConstraintViolation<ListTasksQuery>> violations = validator.validate(query);
+        Set<ConstraintViolation<ListTasksCommand>> violations = validator.validate(query);
 
         // Then
         assertFalse(violations.isEmpty());
@@ -116,14 +116,14 @@ class ListTasksQueryTest {
     @DisplayName("Should fail validation when taskType is blank")
     void shouldFailValidationWhenTaskTypeIsBlank() {
         // Given
-        ListTasksQuery query = ListTasksQuery.builder()
+        ListTasksCommand query = ListTasksCommand.builder()
                 .userId("user-123")
                 .perPage(20)
                 .taskType("")
                 .build();
 
         // When
-        Set<ConstraintViolation<ListTasksQuery>> violations = validator.validate(query);
+        Set<ConstraintViolation<ListTasksCommand>> violations = validator.validate(query);
 
         // Then
         assertFalse(violations.isEmpty());
@@ -135,14 +135,14 @@ class ListTasksQueryTest {
     @DisplayName("Should fail validation when perPage is too small")
     void shouldFailValidationWhenPerPageTooSmall() {
         // Given
-        ListTasksQuery query = ListTasksQuery.builder()
+        ListTasksCommand query = ListTasksCommand.builder()
                 .userId("user-123")
                 .perPage(0)
                 .taskType("chat-evaluation")
                 .build();
 
         // When
-        Set<ConstraintViolation<ListTasksQuery>> violations = validator.validate(query);
+        Set<ConstraintViolation<ListTasksCommand>> violations = validator.validate(query);
 
         // Then
         assertFalse(violations.isEmpty());
@@ -154,14 +154,14 @@ class ListTasksQueryTest {
     @DisplayName("Should fail validation when perPage is too large")
     void shouldFailValidationWhenPerPageTooLarge() {
         // Given
-        ListTasksQuery query = ListTasksQuery.builder()
+        ListTasksCommand query = ListTasksCommand.builder()
                 .userId("user-123")
                 .perPage(101)
                 .taskType("chat-evaluation")
                 .build();
 
         // When
-        Set<ConstraintViolation<ListTasksQuery>> violations = validator.validate(query);
+        Set<ConstraintViolation<ListTasksCommand>> violations = validator.validate(query);
 
         // Then
         assertFalse(violations.isEmpty());

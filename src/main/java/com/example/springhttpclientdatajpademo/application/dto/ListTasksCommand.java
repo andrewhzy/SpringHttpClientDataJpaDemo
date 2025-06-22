@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ListTasksQuery {
+public class ListTasksCommand {
     
     @NotBlank(message = "User ID is required")
     private String userId;
@@ -41,8 +41,8 @@ public class ListTasksQuery {
     /**
      * Create query for first page (no cursor)
      */
-    public static ListTasksQuery firstPage(String userId, int perPage, String taskType) {
-        return ListTasksQuery.builder()
+    public static ListTasksCommand firstPage(String userId, int perPage, String taskType) {
+        return ListTasksCommand.builder()
                 .userId(userId)
                 .perPage(perPage)
                 .taskType(taskType)
@@ -53,8 +53,8 @@ public class ListTasksQuery {
     /**
      * Create query for subsequent page with cursor
      */
-    public static ListTasksQuery nextPage(String userId, int perPage, String taskType, Long cursor) {
-        return ListTasksQuery.builder()
+    public static ListTasksCommand nextPage(String userId, int perPage, String taskType, Long cursor) {
+        return ListTasksCommand.builder()
                 .userId(userId)
                 .perPage(perPage)
                 .taskType(taskType)
@@ -63,7 +63,7 @@ public class ListTasksQuery {
     }
     
     /**
-     * Check if this is a first page request
+     * Check if this is a first page request (no cursor)
      */
     public boolean isFirstPage() {
         return cursor == null;

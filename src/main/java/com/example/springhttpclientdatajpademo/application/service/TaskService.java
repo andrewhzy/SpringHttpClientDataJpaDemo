@@ -1,5 +1,6 @@
 package com.example.springhttpclientdatajpademo.application.service;
 
+import com.example.springhttpclientdatajpademo.application.dto.ListTasksCommand;
 import com.example.springhttpclientdatajpademo.application.dto.TaskListResponse;
 import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,11 +32,16 @@ public interface TaskService {
     UploadResponse createTaskFromExcel(MultipartFile file, String description);
     
     /**
-     * List user tasks with cursor-based pagination
+     * List user tasks with cursor-based pagination using query command
      * 
-     * Returns a list of task metadata for the authenticated user using cursor-based
-     * pagination for better performance and user experience. First request should not
-     * include cursor, subsequent requests should use next_cursor from previous response.
+     * @param query the list tasks query command with validation
+     * @return cursor-based paginated task list response with metadata
+     * @throws RuntimeException if filtering or data access fails (unchecked)
+     */
+    TaskListResponse listUserTasks(ListTasksCommand query);
+    
+    /**
+     * List user tasks with cursor-based pagination - legacy method for backward compatibility
      * 
      * @param userId the authenticated user's ID
      * @param perPage number of items per page (1-100)
@@ -43,7 +49,9 @@ public interface TaskService {
      * @param cursor optional cursor for pagination (null for first page)
      * @return cursor-based paginated task list response with metadata
      * @throws RuntimeException if filtering or data access fails (unchecked)
+     * @deprecated Use {@link #listUserTasks(ListTasksCommand)} instead for consistency with command pattern
      */
+    @Deprecated
     TaskListResponse listUserTasks(
             String userId,
             int perPage,

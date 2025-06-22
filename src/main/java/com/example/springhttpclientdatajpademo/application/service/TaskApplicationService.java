@@ -1,6 +1,7 @@
 package com.example.springhttpclientdatajpademo.application.service;
 
 import com.example.springhttpclientdatajpademo.application.dto.CreateTaskCommand;
+import com.example.springhttpclientdatajpademo.application.dto.ListTasksCommand;
 import com.example.springhttpclientdatajpademo.application.dto.TaskListResponse;
 import com.example.springhttpclientdatajpademo.application.dto.TaskSummaryDto;
 import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
@@ -180,51 +181,42 @@ public class TaskApplicationService implements TaskService {
     }
 
     /**
-     * List user tasks with cursor-based pagination
-     * Implementation for GET /rest/api/v1/tasks endpoint
+     * List user tasks with cursor-based pagination using query command
+     * Implementation for GET /rest/api/v1/tasks endpoint - preferred method
      * 
-     * @param userId the authenticated user's ID
-     * @param perPage number of items per page (1-100)
-     * @param taskType task type filter (required)
-     * @param cursor optional cursor for pagination (null for first page)
+     * @param query the list tasks query command with validation
      * @return cursor-based paginated task list response with metadata
-     * @throws TaskValidationException if pagination parameters are invalid
+     * @throws TaskValidationException if query parameters are invalid
      */
     @Override
     @Transactional(readOnly = true)
-    public TaskListResponse listUserTasks(
-            final String userId,
-            final int perPage,
-            final String taskType,
-            final Long cursor) {
-
-        log.info("Listing tasks for user: {}, perPage: {}, taskType: {}, cursor: {}", 
-                userId, perPage, taskType, cursor);
+    public TaskListResponse listUserTasks(final ListTasksCommand query) {
+        
+        log.info("Listing tasks with query: userId={}, perPage={}, taskType={}, cursor={}", 
+                query.getUserId(), query.getPerPage(), query.getTaskType(), query.getCursor());
 
         try {
-            // Validate pagination parameters
-            validatePaginationParameters(perPage);
-
             // Convert string taskType to enum
-            final Task.TaskType taskTypeEnum = parseTaskType(taskType);
+            final Task.TaskType taskTypeEnum = parseTaskType(query.getTaskType());
 
             // Create pageable for limit
-            final Pageable pageable = PageRequest.of(0, perPage + 1); // +1 to check if more results exist
+            final Pageable pageable = PageRequest.of(0, query.getPerPage() + 1); // +1 to check if more results exist
 
             // Query tasks based on cursor
             final List<Task> tasks;
-            if (cursor == null) {
+            if (query.isFirstPage()) {
                 // First page - no cursor
-                tasks = taskRepository.findFirstPageByUserIdAndTaskType(userId, taskTypeEnum, pageable);
+                tasks = taskRepository.findFirstPageByUserIdAndTaskType(
+                        query.getUserId(), taskTypeEnum, pageable);
             } else {
                 // Subsequent pages - use cursor
                 tasks = taskRepository.findNextPageByUserIdAndTaskTypeAfterCursor(
-                        userId, taskTypeEnum, cursor, pageable);
+                        query.getUserId(), taskTypeEnum, query.getCursor(), pageable);
             }
 
             // Determine if there are more results
-            final boolean hasMore = tasks.size() > perPage;
-            final List<Task> resultTasks = hasMore ? tasks.subList(0, perPage) : tasks;
+            final boolean hasMore = tasks.size() > query.getPerPage();
+            final List<Task> resultTasks = hasMore ? tasks.subList(0, query.getPerPage()) : tasks;
 
             // Convert to DTOs
             final List<TaskSummaryDto> taskSummaries = resultTasks.stream()
@@ -236,11 +228,12 @@ public class TaskApplicationService implements TaskService {
                     resultTasks.get(resultTasks.size() - 1).getId() : null;
 
             // Get total count for metadata
-            final long totalCount = taskRepository.countByUserIdAndTaskType(userId, taskTypeEnum);
+            final long totalCount = taskRepository.countByUserIdAndTaskType(
+                    query.getUserId(), taskTypeEnum);
 
             // Build pagination metadata
             final TaskListResponse.PaginationMeta meta = TaskListResponse.PaginationMeta.builder()
-                    .perPage(perPage)
+                    .perPage(query.getPerPage())
                     .total(totalCount)
                     .nextCursor(nextCursor != null ? nextCursor.toString() : null)
                     .hasMore(hasMore)
@@ -252,15 +245,47 @@ public class TaskApplicationService implements TaskService {
                     .build();
 
             log.info("Listed {} tasks for user: {}, total: {}, hasMore: {}", 
-                    taskSummaries.size(), userId, totalCount, hasMore);
+                    taskSummaries.size(), query.getUserId(), totalCount, hasMore);
 
             return response;
 
         } catch (final IllegalArgumentException ex) {
-            throw new TaskValidationException("Invalid parameters: " + ex.getMessage(), ex);
+            throw new TaskValidationException("Invalid query parameters: " + ex.getMessage(), ex);
         } catch (final Exception ex) {
             throw new RuntimeException("Failed to list user tasks: " + ex.getMessage(), ex);
         }
+    }
+
+    /**
+     * List user tasks with cursor-based pagination - legacy method for backward compatibility
+     * Implementation for GET /rest/api/v1/tasks endpoint
+     * 
+     * @param userId the authenticated user's ID
+     * @param perPage number of items per page (1-100)
+     * @param taskType task type filter (required)
+     * @param cursor optional cursor for pagination (null for first page)
+     * @return cursor-based paginated task list response with metadata
+     * @throws TaskValidationException if pagination parameters are invalid
+     * @deprecated Use {@link #listUserTasks(ListTasksCommand)} instead for consistency with command pattern
+     */
+    @Override
+    @Deprecated
+    @Transactional(readOnly = true)
+    public TaskListResponse listUserTasks(
+            final String userId,
+            final int perPage,
+            final String taskType,
+            final Long cursor) {
+
+        // Create query command and delegate to new method
+        final ListTasksCommand query = ListTasksCommand.builder()
+                .userId(userId)
+                .perPage(perPage)
+                .taskType(taskType)
+                .cursor(cursor)
+                .build();
+
+        return listUserTasks(query);
     }
 
     /**
