@@ -26,13 +26,13 @@ Accept: application/json
 ###
 
 ### List Tasks with Smaller Page Size
-GET {{baseUrl}}/rest/api/v1/tasks?per_page=2&task_type=chat-evaluation&cursor_max_task_id=9223372036854775807
+GET {{baseUrl}}/rest/api/v1/tasks?per_page=2&task_type=chat-evaluation
 Accept: application/json
 
 ###
 
-### List Next Page Using Cursor (replace "123" with actual next_cursor from previous response)
-GET {{baseUrl}}/rest/api/v1/tasks?per_page=2&task_type=chat-evaluation&cursor_max_task_id=92233720368547758078
+### List Next Page Using Cursor (replace "12" with actual next_cursor from previous response)
+GET {{baseUrl}}/rest/api/v1/tasks?per_page=2&task_type=chat-evaluation&cursor=12
 Accept: application/json
 
 ###
