@@ -125,40 +125,38 @@ class ChatEvaluationBackgroundProcessorTest {
     @Test
     void markTaskAsProcessing_ShouldReturnTrueWhenSuccessfulUpdate() {
         // Given
-        when(taskRepository.updateTaskStatusFromQueueingToProcessing(
-                testTask.getId(), 
-                Task.TaskStatus.QUEUEING, 
-                Task.TaskStatus.PROCESSING))
-                .thenReturn(1);
+        Task dbTask = Task.builder()
+                .id(1L)
+                .taskStatus(Task.TaskStatus.QUEUEING)
+                .build();
+        
+        when(taskRepository.findById(testTask.getId()))
+                .thenReturn(Optional.of(dbTask));
+        when(taskRepository.save(any(Task.class)))
+                .thenReturn(dbTask);
 
         // When
         boolean result = processor.markTaskAsProcessing(testTask);
 
         // Then
-        verify(taskRepository).updateTaskStatusFromQueueingToProcessing(
-                testTask.getId(), 
-                Task.TaskStatus.QUEUEING, 
-                Task.TaskStatus.PROCESSING);
+        verify(taskRepository).findById(testTask.getId());
+        verify(taskRepository).save(dbTask);
         assert result;
+        assert dbTask.getTaskStatus() == Task.TaskStatus.PROCESSING;
     }
 
     @Test
     void markTaskAsProcessing_ShouldReturnFalseWhenNoUpdate() {
-        // Given
-        when(taskRepository.updateTaskStatusFromQueueingToProcessing(
-                testTask.getId(), 
-                Task.TaskStatus.QUEUEING, 
-                Task.TaskStatus.PROCESSING))
-                .thenReturn(0);
+        // Given - Task not found in database
+        when(taskRepository.findById(testTask.getId()))
+                .thenReturn(Optional.empty());
 
         // When
         boolean result = processor.markTaskAsProcessing(testTask);
 
         // Then
-        verify(taskRepository).updateTaskStatusFromQueueingToProcessing(
-                testTask.getId(), 
-                Task.TaskStatus.QUEUEING, 
-                Task.TaskStatus.PROCESSING);
+        verify(taskRepository).findById(testTask.getId());
+        verify(taskRepository, never()).save(any());
         assert !result;
     }
 
@@ -257,8 +255,15 @@ class ChatEvaluationBackgroundProcessorTest {
     @Test
     void processTaskAsync_ShouldCompleteSuccessfully() {
         // Given - Setup successful processing scenario
-        when(taskRepository.updateTaskStatusFromQueueingToProcessing(any(), any(), any()))
-                .thenReturn(1);
+        Task dbTask = Task.builder()
+                .id(1L)
+                .taskStatus(Task.TaskStatus.QUEUEING)
+                .build();
+        
+        when(taskRepository.findById(testTask.getId()))
+                .thenReturn(Optional.of(dbTask));
+        when(taskRepository.save(any(Task.class)))
+                .thenReturn(dbTask);
         when(inputRepository.findByTaskOrderByIdAsc(testTask))
                 .thenReturn(testInputs);
         when(chatEvaluationService.isAlreadyEvaluated(any()))
@@ -277,14 +282,13 @@ class ChatEvaluationBackgroundProcessorTest {
         processor.processTaskAsync(testTask);
 
         // Then - Verify the complete workflow
-        verify(taskRepository).updateTaskStatusFromQueueingToProcessing(
-                testTask.getId(), Task.TaskStatus.QUEUEING, Task.TaskStatus.PROCESSING);
+        verify(taskRepository, atLeast(1)).findById(testTask.getId());
         verify(inputRepository).findByTaskOrderByIdAsc(testTask);
         verify(chatEvaluationService, times(2)).isAlreadyEvaluated(any());
         verify(chatEvaluationService).evaluateInput(testInputs.get(0));
         verify(chatEvaluationService).evaluateInput(testInputs.get(1));
         verify(taskRepository, times(2)).updateTaskProgress(eq(testTask.getId()), anyInt());
-        verify(taskRepository).save(testTask);
+        verify(taskRepository, atLeast(1)).save(any(Task.class));
         
         assert testTask.getTaskStatus() == Task.TaskStatus.COMPLETED;
         assert testTask.getCompletedAt() != null;

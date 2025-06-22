@@ -63,7 +63,7 @@ public class Task {
     @Builder.Default
     private Integer rowCount = 0;
     
-    @Column(name = "processed_rows", nullable = false)
+    @Column(name = "processed_rows", nullable = false, columnDefinition = "INTEGER DEFAULT 0")
     @Builder.Default
     private Integer processedRows = 0;
     

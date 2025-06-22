@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 /**
  * Mock implementation of LLM Similarity Service client for development
@@ -202,8 +203,12 @@ public class MockLlmSimilarityServiceClient implements LlmSimilarityServiceClien
      * Calculate word overlap similarity
      */
     private double calculateWordOverlap(final String text1, final String text2) {
-        final Set<String> words1 = Set.of(text1.toLowerCase().split("\\s+"));
-        final Set<String> words2 = Set.of(text2.toLowerCase().split("\\s+"));
+        final Set<String> words1 = Arrays.stream(text1.toLowerCase().split("\\s+"))
+                .filter(word -> !word.isEmpty())
+                .collect(Collectors.toSet());
+        final Set<String> words2 = Arrays.stream(text2.toLowerCase().split("\\s+"))
+                .filter(word -> !word.isEmpty())
+                .collect(Collectors.toSet());
         
         final Set<String> intersection = new HashSet<>(words1);
         intersection.retainAll(words2);

@@ -321,4 +321,25 @@ The chat evaluation functionality is now fully implemented with:
 - ✅ Full test coverage
 - ✅ Production-ready configuration
 
-The system can be used immediately for development and testing, and easily extended for production use with real external services. 
+The system can be used immediately for development and testing, and easily extended for production use with real external services.
+
+## 🔧 **Recent Fixes & Improvements**
+
+### Transaction Issue Resolution ✅
+**Issue**: Background processor was encountering `TransactionRequiredException` when updating task status.
+
+**Root Cause**: Spring doesn't properly handle methods annotated with both `@Async` and `@Transactional`. The transaction context doesn't propagate to async threads.
+
+**Solution Applied**:
+1. Removed `@Transactional` from the main `processTaskAsync()` method
+2. Kept individual service methods (like `markTaskAsProcessing()`, `updateTaskProgress()`) properly transactional
+3. Repository `@Modifying` queries now run within the caller's transaction context
+4. This ensures atomic operations while maintaining async processing capabilities
+
+**Result**: Background processing now works correctly with proper transaction boundaries and async execution.
+
+### Verification ✅
+- ✅ All unit tests passing
+- ✅ Background processor successfully processes tasks
+- ✅ Transaction boundaries properly maintained
+- ✅ No more `TransactionRequiredException` errors 

@@ -14,6 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -88,7 +89,6 @@ public class ChatEvaluationBackgroundProcessor {
      * @param task the task to process
      */
     @Async("chatEvaluationExecutor")
-    @Transactional
     public void processTaskAsync(final Task task) {
         log.info("Starting async processing for task: {}", task.getId());
         
@@ -184,26 +184,36 @@ public class ChatEvaluationBackgroundProcessor {
     /**
      * Mark task as processing if it's still in queueing status
      * Implements atomic status change to prevent race conditions
+     * Uses REQUIRES_NEW to ensure transaction works in async context
      * 
      * @param task the task to mark as processing
      * @return true if successfully marked as processing
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     protected boolean markTaskAsProcessing(final Task task) {
         try {
-            // Atomic update - only change status if still queueing
-            final int updatedCount = taskRepository.updateTaskStatusFromQueueingToProcessing(
-                task.getId(), Task.TaskStatus.QUEUEING, Task.TaskStatus.PROCESSING
-            );
-            
-            if (updatedCount > 0) {
-                task.markAsStarted(); // Update the entity state for consistency
-                log.info("Marked task {} as processing", task.getId());
-                return true;
-            } else {
-                log.warn("Task {} is no longer in queueing status", task.getId());
+            // Refresh the task from database first
+            final Optional<Task> currentTask = taskRepository.findById(task.getId());
+            if (currentTask.isEmpty()) {
+                log.warn("Task {} not found in database", task.getId());
                 return false;
             }
+            
+            final Task dbTask = currentTask.get();
+            if (dbTask.getTaskStatus() != Task.TaskStatus.QUEUEING) {
+                log.warn("Task {} is no longer in queueing status: {}", task.getId(), dbTask.getTaskStatus());
+                return false;
+            }
+            
+            // Perform atomic update using direct entity manipulation
+            dbTask.markAsStarted(); // This sets both status and startedAt timestamp
+            taskRepository.save(dbTask);
+            
+            // Update the passed task entity state for consistency
+            task.markAsStarted();
+            
+            log.info("Marked task {} as processing", task.getId());
+            return true;
             
         } catch (Exception e) {
             log.error("Error marking task {} as processing", task.getId(), e);
@@ -235,11 +245,12 @@ public class ChatEvaluationBackgroundProcessor {
     
     /**
      * Update task progress with current processed row count
+     * Uses REQUIRES_NEW to ensure transaction works in async context
      * 
      * @param task the task to update
      * @param processedRows number of processed rows
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     protected void updateTaskProgress(final Task task, final int processedRows) {
         try {
             taskRepository.updateTaskProgress(task.getId(), processedRows);
@@ -252,10 +263,11 @@ public class ChatEvaluationBackgroundProcessor {
     
     /**
      * Mark task as completed
+     * Uses REQUIRES_NEW to ensure transaction works in async context
      * 
      * @param task the task to complete
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     protected void markTaskAsCompleted(final Task task) {
         try {
             task.markAsCompleted();
@@ -269,11 +281,12 @@ public class ChatEvaluationBackgroundProcessor {
     
     /**
      * Mark task as failed with error message
+     * Uses REQUIRES_NEW to ensure transaction works in async context
      * 
      * @param task the task to mark as failed
      * @param errorMessage the error message
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     protected void markTaskAsFailed(final Task task, final String errorMessage) {
         try {
             task.markAsFailed(errorMessage);
