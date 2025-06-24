@@ -450,30 +450,25 @@ components:
           description: "Success message"
           example: "Successfully created 3 tasks from uploaded Excel file"
 
-    # File Download Schema
-    TaskFile:
+    # File Download Schema - Single Excel file with multiple sheets
+    ExcelEvaluationFile:
       type: object
       required:
         - filename
-        - download_url
         - size
         - mime_type
         - generated_at
+        - sheet_count
       properties:
         filename:
           type: string
-          description: "Generated file name"
-          example: "task_12345_QnAs.xlsx"
-        download_url:
-          type: string
-          format: uri
-          description: "URL to download the file"
-          example: "/api/v1/tasks/12345/files/task_QnAs"
+          description: "Generated Excel filename with evaluation results"
+          example: "task_12345_evaluation_results.xlsx"
         size:
           type: integer
           minimum: 0
           description: "File size in bytes"
-          example: 15360
+          example: 184320
         mime_type:
           type: string
           enum: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
@@ -482,49 +477,35 @@ components:
         generated_at:
           type: string
           format: date-time
-          description: "When the file was generated"
+          description: "When the Excel file was generated"
           example: "2024-01-01T00:10:00Z"
-        row_count:
+        sheet_count:
           type: integer
-          minimum: 0
-          description: "Number of data rows in the file"
-          example: 150
-
-    TaskWithFiles:
-      allOf:
-        - $ref: '#/components/schemas/Task'
-        - type: object
-          properties:
-            files:
-              type: object
-              description: "Available files for download"
-              properties:
-                task_QnAs:
-                  allOf:
-                    - $ref: '#/components/schemas/TaskFile'
-                  description: "Original questions and golden answers from uploaded Excel"
-                  nullable: true
-                answers_and_retrieved_docs:
-                  allOf:
-                    - $ref: '#/components/schemas/TaskFile'
-                  description: "API responses with retrieved documents and citations"
-                  nullable: true
-                answer_evaluation:
-                  allOf:
-                    - $ref: '#/components/schemas/TaskFile'
-                  description: "Answer similarity scores and evaluation metrics"
-                  nullable: true
-                docs_evaluation:
-                  allOf:
-                    - $ref: '#/components/schemas/TaskFile'
-                  description: "Document/citation similarity analysis and evaluation"
-                  nullable: true
-            bulk_download_url:
-              type: string
-              format: uri
-              nullable: true
-              description: "URL to download all files as ZIP archive (null if processing not completed)"
-              example: "/api/v1/tasks/12345/files"
+          minimum: 1
+          description: "Number of sheets in the Excel file"
+          example: 4
+        sheets:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: "Sheet name"
+              row_count:
+                type: integer
+                minimum: 0
+                description: "Number of data rows in this sheet"
+          description: "Information about each sheet in the Excel file"
+          example:
+            - name: "QnAs"
+              row_count: 150
+            - name: "API_Responses"
+              row_count: 150
+            - name: "Answer_Evaluation"
+              row_count: 150
+            - name: "Docs_Evaluation"
+              row_count: 150
 
   responses:
     # Error Responses (used across all endpoints)
@@ -865,94 +846,6 @@ paths:
           format: int64
           minimum: 1
 
-    get:
-      tags:
-        - Tasks
-      summary: "[TO BE DELETED] Get task details with downloadable result files"
-      deprecated: true
-      description: |
-        **⚠️ TO BE DELETED - KEEPING FOR NOW**
-        
-        Retrieve detailed information about a specific task including metadata and downloadable result files.
-        Users can only access their own tasks.
-        
-        **Response includes:**
-        - Task metadata (status, progress, etc.)
-        - Download URLs for 4 result files (if processing completed):
-          1. **task_QnAs**: Original questions and golden answers from uploaded Excel
-          2. **answers_and_retrieved_docs**: API responses with retrieved documents and citations
-          3. **answer_evaluation**: Answer similarity scores and evaluation metrics  
-          4. **docs_evaluation**: Document/citation similarity analysis and evaluation
-        
-        **File Format:** All files are Excel (.xlsx) format for easy analysis
-        **File Availability:** Files are generated only after background processing completes
-        - **File Access:** Use the download_url to fetch individual files
-      responses:
-        '200':
-          description: Task details with downloadable result files
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TaskWithFiles'
-              examples:
-                chat_evaluation_task:
-                  summary: Chat Evaluation Task with Files
-                  value:
-                    id: 12345
-                    user_id: "user_123"
-                    original_filename: "chat_evaluation_data.xlsx"
-                    sheet_name: "Evaluation_Questions"
-                    task_type: "chat-evaluation"
-                    task_status: "completed"
-                    upload_batch_id: 67890
-                    row_count: 150
-                    processed_rows: 150
-                    error_message: null
-                    metadata: {"detected_columns": ["question", "golden_answer", "golden_citations"]}
-                    created_at: "2024-01-01T00:00:00Z"
-                    updated_at: "2024-01-01T00:10:00Z"
-                    started_at: "2024-01-01T00:01:00Z"
-                    completed_at: "2024-01-01T00:10:00Z"
-                    cancelled_at: null
-                    files:
-                      task_QnAs:
-                        filename: "task_12345_QnAs.xlsx"
-                        download_url: "/api/v1/tasks/12345/files/task_QnAs"
-                        size: 45120
-                        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        generated_at: "2024-01-01T00:10:00Z"
-                        row_count: 150
-                      answers_and_retrieved_docs:
-                        filename: "task_12345_answers_and_retrieved_docs.xlsx"
-                        download_url: "/api/v1/tasks/12345/files/answers_and_retrieved_docs"
-                        size: 78240
-                        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        generated_at: "2024-01-01T00:10:00Z"
-                        row_count: 150
-                      answer_evaluation:
-                        filename: "task_12345_answer_evaluation.xlsx"
-                        download_url: "/api/v1/tasks/12345/files/answer_evaluation"
-                        size: 32768
-                        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        generated_at: "2024-01-01T00:10:00Z"
-                        row_count: 150
-                      docs_evaluation:
-                        filename: "task_12345_docs_evaluation.xlsx"
-                        download_url: "/api/v1/tasks/12345/files/docs_evaluation"
-                        size: 28672
-                        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        generated_at: "2024-01-01T00:10:00Z"
-                        row_count: 150
-                      bulk_download_url: "/api/v1/tasks/12345/files"
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
     put:
       tags:
         - Tasks
@@ -1061,57 +954,55 @@ paths:
     get:
       tags:
         - Tasks
-      summary: "[NOT FINALIZED] Download all result files as ZIP archive"
+      summary: "[NOT FINALIZED] Download task evaluation results"
       description: |
         **🚧 NOT FINALIZED - NEEDS FURTHER REVIEW**
         
-        Download all 4 result files for a completed task in a single ZIP archive. 
-        Users can only download files for their own tasks.
+        Download the task evaluation results as a single Excel file containing 4 sheets.
+        Users can only download results for their own tasks.
         
-        **ZIP Contents:**
-        - **task_12345_QnAs.xlsx**: Original questions and golden answers
-        - **task_12345_answers_and_retrieved_docs.xlsx**: API responses with retrieved documents
-        - **task_12345_answer_evaluation.xlsx**: Answer similarity scores and metrics
-        - **task_12345_docs_evaluation.xlsx**: Document/citation similarity analysis
+        **Excel File Contents (4 sheets):**
+        - **Sheet 1 - QnAs**: Original questions and golden answers from uploaded Excel
+        - **Sheet 2 - API_Responses**: API responses with retrieved documents and citations
+        - **Sheet 3 - Answer_Evaluation**: Answer similarity scores and evaluation metrics
+        - **Sheet 4 - Docs_Evaluation**: Document/citation similarity analysis and evaluation
         
-        **Convenience:** Get all evaluation results in one download
+        **File Format:** Single Excel (.xlsx) file with multiple sheets
         **Availability:** Only available for completed tasks
         
         **⚠️ DESIGN DECISIONS NEEDED:**
-        - File format and structure confirmation
+        - Sheet structure and column layout confirmation
         - Response format validation
-        - Error handling scenarios
-        - Performance considerations for large files
       responses:
         '200':
-          description: ZIP archive containing all result files
+          description: Excel file download with evaluation results
           content:
-            application/zip:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
               schema:
                 type: string
                 format: binary
-                description: "ZIP archive with all Excel files"
+                description: "Excel file with 4 sheets containing evaluation results"
           headers:
             Content-Disposition:
-              description: "Attachment filename for ZIP"
+              description: "Attachment filename"
               schema:
                 type: string
-                example: 'attachment; filename="task_12345_results.zip"'
+                example: 'attachment; filename="task_12345_evaluation_results.xlsx"'
             Content-Length:
-              description: "ZIP file size in bytes"
+              description: "File size in bytes"
               schema:
                 type: integer
                 example: 184320
         '400':
-          description: Files not available
+          description: Results not available
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
               example:
                 error:
-                  code: "FILES_NOT_AVAILABLE"
-                  message: "Result files not available for download"
+                  code: "RESULTS_NOT_AVAILABLE"
+                  message: "Evaluation results not available for download"
                   details: "Task processing not completed. Current status: processing"
                   timestamp: "2024-01-15T14:30:00Z"
                   request_id: "request_12345"
