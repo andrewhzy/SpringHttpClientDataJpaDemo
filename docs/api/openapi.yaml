@@ -90,4 +90,7 @@ components:
       $ref: './components/responses/common.yaml#/InternalServerError'
 
 paths:
-  $ref: './paths/tasks.yaml' 
+  /tasks:
+    $ref: './paths/tasks.yaml#/~1tasks'
+  /tasks/{id}:
+    $ref: './paths/tasks.yaml#/~1tasks~1{id}' 

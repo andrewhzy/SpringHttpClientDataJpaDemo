@@ -107,7 +107,7 @@ TaskList:
       items:
         $ref: '#/Task'
     meta:
-      $ref: '../pagination.yaml#/PaginationMeta'
+      $ref: './pagination.yaml#/PaginationMeta'
 
 UploadResponse:
   type: object
@@ -179,12 +179,12 @@ TaskWithData:
         input_data:
           type: array
           items:
-            $ref: '../chat-evaluation.yaml#/ChatEvaluationInputData'
+            $ref: './chat-evaluation.yaml#/ChatEvaluationInputData'
           description: "Input data for chat evaluation tasks"
         results_data:
           type: array
           items:
-            $ref: '../chat-evaluation.yaml#/ChatEvaluationOutputData'
+            $ref: './chat-evaluation.yaml#/ChatEvaluationOutputData'
           nullable: true
           description: "Results data (null if processing not completed)"
         results_excel_file:
