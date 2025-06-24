@@ -2,17 +2,14 @@ openapi: 3.0.3
 info:
   title: Internal Task Management API
   description: |
-    Internal Task Management API for organizational use with Excel file processing.
+    Internal Task Management API for chat evaluation tasks.
     
-    This API allows users to upload Excel files containing chat evaluation data.
-    Files are immediately parsed during upload and stored as structured row data.
+    Upload Excel files containing chat evaluation data and get structured evaluation results.
     
     **Core Features:**
     - Upload Excel files with chat evaluation data (questions, golden answers, citations)
-    - Immediate parsing and structured data storage (no blob storage)
     - Task lifecycle management (create, query, cancel, delete)
-    - Background processing with progress tracking
-    - Structured data responses for easy frontend integration
+    - Download evaluation results as Excel files
     
     **Chat Evaluation Requirements:**
     - Excel columns "question", "golden_answer", "golden_citations"
@@ -582,8 +579,7 @@ paths:
         - Tasks
       summary: Upload Excel file and create chat evaluation tasks
       description: |
-        Upload an Excel file with chat evaluation data. Each sheet will be analyzed 
-        and parsed immediately into structured data.
+        Upload an Excel file with chat evaluation data for processing.
         
         **Chat Evaluation Requirements:**
         - **Required columns**: "question", "golden_answer", "golden_citations"
@@ -593,11 +589,6 @@ paths:
         - Maximum size: 50MB
         - Maximum sheets: 20 per file
         - Maximum rows per sheet: 1,000
-        
-        **Processing:**
-        - Files are parsed immediately during upload
-        - Row data is stored in structured tables (no blob storage)
-        - Tasks are created with references to the parsed data
       requestBody:
         required: true
         content:
@@ -749,15 +740,14 @@ paths:
         - Tasks
       summary: List user tasks
       description: |
-        Get a list of tasks for the authenticated user using cursor-based pagination.
+        Get a list of tasks for the authenticated user using pagination.
         
-        **Cursor-based Pagination:**
+        **Pagination:**
         - First request: Do not include cursor parameter
         - Subsequent requests: Use next_cursor from previous response
-        - Better performance than page-based pagination
         
-        **Note:** This endpoint returns task metadata only (no input/results data).
-        Use the individual task endpoint to get structured row data.
+        **Note:** This endpoint returns task metadata only.
+        Use the file download endpoint to get evaluation results.
       operationId: listTasks
       parameters:
         - name: per_page
