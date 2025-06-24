@@ -771,11 +771,15 @@ paths:
             $ref: '#/components/schemas/TaskType'
         - name: cursor
           in: query
-          description: Cursor for pagination (omit for first page)
+          description: |
+            Cursor for pagination (omit for the first page).
+            **Implementation:** The cursor value is the task_id (an incremental integer).
+            **Usage:** Use the lowest task_id from the current page as the cursor for the next page.
+            **Ordering:** Results are returned newest first (descending by task_id).
           required: false
           schema:
             type: string
-            example: "123"
+            example: "12345"
       responses:
         '200':
           description: List of user's tasks (metadata only)
