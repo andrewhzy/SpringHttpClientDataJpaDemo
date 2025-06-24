@@ -45,6 +45,36 @@ BadRequest:
               timestamp: "2024-01-15T14:30:00Z"
               request_id: "req_abc123def456"
               user_id: "system-user"
+        invalid_task_status:
+          summary: Cannot update task in current status
+          value:
+            error:
+              code: "INVALID_STATUS"
+              message: "Cannot cancel completed task"
+              details: "Task has already finished processing and cannot be cancelled"
+              timestamp: "2024-01-15T14:30:00Z"
+              request_id: "req_abc123def456"
+              user_id: "system-user"
+        cannot_delete_processing:
+          summary: Cannot delete task in processing status
+          value:
+            error:
+              code: "INVALID_STATUS"
+              message: "Cannot delete task in processing status"
+              details: "Cancel the task first, then delete it"
+              timestamp: "2024-01-15T14:30:00Z"
+              request_id: "req_abc123def456"
+              user_id: "system-user"
+        missing_task_type:
+          summary: Missing required task_type parameter
+          value:
+            error:
+              code: "MISSING_REQUIRED_PARAMETER"
+              message: "task_type parameter is required"
+              details: "task_type must be specified for performance and security reasons"
+              timestamp: "2024-01-15T14:30:00Z"
+              request_id: "req_abc123def456"
+              user_id: "system-user"
 
 Unauthorized:
   description: Unauthorized - Invalid or missing JWT token

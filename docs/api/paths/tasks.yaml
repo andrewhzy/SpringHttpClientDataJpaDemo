@@ -20,6 +20,7 @@
       - Files are parsed immediately during upload
       - Row data is stored in structured tables (no blob storage)
       - Tasks are created with references to the parsed data
+      - Task type is automatically determined as 'chat-evaluation' based on Excel content
     requestBody:
       required: true
       content:
@@ -37,6 +38,7 @@
                 type: string
                 description: Optional description for the upload batch
                 example: "Monthly evaluation data upload"
+                maxLength: 500
     responses:
       '201':
         description: Excel file processed and tasks created successfully
@@ -79,7 +81,7 @@
           maximum: 100
       - name: task_type
         in: query
-        description: Task type filter
+        description: Task type filter (required for performance and security)
         required: true
         schema:
           $ref: '../components/schemas/task.yaml#/TaskType'
@@ -132,7 +134,7 @@
       **Data structure for chat evaluation:**
       - Questions, golden answers, golden citations, similarity scores
       
-      **Note:** Excel file download should be handled via a separate download endpoint
+      **Note:** For Excel file downloads, use the separate download endpoint
       for better performance and caching.
     responses:
       '200':
@@ -200,6 +202,8 @@
         application/json:
           schema:
             type: object
+            required:
+              - action
             properties:
               action:
                 type: string
@@ -214,16 +218,7 @@
             schema:
               $ref: '../components/schemas/task.yaml#/Task'
       '400':
-        description: Cannot update task in current status
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/error.yaml#/Error'
-            example:
-              error:
-                code: "INVALID_STATUS"
-                message: "Cannot cancel completed task"
-                details: "Task has already finished processing"
+        $ref: '../components/responses/common.yaml#/BadRequest'
       '401':
         $ref: '../components/responses/common.yaml#/Unauthorized'
       '403':
@@ -246,16 +241,89 @@
       '204':
         description: Task deleted successfully
       '400':
-        description: Cannot delete task in current status
+        $ref: '../components/responses/common.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses/common.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses/common.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses/common.yaml#/InternalServerError'
+
+/tasks/{id}/download:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Task ID
+      schema:
+        type: integer
+        format: int64
+
+  get:
+    tags:
+      - Tasks
+    summary: Download Excel file with evaluation results
+    description: |
+      Download a generated Excel file containing the original input data plus 
+      evaluation results (API responses and similarity scores). Only available 
+      for completed tasks. Only task owners can download their files.
+      
+      **File includes:**
+      - Original questions, golden answers, and golden citations
+      - API-generated answers and citations
+      - Similarity scores for answers and citations
+      - Processing metadata and timestamps
+      
+      **Performance optimizations:**
+      - Direct file streaming (no JSON encoding)
+      - Proper caching headers
+      - Content-Disposition for download handling
+    responses:
+      '200':
+        description: Excel file with evaluation results
+        headers:
+          Content-Disposition:
+            description: Attachment with generated filename
+            schema:
+              type: string
+              example: 'attachment; filename="task_123_evaluation_results.xlsx"'
+          Content-Type:
+            description: Excel MIME type
+            schema:
+              type: string
+              example: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          Content-Length:
+            description: File size in bytes
+            schema:
+              type: integer
+              example: 15360
+          Cache-Control:
+            description: Caching instructions
+            schema:
+              type: string
+              example: "private, max-age=3600"
+        content:
+          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+            schema:
+              type: string
+              format: binary
+              description: Excel file binary content
+      '400':
+        description: Task not completed or no results available
         content:
           application/json:
             schema:
               $ref: '../components/schemas/error.yaml#/Error'
             example:
               error:
-                code: "INVALID_STATUS"
-                message: "Cannot delete task in processing status"
-                details: "Cancel the task first, then delete it"
+                code: "TASK_NOT_COMPLETED"
+                message: "Excel file not available"
+                details: "Task must be completed before results can be downloaded"
+                timestamp: "2024-01-15T14:30:00Z"
+                request_id: "req_abc123def456"
+                user_id: "system-user"
       '401':
         $ref: '../components/responses/common.yaml#/Unauthorized'
       '403':

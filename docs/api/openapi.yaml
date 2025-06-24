@@ -105,4 +105,6 @@ paths:
   /tasks:
     $ref: './paths/tasks.yaml#/~1tasks'
   /tasks/{id}:
-    $ref: './paths/tasks.yaml#/~1tasks~1{id}' 
+    $ref: './paths/tasks.yaml#/~1tasks~1{id}'
+  /tasks/{id}/download:
+    $ref: './paths/tasks.yaml#/~1tasks~1{id}~1download' 

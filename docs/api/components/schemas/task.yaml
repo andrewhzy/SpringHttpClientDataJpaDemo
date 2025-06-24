@@ -220,29 +220,4 @@ TaskWithData:
           items:
             $ref: './chat-evaluation.yaml#/ChatEvaluationOutputData'
           nullable: true
-          description: "Results data (null if processing not completed)"
-        results_excel_file:
-          type: object
-          nullable: true
-          description: "Excel file containing all evaluation results (null if processing not completed)"
-          properties:
-            filename:
-              type: string
-              example: "task_123_evaluation_results.xlsx"
-              description: "Generated Excel filename"
-            content:
-              type: string
-              format: byte
-              description: "Base64-encoded Excel file content"
-            size:
-              type: integer
-              example: 15360
-              description: "File size in bytes"
-            mime_type:
-              type: string
-              example: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            generated_at:
-              type: string
-              format: date-time
-              example: "2024-01-01T00:10:00Z"
-              description: "When the Excel file was generated" 
+          description: "Results data (null if processing not completed)" 

@@ -2,15 +2,28 @@
 
 This directory contains the refactored OpenAPI specification for the Internal Task Management API, split into modular components for better maintainability and collaboration.
 
-## Recent Improvements (January 2024)
+## Latest Fixes (January 2024)
 
-### Fixed Issues:
-1. **Pagination Inconsistency**: Fixed parameter name from `maxTaskId` to `cursor` to match implementation
-2. **Data Type Mismatches**: Updated Task ID from UUID to integer (int64) to match database schema
-3. **Calculated Fields**: Removed `progress_percentage` from stored fields (now calculated dynamically)
-4. **Large File Handling**: Removed problematic base64 Excel content from JSON responses
-5. **Validation Enhancement**: Added proper validation constraints and descriptions throughout
-6. **Example Updates**: Updated all examples to be more realistic and consistent
+### Issues Addressed:
+
+#### 1. **Task Type Requirements Clarification**
+- ✅ **POST /tasks**: Does NOT require `task_type` parameter - it's auto-determined from Excel content
+- ✅ **GET /tasks**: DOES require `task_type` parameter for filtering (performance and security)
+- ✅ Added clear documentation explaining this logic difference
+
+#### 2. **Error Response Consistency**
+- ✅ **Fixed**: Removed inline error schema definitions that were inconsistent
+- ✅ **Standardized**: All error responses now use the structured Error schema from `common.yaml`
+- ✅ **Enhanced**: Added comprehensive error examples for different scenarios:
+  - File validation errors (format, size, columns)
+  - Request validation errors (pagination, missing parameters)
+  - Task operation errors (invalid status for cancel/delete)
+  - Authentication and authorization errors
+
+#### 3. **Performance Optimizations**
+- ✅ **Removed**: Large base64 Excel content from JSON responses
+- ✅ **Added**: Dedicated `/tasks/{id}/download` endpoint for Excel file downloads
+- ✅ **Improved**: Proper HTTP headers for file downloads (Content-Disposition, caching)
 
 ### Schema Improvements:
 - **Task Schema**: Aligned with actual entity structure, removed metadata field, added failed_at timestamp
@@ -19,6 +32,47 @@ This directory contains the refactored OpenAPI specification for the Internal Ta
 - **Chat Evaluation**: Added comprehensive validation for input/output data
 - **User Context**: Added proper validation and role enums
 
+## Current API Endpoints
+
+### File Upload and Task Management
+```
+POST   /tasks                 - Upload Excel file (auto-determines task_type)
+GET    /tasks                 - List tasks (requires task_type filter)
+GET    /tasks/{id}            - Get task details with structured data
+PUT    /tasks/{id}            - Update/cancel task
+DELETE /tasks/{id}            - Delete task
+GET    /tasks/{id}/download   - Download Excel results file
+```
+
+### Request/Response Logic
+
+#### POST /tasks (Upload)
+- **Input**: Excel file + optional description
+- **Logic**: Automatically detects task_type from Excel content structure
+- **Output**: Upload response with created task summaries
+- **No task_type parameter needed** ✅
+
+#### GET /tasks (List)  
+- **Input**: per_page + task_type (required) + cursor (optional)
+- **Logic**: Filters tasks by type for performance and security
+- **Output**: Paginated task list with metadata only
+- **task_type parameter required** ✅
+
+#### Error Responses
+All endpoints now return consistent structured errors:
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid request parameters", 
+    "details": "per_page must be between 1 and 100, received: 150",
+    "timestamp": "2024-01-15T14:30:00Z",
+    "request_id": "req_abc123def456",
+    "user_id": "system-user"
+  }
+}
+```
+
 ## Structure
 
 ```
@@ -26,17 +80,17 @@ docs/api/
 ├── openapi.yaml                    # Main OpenAPI specification file
 ├── components/                     # Reusable components
 │   ├── schemas/                   # Data schemas
-│   │   ├── error.yaml            # Error response schema
-│   │   ├── task.yaml             # Task-related schemas
-│   │   ├── pagination.yaml       # Pagination metadata
-│   │   ├── user.yaml             # User context schema
-│   │   └── chat-evaluation.yaml  # Chat evaluation data schemas
+│   │   ├── error.yaml            # Error response schema (enhanced)
+│   │   ├── task.yaml             # Task-related schemas (cleaned up)
+│   │   ├── pagination.yaml       # Pagination metadata (improved)
+│   │   ├── user.yaml             # User context schema (validated)
+│   │   └── chat-evaluation.yaml  # Chat evaluation data schemas (enhanced)
 │   ├── responses/                 # Common response definitions
-│   │   └── common.yaml           # Standard HTTP responses
+│   │   └── common.yaml           # Standard HTTP responses (comprehensive)
 │   └── security/                  # Security schemes
 │       └── jwt.yaml              # JWT authentication
 └── paths/                         # API endpoints
-    └── tasks.yaml                # All task-related endpoints
+    └── tasks.yaml                # All task-related endpoints (complete)
 ```
 
 ## Benefits of This Structure
@@ -97,7 +151,7 @@ Each component file contains related schemas:
 
 ### Paths
 The `paths/` directory contains endpoint definitions organized by resource:
-- **tasks.yaml**: All task-related operations (CRUD, upload, listing)
+- **tasks.yaml**: All task-related operations (CRUD, upload, listing, download)
 
 ## File References
 
@@ -128,7 +182,6 @@ The split specification should validate as a complete OpenAPI document when all 
 ## Implementation Notes
 
 ### Current Limitations
-- **Excel Download**: Large file downloads should use separate endpoints for better performance
 - **Authentication**: JWT extraction not yet implemented (placeholder user ID used)
 - **Background Processing**: Progress tracking implemented but could be enhanced with real-time updates
 
@@ -136,6 +189,12 @@ The split specification should validate as a complete OpenAPI document when all 
 - **Cursor Pagination**: More efficient than offset-based for large datasets
 - **Structured Storage**: Direct database queries instead of file parsing for data access
 - **Connection Pooling**: Implemented for database and HTTP clients
+- **File Downloads**: Separate endpoint for Excel downloads to avoid JSON bloat
+
+### Design Decisions
+- **Task Type Logic**: Auto-detection for uploads vs. required filtering for queries
+- **Error Consistency**: All errors use structured schema with proper error codes
+- **File Handling**: Separate upload/download endpoints for better performance
 
 ## Migration from Single File
 
