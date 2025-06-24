@@ -473,6 +473,89 @@ components:
               description: "Excel file containing all evaluation results (null if processing not completed)"
 
   responses:
+    # Success Responses
+    TaskCreated:
+      description: Excel file processed and tasks created successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UploadResponse'
+
+    TaskList:
+      description: List of user's tasks (metadata only)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TaskList'
+
+    TaskWithData:
+      description: Task details with structured input and results data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TaskWithData'
+          examples:
+            chat_evaluation_task:
+              summary: Chat Evaluation Task Example
+              value:
+                id: 12345
+                user_id: "user_123"
+                original_filename: "chat_evaluation_data.xlsx"
+                sheet_name: "Evaluation_Questions"
+                task_type: "chat-evaluation"
+                task_status: "completed"
+                upload_batch_id: 67890
+                row_count: 2
+                processed_rows: 2
+                error_message: null
+                metadata: {"detected_columns": ["question", "golden_answer", "golden_citations"]}
+                created_at: "2024-01-01T00:00:00Z"
+                updated_at: "2024-01-01T00:10:00Z"
+                started_at: "2024-01-01T00:01:00Z"
+                completed_at: "2024-01-01T00:10:00Z"
+                cancelled_at: null
+                input_data:
+                  - row_number: 1
+                    question: "What is AI?"
+                    golden_answer: "AI is artificial intelligence, a branch of computer science."
+                    golden_citations: ["https://example.com/ai"]
+                    metadata: null
+                  - row_number: 2
+                    question: "What is ML?"
+                    golden_answer: "ML is machine learning, a subset of AI."
+                    golden_citations: ["https://example.com/ml"]
+                    metadata: null
+                results_data:
+                  - row_number: 1
+                    api_answer: "Artificial intelligence refers to computer systems that can perform tasks typically requiring human intelligence."
+                    api_citations: ["https://api-source.com/ai"]
+                    answer_similarity: 0.85
+                    citation_similarity: 0.72
+                    processing_time_ms: 1200
+                  - row_number: 2
+                    api_answer: "Machine learning is a subset of artificial intelligence that enables computers to learn from data."
+                    api_citations: ["https://api-source.com/ml"]
+                    answer_similarity: 0.92
+                    citation_similarity: 0.88
+                    processing_time_ms: 980
+                results_excel_file:
+                  filename: "task_12345_evaluation_results.xlsx"
+                  content: "UEsDBBQAAAAIAO..."
+                  size: 15360
+                  mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  generated_at: "2024-01-01T00:10:00Z"
+
+    TaskUpdated:
+      description: Task cancelled successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Task'
+
+    TaskDeleted:
+      description: Task deleted successfully
+
+    # Error Responses
     BadRequest:
       description: Bad Request - Malformed request or validation errors
       content:
@@ -665,11 +748,7 @@ paths:
                   example: "Monthly evaluation data upload"
       responses:
         '201':
-          description: Excel file processed and tasks created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UploadResponse'
+          $ref: '#/components/responses/TaskCreated'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -719,11 +798,7 @@ paths:
             example: "123"
       responses:
         '200':
-          description: List of user's tasks (metadata only)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TaskList'
+          $ref: '#/components/responses/TaskList'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -761,61 +836,7 @@ paths:
         - Excel file contains all input data plus API responses and similarity scores
       responses:
         '200':
-          description: Task details with structured input and results data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TaskWithData'
-              examples:
-                chat_evaluation_task:
-                  summary: Chat Evaluation Task Example
-                  value:
-                    id: 12345
-                    user_id: "user_123"
-                    original_filename: "chat_evaluation_data.xlsx"
-                    sheet_name: "Evaluation_Questions"
-                    task_type: "chat-evaluation"
-                    task_status: "completed"
-                    upload_batch_id: 67890
-                    row_count: 2
-                    processed_rows: 2
-                    error_message: null
-                    metadata: {"detected_columns": ["question", "golden_answer", "golden_citations"]}
-                    created_at: "2024-01-01T00:00:00Z"
-                    updated_at: "2024-01-01T00:10:00Z"
-                    started_at: "2024-01-01T00:01:00Z"
-                    completed_at: "2024-01-01T00:10:00Z"
-                    cancelled_at: null
-                    input_data:
-                      - row_number: 1
-                        question: "What is AI?"
-                        golden_answer: "AI is artificial intelligence, a branch of computer science."
-                        golden_citations: ["https://example.com/ai"]
-                        metadata: null
-                      - row_number: 2
-                        question: "What is ML?"
-                        golden_answer: "ML is machine learning, a subset of AI."
-                        golden_citations: ["https://example.com/ml"]
-                        metadata: null
-                    results_data:
-                      - row_number: 1
-                        api_answer: "Artificial intelligence refers to computer systems that can perform tasks typically requiring human intelligence."
-                        api_citations: ["https://api-source.com/ai"]
-                        answer_similarity: 0.85
-                        citation_similarity: 0.72
-                        processing_time_ms: 1200
-                      - row_number: 2
-                        api_answer: "Machine learning is a subset of artificial intelligence that enables computers to learn from data."
-                        api_citations: ["https://api-source.com/ml"]
-                        answer_similarity: 0.92
-                        citation_similarity: 0.88
-                        processing_time_ms: 980
-                    results_excel_file:
-                      filename: "task_12345_evaluation_results.xlsx"
-                      content: "UEsDBBQAAAAIAO..."
-                      size: 15360
-                      mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                      generated_at: "2024-01-01T00:10:00Z"
+          $ref: '#/components/responses/TaskWithData'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -828,37 +849,24 @@ paths:
     put:
       tags:
         - Tasks
-      summary: Update/cancel task
+      summary: Cancel task
       description: |
-        Update a task, primarily used for cancelling tasks. Only tasks in 'queueing' or 'processing'
-        status can be cancelled. Only task owners can update their tasks.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TaskUpdateRequest'
+        Cancel a task by setting cancelled=true. Only tasks in 'queueing' or 'processing'
+        status can be cancelled. Only task owners can cancel their tasks.
+      parameters:
+        - name: cancelled
+          in: query
+          description: Must be set to true to cancel the task
+          required: true
+          schema:
+            type: boolean
+            enum: [true]
+            example: true
       responses:
         '200':
-          description: Task updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Task'
+          $ref: '#/components/responses/TaskUpdated'
         '400':
-          description: Cannot update task in current status
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: "INVALID_STATUS"
-                  message: "Cannot cancel completed task"
-                  details: "Task has already finished processing and cannot be cancelled"
-                  timestamp: "2024-01-15T14:30:00Z"
-                  request_id: "request_12345"
-                  user_id: "user_123"
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -879,21 +887,9 @@ paths:
         Tasks in 'processing' status cannot be deleted.
       responses:
         '204':
-          description: Task deleted successfully
+          $ref: '#/components/responses/TaskDeleted'
         '400':
-          description: Cannot delete task in current status
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: "INVALID_STATUS"
-                  message: "Cannot delete task in processing status"
-                  details: "Cancel the task first, then delete it"
-                  timestamp: "2024-01-15T14:30:00Z"
-                  request_id: "request_12345"
-                  user_id: "user_123"
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
