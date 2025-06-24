@@ -528,74 +528,6 @@ components:
 
   responses:
     # Error Responses (used across all endpoints)
-    BadRequest:
-      description: Bad Request - Malformed request or validation errors
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-          examples:
-            invalid_file_format:
-              summary: Invalid Excel file format
-              value:
-                error:
-                  code: "INVALID_FILE_FORMAT"
-                  message: "File must be Excel format (.xlsx or .xls)"
-                  details: "Uploaded file has MIME type text/plain, expected Excel format"
-                  timestamp: "2024-01-15T14:30:00Z"
-                  request_id: "request_12345"
-                  user_id: "user_123"
-            missing_required_columns:
-              summary: Missing required Excel columns
-              value:
-                error:
-                  code: "MISSING_REQUIRED_COLUMNS"
-                  message: "Excel file missing required columns for chat evaluation"
-                  details: "Excel must contain columns: question, golden_answer, golden_citations. Found: question, answer"
-                  timestamp: "2024-01-15T14:30:00Z"
-                  request_id: "request_12345"
-                  user_id: "user_123"
-            too_many_rows:
-              summary: Too many rows in Excel sheet
-              value:
-                error:
-                  code: "TOO_MANY_ROWS"
-                  message: "Excel sheet exceeds maximum row limit"
-                  details: "Sheet 'Data' contains 1,500 rows. Maximum allowed is 1,000 rows per sheet"
-                  timestamp: "2024-01-15T14:30:00Z"
-                  request_id: "request_12345"
-                  user_id: "user_123"
-            too_many_sheets:
-              summary: Too many sheets in Excel file
-              value:
-                error:
-                  code: "TOO_MANY_SHEETS"
-                  message: "Excel file exceeds maximum sheet limit"
-                  details: "File contains 25 sheets. Maximum allowed is 20 sheets per file"
-                  timestamp: "2024-01-15T14:30:00Z"
-                  request_id: "request_12345"
-                  user_id: "user_123"
-            missing_task_type:
-              summary: Missing task_type field
-              value:
-                error:
-                  code: "MISSING_REQUIRED_FIELD"
-                  message: "task_type is required"
-                  details: "task_type field must be provided in the request body"
-                  timestamp: "2024-01-15T14:30:00Z"
-                  request_id: "request_12345"
-                  user_id: "user_123"
-            invalid_task_type:
-              summary: Invalid task_type value
-              value:
-                error:
-                  code: "INVALID_TASK_TYPE"
-                  message: "Invalid task_type value"
-                  details: "task_type must be 'chat-evaluation'. Received: 'unknown-type'"
-                  timestamp: "2024-01-15T14:30:00Z"
-                  request_id: "request_12345"
-                  user_id: "user_123"
-    
     Unauthorized:
       description: Unauthorized - Invalid or missing JWT token
       content:
@@ -636,21 +568,6 @@ components:
               code: "NOT_FOUND"
               message: "Task not found"
               details: "Task with ID 12345 does not exist or you don't have access"
-              timestamp: "2024-01-15T14:30:00Z"
-              request_id: "request_12345"
-              user_id: "user_123"
-    
-    PayloadTooLarge:
-      description: Payload Too Large - File size exceeds limits
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-          example:
-            error:
-              code: "FILE_TOO_LARGE"
-              message: "File size exceeds maximum limit"
-              details: "Maximum file size is 50MB. Uploaded file is 75MB"
               timestamp: "2024-01-15T14:30:00Z"
               request_id: "request_12345"
               user_id: "user_123"
@@ -730,11 +647,119 @@ paths:
               schema:
                 $ref: '#/components/schemas/UploadResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad Request - File upload validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_file_format:
+                  summary: Invalid Excel file format
+                  value:
+                    error:
+                      code: "INVALID_FILE_FORMAT"
+                      message: "File must be Excel format (.xlsx or .xls)"
+                      details: "Uploaded file has MIME type text/plain, expected Excel format"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                missing_required_columns:
+                  summary: Missing required Excel columns
+                  value:
+                    error:
+                      code: "MISSING_REQUIRED_COLUMNS"
+                      message: "Excel file missing required columns for chat evaluation"
+                      details: "Excel must contain columns: question, golden_answer, golden_citations. Found: question, answer"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                too_many_rows:
+                  summary: Too many rows in Excel sheet
+                  value:
+                    error:
+                      code: "TOO_MANY_ROWS"
+                      message: "Excel sheet exceeds maximum row limit"
+                      details: "Sheet 'Data' contains 1,500 rows. Maximum allowed is 1,000 rows per sheet"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                too_many_sheets:
+                  summary: Too many sheets in Excel file
+                  value:
+                    error:
+                      code: "TOO_MANY_SHEETS"
+                      message: "Excel file exceeds maximum sheet limit"
+                      details: "File contains 25 sheets. Maximum allowed is 20 sheets per file"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                missing_task_type:
+                  summary: Missing task_type field
+                  value:
+                    error:
+                      code: "MISSING_REQUIRED_FIELD"
+                      message: "task_type is required"
+                      details: "task_type field must be provided in the request body"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                invalid_task_type:
+                  summary: Invalid task_type value
+                  value:
+                    error:
+                      code: "INVALID_TASK_TYPE"
+                      message: "Invalid task_type value"
+                      details: "task_type must be 'chat-evaluation'. Received: 'unknown-type'"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                file_too_large:
+                  summary: File size exceeds maximum limit
+                  value:
+                    error:
+                      code: "FILE_TOO_LARGE"
+                      message: "File size exceeds maximum limit"
+                      details: "Maximum file size is 50MB. Uploaded file is 75MB"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '413':
-          $ref: '#/components/responses/PayloadTooLarge'
+        '429':
+          description: "[NOT FINALIZED] Too Many Requests - Rate limit exceeded"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: "RATE_LIMIT_EXCEEDED"
+                  message: "Too many task submissions"
+                  details: "🚧 NOT FINALIZED: Each user can only submit 1 task per minute. Please wait 45 seconds before trying again. Rate limiting policy and implementation details need review."
+                  timestamp: "2024-01-15T14:30:00Z"
+                  request_id: "request_12345"
+                  user_id: "user_123"
+          headers:
+            Retry-After:
+              description: "Number of seconds to wait before making another request"
+              schema:
+                type: integer
+                example: 45
+            X-RateLimit-Limit:
+              description: "Maximum number of requests allowed per minute"
+              schema:
+                type: integer
+                example: 1
+            X-RateLimit-Remaining:
+              description: "Number of requests remaining in the current window"
+              schema:
+                type: integer
+                example: 0
+            X-RateLimit-Reset:
+              description: "Unix timestamp when the rate limit window resets"
+              schema:
+                type: integer
+                example: 1705327860
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -788,7 +813,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/TaskList'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad Request - Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_per_page:
+                  summary: Invalid per_page parameter
+                  value:
+                    error:
+                      code: "INVALID_PARAMETER"
+                      message: "per_page parameter is invalid"
+                      details: "per_page must be between 1 and 100. Received: 150"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                invalid_task_type_filter:
+                  summary: Invalid task_type filter
+                  value:
+                    error:
+                      code: "INVALID_TASK_TYPE"
+                      message: "Invalid task_type filter"
+                      details: "task_type must be 'chat-evaluation'. Received: 'unknown-type'"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                invalid_cursor:
+                  summary: Invalid cursor format
+                  value:
+                    error:
+                      code: "INVALID_CURSOR"
+                      message: "Invalid cursor format"
+                      details: "cursor must be a valid task_id integer. Received: 'abc123'"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -917,7 +977,32 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad Request - Invalid operation for current task status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                cannot_cancel:
+                  summary: Cannot cancel task in current status
+                  value:
+                    error:
+                      code: "INVALID_STATUS"
+                      message: "Cannot cancel completed task"
+                      details: "Task has already finished processing and cannot be cancelled"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                invalid_cancelled_parameter:
+                  summary: Invalid cancelled parameter
+                  value:
+                    error:
+                      code: "INVALID_PARAMETER"
+                      message: "cancelled parameter must be true"
+                      details: "To cancel a task, set cancelled=true in query parameters"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -940,7 +1025,19 @@ paths:
         '204':
           $ref: '#/components/responses/TaskDeleted'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad Request - Invalid operation for current task status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: "INVALID_STATUS"
+                  message: "Cannot delete task in processing status"
+                  details: "Cancel the task first, then delete it"
+                  timestamp: "2024-01-15T14:30:00Z"
+                  request_id: "request_12345"
+                  user_id: "user_123"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
