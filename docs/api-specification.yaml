@@ -45,6 +45,7 @@ components:
         Token should contain user_id, roles, and permissions.
 
   schemas:
+    # Core Error Schema
     Error:
       type: object
       required:
@@ -59,67 +60,94 @@ components:
           properties:
             code:
               type: string
+              description: "Error code for programmatic handling"
               example: "VALIDATION_ERROR"
             message:
               type: string
+              description: "Human-readable error message"
               example: "Invalid Excel file format"
             details:
               type: string
+              description: "Additional error details"
               example: "File must be .xlsx or .xls format"
             timestamp:
               type: string
               format: date-time
+              description: "When the error occurred"
               example: "2024-01-01T00:00:00Z"
             request_id:
               type: string
+              description: "Request ID for debugging and tracing"
               example: "request_12345"
-              description: "Request ID for debugging"
             user_id:
               type: string
+              description: "User ID associated with the request"
               example: "user_123"
 
+    # Pagination Schema
     PaginationMeta:
       type: object
+      required:
+        - per_page
+        - total
+        - has_more
       properties:
         per_page:
           type: integer
+          minimum: 1
+          maximum: 100
+          description: "Number of items per page"
           example: 20
         total:
           type: integer
+          minimum: 0
+          description: "Total number of items available"
           example: 100
         next_cursor:
           type: string
           nullable: true
-          example: "123"
           description: "Cursor for next page, null if no more results"
+          example: "123"
         has_more:
           type: boolean
-          example: true
           description: "Whether there are more results available"
+          example: true
 
+    # User Context Schema
     UserContext:
       type: object
+      required:
+        - user_id
+        - name
+        - email
       properties:
         user_id:
           type: string
+          description: "Unique user identifier"
           example: "user_123"
         name:
           type: string
+          description: "User's display name"
           example: "John Doe"
         email:
           type: string
+          format: email
+          description: "User's email address"
           example: "john.doe@organization.com"
         roles:
           type: array
           items:
             type: string
-          example: ["user"]
+          description: "User's assigned roles"
+          example: ["user", "analyst"]
         departments:
           type: array
           items:
             type: string
-          example: ["engineering"]
+          description: "User's department affiliations"
+          example: ["engineering", "data-science"]
 
+    # Enum Schemas
     TaskStatus:
       type: string
       enum: [queueing, processing, completed, cancelled, failed]
@@ -138,6 +166,7 @@ components:
         Task type values:
         - chat-evaluation: Chat evaluation task with questions and expected answers
 
+    # Core Task Schema
     Task: 
       type: object
       required:
@@ -153,74 +182,80 @@ components:
         - created_at
       properties:
         id:
-          type: string
-          format: uuid
-          example: "123e4567-e89b-12d3-a456-426614174000"
+          type: integer
+          format: int64
+          description: "Unique task identifier"
+          example: 12345
         user_id:
           type: string
+          description: "ID of the user who created the task"
           example: "user_123"
         original_filename:
           type: string
+          description: "Original Excel filename"
           example: "monthly_reports.xlsx"
         sheet_name:
           type: string
+          description: "Excel sheet name that was processed"
           example: "January_Data"
         task_type:
           $ref: '#/components/schemas/TaskType'
         task_status:
           $ref: '#/components/schemas/TaskStatus'
         upload_batch_id:
-          type: string
-          format: uuid
-          example: "456e7890-e89b-12d3-a456-426614174000"
+          type: integer
+          format: int64
           description: "Groups tasks from the same Excel file upload"
+          example: 67890
         row_count:
           type: integer
           minimum: 0
-          example: 150
           description: "Total number of rows parsed from Excel sheet"
+          example: 150
         processed_rows:
           type: integer
           minimum: 0
-          example: 75
           description: "Number of rows completed by background processing"
-        progress_percentage:
-          type: integer
-          minimum: 0
-          maximum: 100
-          example: 50
-          description: "Calculated as (processed_rows / row_count * 100)"
+          example: 75
         error_message:
           type: string
           nullable: true
+          description: "Error message if task failed"
           example: "API timeout on row 15"
         metadata:
           type: object
           nullable: true
+          description: "Additional task metadata"
           example: {"detected_columns": ["question", "golden_answer"], "extra_columns": ["priority"]}
         created_at:
           type: string
           format: date-time
+          description: "When the task was created"
           example: "2024-01-01T00:00:00Z"
         updated_at:
           type: string
           format: date-time
+          description: "When the task was last updated"
           example: "2024-01-01T00:05:00Z"
         started_at:
           type: string
           format: date-time
           nullable: true
+          description: "When background processing started"
           example: "2024-01-01T00:01:00Z"
         completed_at:
           type: string
           format: date-time
           nullable: true
+          description: "When the task was completed"
           example: "2024-01-01T00:10:00Z"
         cancelled_at:
           type: string
           format: date-time
           nullable: true
+          description: "When the task was cancelled"
 
+    # Chat Evaluation Data Schemas
     ChatEvaluationInputData:
       type: object
       required:
@@ -231,21 +266,31 @@ components:
       properties:
         row_number:
           type: integer
+          minimum: 1
+          description: "Row number in the original Excel sheet"
           example: 1
         question:
           type: string
+          minLength: 1
+          description: "Question to be evaluated"
           example: "What is artificial intelligence?"
         golden_answer:
           type: string
-          example: "AI is a branch of computer science..."
+          minLength: 1
+          description: "Expected/golden answer for comparison"
+          example: "AI is a branch of computer science that aims to create machines capable of intelligent behavior."
         golden_citations:
           type: array
           items:
             type: string
+            format: uri
+          minItems: 1
+          description: "Expected/golden citations for comparison"
           example: ["https://example.com/ai-definition", "https://example.com/ai-overview"]
         metadata:
           type: object
           nullable: true
+          description: "Additional row-specific metadata"
           example: {"priority": "high", "category": "general"}
 
     ChatEvaluationOutputData:
@@ -259,39 +304,97 @@ components:
       properties:
         row_number:
           type: integer
+          minimum: 1
+          description: "Row number matching the input data"
           example: 1
         api_answer:
           type: string
-          example: "Artificial intelligence (AI) refers to..."
+          description: "Answer returned by the API being evaluated"
+          example: "Artificial intelligence (AI) refers to the simulation of human intelligence in machines."
         api_citations:
           type: array
           items:
             type: string
+            format: uri
+          description: "Citations returned by the API being evaluated"
           example: ["https://api-source.com/ai-definition"]
         answer_similarity:
           type: number
           format: float
           minimum: 0
           maximum: 1
+          description: "Similarity score between golden answer and API answer (0-1)"
           example: 0.8567
         citation_similarity:
           type: number
           format: float
           minimum: 0
           maximum: 1
+          description: "Similarity score between golden citations and API citations (0-1)"
           example: 0.7234
         processing_time_ms:
           type: integer
+          minimum: 0
           nullable: true
+          description: "Time taken to process this row in milliseconds"
           example: 1250
+
+    # File Metadata Schema
+    ExcelFileMetadata:
+      type: object
+      required:
+        - filename
+        - content
+        - size
+        - mime_type
+        - generated_at
+      properties:
+        filename:
+          type: string
+          description: "Generated Excel filename"
+          example: "task_12345_evaluation_results.xlsx"
+        content:
+          type: string
+          format: byte
+          description: "Base64-encoded Excel file content"
+        size:
+          type: integer
+          minimum: 0
+          description: "File size in bytes"
+          example: 15360
+        mime_type:
+          type: string
+          enum: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
+          description: "MIME type of the Excel file"
+          example: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        generated_at:
+          type: string
+          format: date-time
+          description: "When the Excel file was generated"
+          example: "2024-01-01T00:10:00Z"
+
+    # Request/Response Schemas
+    TaskUpdateRequest:
+      type: object
+      required:
+        - cancelled
+      properties:
+        cancelled:
+          type: boolean
+          description: "Set to true to cancel the task"
+          example: true
 
     TaskList:
       type: object
+      required:
+        - data
+        - meta
       properties:
         data:
           type: array
           items:
             $ref: '#/components/schemas/Task'
+          description: "Array of task objects"
         meta:
           $ref: '#/components/schemas/PaginationMeta'
 
@@ -300,62 +403,52 @@ components:
       required:
         - upload_batch_id
         - tasks
+        - total_sheets
       properties:
         upload_batch_id:
-          type: string
-          format: uuid
-          example: "456e7890-e89b-12d3-a456-426614174000"
+          type: integer
+          format: int64
+          description: "Unique identifier for this upload batch"
+          example: 67890
         tasks:
           type: array
           items:
             type: object
+            required:
+              - task_id
+              - sheet_name
+              - task_type
+              - status
+              - row_count
             properties:
               task_id:
-                type: string
-                format: uuid
+                type: integer
+                format: int64
+                description: "Unique task identifier"
+                example: 12345
               sheet_name:
                 type: string
+                description: "Excel sheet name"
+                example: "Sheet1"
               task_type:
                 $ref: '#/components/schemas/TaskType'
               status:
                 $ref: '#/components/schemas/TaskStatus'
               row_count:
                 type: integer
+                minimum: 0
                 description: "Number of rows parsed from this sheet"
+                example: 50
+          description: "Array of created tasks"
         total_sheets:
           type: integer
+          minimum: 1
+          description: "Total number of sheets processed"
           example: 3
         message:
           type: string
+          description: "Success message"
           example: "Successfully created 3 tasks from uploaded Excel file"
-
-    TaskStats:
-      type: object
-      properties:
-        total_tasks:
-          type: integer
-          example: 25
-        pending_tasks:
-          type: integer
-          example: 5
-        processing_tasks:
-          type: integer
-          example: 3
-        completed_tasks:
-          type: integer
-          example: 15
-        cancelled_tasks:
-          type: integer
-          example: 1
-        failed_tasks:
-          type: integer
-          example: 1
-        total_upload_batches:
-          type: integer
-          example: 8
-        chat_evaluation_tasks:
-          type: integer
-          example: 25
 
     TaskWithData:
       allOf:
@@ -374,57 +467,77 @@ components:
               nullable: true
               description: "Results data (null if processing not completed)"
             results_excel_file:
-              type: object
+              allOf:
+                - $ref: '#/components/schemas/ExcelFileMetadata'
               nullable: true
               description: "Excel file containing all evaluation results (null if processing not completed)"
-              properties:
-                filename:
-                  type: string
-                  example: "task_123_evaluation_results.xlsx"
-                  description: "Generated Excel filename"
-                content:
-                  type: string
-                  format: byte
-                  description: "Base64-encoded Excel file content"
-                size:
-                  type: integer
-                  example: 15360
-                  description: "File size in bytes"
-                mime_type:
-                  type: string
-                  example: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                generated_at:
-                  type: string
-                  format: date-time
-                  example: "2024-01-01T00:10:00Z"
-                  description: "When the Excel file was generated"
 
   responses:
     BadRequest:
-      description: Bad Request
+      description: Bad Request - Malformed request or validation errors
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
           examples:
-            invalid_file:
-              summary: Invalid Excel file
+            invalid_file_format:
+              summary: Invalid Excel file format
               value:
                 error:
                   code: "INVALID_FILE_FORMAT"
                   message: "File must be Excel format (.xlsx or .xls)"
-                  details: "Uploaded file has MIME type text/plain"
-                  timestamp: "2024-01-01T00:00:00Z"
+                  details: "Uploaded file has MIME type text/plain, expected Excel format"
+                  timestamp: "2024-01-15T14:30:00Z"
                   request_id: "request_12345"
                   user_id: "user_123"
-            missing_columns:
-              summary: Missing required columns
+            missing_required_columns:
+              summary: Missing required Excel columns
               value:
                 error:
                   code: "MISSING_REQUIRED_COLUMNS"
                   message: "Excel file missing required columns for chat evaluation"
-                  details: "Excel must contain columns: question, golden_answer, golden_citations"
-                  timestamp: "2024-01-01T00:00:00Z"
+                  details: "Excel must contain columns: question, golden_answer, golden_citations. Found: question, answer"
+                  timestamp: "2024-01-15T14:30:00Z"
+                  request_id: "request_12345"
+                  user_id: "user_123"
+            too_many_rows:
+              summary: Too many rows in Excel sheet
+              value:
+                error:
+                  code: "TOO_MANY_ROWS"
+                  message: "Excel sheet exceeds maximum row limit"
+                  details: "Sheet 'Data' contains 1,500 rows. Maximum allowed is 1,000 rows per sheet"
+                  timestamp: "2024-01-15T14:30:00Z"
+                  request_id: "request_12345"
+                  user_id: "user_123"
+            too_many_sheets:
+              summary: Too many sheets in Excel file
+              value:
+                error:
+                  code: "TOO_MANY_SHEETS"
+                  message: "Excel file exceeds maximum sheet limit"
+                  details: "File contains 25 sheets. Maximum allowed is 20 sheets per file"
+                  timestamp: "2024-01-15T14:30:00Z"
+                  request_id: "request_12345"
+                  user_id: "user_123"
+            missing_task_type:
+              summary: Missing task_type field
+              value:
+                error:
+                  code: "MISSING_REQUIRED_FIELD"
+                  message: "task_type is required"
+                  details: "task_type field must be provided in the request body"
+                  timestamp: "2024-01-15T14:30:00Z"
+                  request_id: "request_12345"
+                  user_id: "user_123"
+            invalid_task_type:
+              summary: Invalid task_type value
+              value:
+                error:
+                  code: "INVALID_TASK_TYPE"
+                  message: "Invalid task_type value"
+                  details: "task_type must be 'chat-evaluation'. Received: 'unknown-type'"
+                  timestamp: "2024-01-15T14:30:00Z"
                   request_id: "request_12345"
                   user_id: "user_123"
     
@@ -439,7 +552,7 @@ components:
               code: "UNAUTHORIZED"
               message: "Invalid or expired JWT token"
               details: "Please refresh your authentication token"
-              timestamp: "2024-01-01T00:00:00Z"
+              timestamp: "2024-01-15T14:30:00Z"
               request_id: "request_12345"
     
     Forbidden:
@@ -453,19 +566,27 @@ components:
               code: "FORBIDDEN"
               message: "Access denied to task"
               details: "You can only access your own tasks"
-              timestamp: "2024-01-01T00:00:00Z"
+              timestamp: "2024-01-15T14:30:00Z"
               request_id: "request_12345"
               user_id: "user_123"
     
     NotFound:
-      description: Not Found
+      description: Not Found - Resource does not exist
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "NOT_FOUND"
+              message: "Task not found"
+              details: "Task with ID 12345 does not exist or you don't have access"
+              timestamp: "2024-01-15T14:30:00Z"
+              request_id: "request_12345"
+              user_id: "user_123"
     
     PayloadTooLarge:
-      description: Payload Too Large
+      description: Payload Too Large - File size exceeds limits
       content:
         application/json:
           schema:
@@ -474,17 +595,25 @@ components:
             error:
               code: "FILE_TOO_LARGE"
               message: "File size exceeds maximum limit"
-              details: "Maximum file size is 50MB"
-              timestamp: "2024-01-01T00:00:00Z"
+              details: "Maximum file size is 50MB. Uploaded file is 75MB"
+              timestamp: "2024-01-15T14:30:00Z"
               request_id: "request_12345"
               user_id: "user_123"
-    
+
     InternalServerError:
-      description: Internal Server Error
+      description: Internal Server Error - Unexpected server error
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "INTERNAL_SERVER_ERROR"
+              message: "An unexpected error occurred"
+              details: "Please contact support if this error persists"
+              timestamp: "2024-01-15T14:30:00Z"
+              request_id: "request_12345"
+              user_id: "user_123"
 
 security:
   - JWTAuth: []
@@ -531,6 +660,7 @@ paths:
                   description: Task type for the uploaded data
                 description:
                   type: string
+                  maxLength: 500
                   description: Optional description for the upload batch
                   example: "Monthly evaluation data upload"
       responses:
@@ -541,52 +671,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UploadResponse'
         '400':
-          description: Bad Request - Validation errors
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                missing_task_type:
-                  summary: Missing task_type field
-                  value:
-                    error:
-                      code: "MISSING_REQUIRED_FIELD"
-                      message: "task_type is required"
-                      details: "task_type field must be provided in the request body"
-                      timestamp: "2024-01-15T14:30:00Z"
-                      request_id: "request_12345"
-                      user_id: "user_123"
-                invalid_task_type:
-                  summary: Invalid task_type value
-                  value:
-                    error:
-                      code: "INVALID_TASK_TYPE"
-                      message: "Invalid task_type value"
-                      details: "task_type must be 'chat-evaluation'. Received: 'unknown-type'"
-                      timestamp: "2024-01-15T14:30:00Z"
-                      request_id: "request_12345"
-                      user_id: "user_123"
-                invalid_file_format:
-                  summary: Invalid Excel file format
-                  value:
-                    error:
-                      code: "INVALID_FILE_FORMAT"
-                      message: "File must be Excel format (.xlsx or .xls)"
-                      details: "Uploaded file has MIME type text/plain, expected Excel format"
-                      timestamp: "2024-01-15T14:30:00Z"
-                      request_id: "request_12345"
-                      user_id: "user_123"
-                missing_required_columns:
-                  summary: Missing required Excel columns
-                  value:
-                    error:
-                      code: "MISSING_REQUIRED_COLUMNS"
-                      message: "Excel file missing required columns for chat evaluation"
-                      details: "Excel must contain columns: question, golden_answer, golden_citations. Found: question, answer"
-                      timestamp: "2024-01-15T14:30:00Z"
-                      request_id: "request_12345"
-                      user_id: "user_123"
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '413':
@@ -618,6 +703,7 @@ paths:
             type: integer
             minimum: 1
             maximum: 100
+            default: 20
         - name: task_type
           in: query
           description: Task type filter
@@ -652,8 +738,9 @@ paths:
         required: true
         description: Task ID
         schema:
-          type: string
-          format: uuid
+          type: integer
+          format: int64
+          minimum: 1
 
     get:
       tags:
@@ -683,33 +770,48 @@ paths:
                 chat_evaluation_task:
                   summary: Chat Evaluation Task Example
                   value:
-                    id: "123e4567-e89b-12d3-a456-426614174000"
+                    id: 12345
+                    user_id: "user_123"
+                    original_filename: "chat_evaluation_data.xlsx"
+                    sheet_name: "Evaluation_Questions"
                     task_type: "chat-evaluation"
-                    status: "completed"
+                    task_status: "completed"
+                    upload_batch_id: 67890
                     row_count: 2
                     processed_rows: 2
+                    error_message: null
+                    metadata: {"detected_columns": ["question", "golden_answer", "golden_citations"]}
+                    created_at: "2024-01-01T00:00:00Z"
+                    updated_at: "2024-01-01T00:10:00Z"
+                    started_at: "2024-01-01T00:01:00Z"
+                    completed_at: "2024-01-01T00:10:00Z"
+                    cancelled_at: null
                     input_data:
                       - row_number: 1
                         question: "What is AI?"
-                        golden_answer: "AI is artificial intelligence..."
+                        golden_answer: "AI is artificial intelligence, a branch of computer science."
                         golden_citations: ["https://example.com/ai"]
+                        metadata: null
                       - row_number: 2
                         question: "What is ML?"
-                        golden_answer: "ML is machine learning..."
+                        golden_answer: "ML is machine learning, a subset of AI."
                         golden_citations: ["https://example.com/ml"]
+                        metadata: null
                     results_data:
                       - row_number: 1
-                        api_answer: "Artificial intelligence refers to..."
+                        api_answer: "Artificial intelligence refers to computer systems that can perform tasks typically requiring human intelligence."
                         api_citations: ["https://api-source.com/ai"]
                         answer_similarity: 0.85
                         citation_similarity: 0.72
+                        processing_time_ms: 1200
                       - row_number: 2
-                        api_answer: "Machine learning is a subset..."
+                        api_answer: "Machine learning is a subset of artificial intelligence that enables computers to learn from data."
                         api_citations: ["https://api-source.com/ml"]
                         answer_similarity: 0.92
                         citation_similarity: 0.88
+                        processing_time_ms: 980
                     results_excel_file:
-                      filename: "task_123e4567_evaluation_results.xlsx"
+                      filename: "task_12345_evaluation_results.xlsx"
                       content: "UEsDBBQAAAAIAO..."
                       size: 15360
                       mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -735,14 +837,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - cancelled
-              properties:
-                cancelled:
-                  type: boolean
-                  description: Set to true to cancel the task
-                  example: true
+              $ref: '#/components/schemas/TaskUpdateRequest'
       responses:
         '200':
           description: Task updated successfully
@@ -760,7 +855,10 @@ paths:
                 error:
                   code: "INVALID_STATUS"
                   message: "Cannot cancel completed task"
-                  details: "Task has already finished processing"
+                  details: "Task has already finished processing and cannot be cancelled"
+                  timestamp: "2024-01-15T14:30:00Z"
+                  request_id: "request_12345"
+                  user_id: "user_123"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -793,6 +891,9 @@ paths:
                   code: "INVALID_STATUS"
                   message: "Cannot delete task in processing status"
                   details: "Cancel the task first, then delete it"
+                  timestamp: "2024-01-15T14:30:00Z"
+                  request_id: "request_12345"
+                  user_id: "user_123"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
