@@ -541,7 +541,52 @@ paths:
               schema:
                 $ref: '#/components/schemas/UploadResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad Request - Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_task_type:
+                  summary: Missing task_type field
+                  value:
+                    error:
+                      code: "MISSING_REQUIRED_FIELD"
+                      message: "task_type is required"
+                      details: "task_type field must be provided in the request body"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                invalid_task_type:
+                  summary: Invalid task_type value
+                  value:
+                    error:
+                      code: "INVALID_TASK_TYPE"
+                      message: "Invalid task_type value"
+                      details: "task_type must be 'chat-evaluation'. Received: 'unknown-type'"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                invalid_file_format:
+                  summary: Invalid Excel file format
+                  value:
+                    error:
+                      code: "INVALID_FILE_FORMAT"
+                      message: "File must be Excel format (.xlsx or .xls)"
+                      details: "Uploaded file has MIME type text/plain, expected Excel format"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                missing_required_columns:
+                  summary: Missing required Excel columns
+                  value:
+                    error:
+                      code: "MISSING_REQUIRED_COLUMNS"
+                      message: "Excel file missing required columns for chat evaluation"
+                      details: "Excel must contain columns: question, golden_answer, golden_citations. Found: question, answer"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '413':
