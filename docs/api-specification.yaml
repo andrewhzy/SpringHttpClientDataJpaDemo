@@ -520,11 +520,15 @@ paths:
               type: object
               required:
                 - file
+                - task_type
               properties:
                 file:
                   type: string
                   format: binary
                   description: Excel file (.xlsx or .xls)
+                task_type:
+                  $ref: '#/components/schemas/TaskType'
+                  description: Task type for the uploaded data
                 description:
                   type: string
                   description: Optional description for the upload batch
@@ -575,7 +579,7 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/TaskType'
-        - name: maxTaskId
+        - name: cursor
           in: query
           description: Cursor for pagination (omit for first page)
           required: false
@@ -687,12 +691,13 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - cancelled
               properties:
-                action:
-                  type: string
-                  enum: [cancel]
-                  description: Action to perform on the task
-                  example: "cancel"
+                cancelled:
+                  type: boolean
+                  description: Set to true to cancel the task
+                  example: true
       responses:
         '200':
           description: Task updated successfully
