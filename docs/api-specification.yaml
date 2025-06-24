@@ -565,9 +565,7 @@ components:
               request_id: "request_12345"
               user_id: "user_123"
 
-    # Simple Success Responses (no content)
-    TaskDeleted:
-      description: Task deleted successfully
+
 
 security:
   - JWTAuth: []
@@ -578,6 +576,7 @@ paths:
       tags:
         - Tasks
       summary: Upload Excel file and create chat evaluation tasks
+      operationId: uploadTasks
       description: |
         Upload an Excel file with chat evaluation data for processing.
         
@@ -840,6 +839,7 @@ paths:
       tags:
         - Tasks
       summary: Cancel task
+      operationId: cancelTask
       description: |
         Cancel a task by setting cancelled=true. Only tasks in 'queueing' or 'processing'
         status can be cancelled. Only task owners can cancel their tasks.
@@ -899,6 +899,7 @@ paths:
       tags:
         - Tasks
       summary: Delete task
+      operationId: deleteTask
       description: |
         Delete a task permanently. This will remove the task record and 
         associated structured data from input and output tables. 
@@ -906,7 +907,7 @@ paths:
         Tasks in 'processing' status cannot be deleted.
       responses:
         '204':
-          $ref: '#/components/responses/TaskDeleted'
+          description: Task deleted successfully
         '400':
           description: Bad Request - Invalid operation for current task status
           content:
@@ -930,7 +931,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /tasks/{id}/files:
+  /tasks/{id}/file:
     parameters:
       - name: id
         in: path
@@ -945,6 +946,7 @@ paths:
       tags:
         - Tasks
       summary: "[NOT FINALIZED] Download task evaluation results"
+      operationId: downloadTaskResults
       description: |
         **🚧 NOT FINALIZED - NEEDS FURTHER REVIEW**
         
