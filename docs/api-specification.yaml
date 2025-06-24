@@ -450,112 +450,84 @@ components:
           description: "Success message"
           example: "Successfully created 3 tasks from uploaded Excel file"
 
-    TaskWithData:
+    # File Download Schema
+    TaskFile:
+      type: object
+      required:
+        - filename
+        - download_url
+        - size
+        - mime_type
+        - generated_at
+      properties:
+        filename:
+          type: string
+          description: "Generated file name"
+          example: "task_12345_QnAs.xlsx"
+        download_url:
+          type: string
+          format: uri
+          description: "URL to download the file"
+          example: "/api/v1/tasks/12345/files/task_QnAs"
+        size:
+          type: integer
+          minimum: 0
+          description: "File size in bytes"
+          example: 15360
+        mime_type:
+          type: string
+          enum: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
+          description: "MIME type of the Excel file"
+          example: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        generated_at:
+          type: string
+          format: date-time
+          description: "When the file was generated"
+          example: "2024-01-01T00:10:00Z"
+        row_count:
+          type: integer
+          minimum: 0
+          description: "Number of data rows in the file"
+          example: 150
+
+    TaskWithFiles:
       allOf:
         - $ref: '#/components/schemas/Task'
         - type: object
           properties:
-            input_data:
-              type: array
-              items:
-                $ref: '#/components/schemas/ChatEvaluationInputData'
-              description: "Input data for chat evaluation tasks"
-            results_data:
-              type: array
-              items:
-                $ref: '#/components/schemas/ChatEvaluationOutputData'
+            files:
+              type: object
+              description: "Available files for download"
+              properties:
+                task_QnAs:
+                  allOf:
+                    - $ref: '#/components/schemas/TaskFile'
+                  description: "Original questions and golden answers from uploaded Excel"
+                  nullable: true
+                answers_and_retrieved_docs:
+                  allOf:
+                    - $ref: '#/components/schemas/TaskFile'
+                  description: "API responses with retrieved documents and citations"
+                  nullable: true
+                answer_evaluation:
+                  allOf:
+                    - $ref: '#/components/schemas/TaskFile'
+                  description: "Answer similarity scores and evaluation metrics"
+                  nullable: true
+                docs_evaluation:
+                  allOf:
+                    - $ref: '#/components/schemas/TaskFile'
+                  description: "Document/citation similarity analysis and evaluation"
+                  nullable: true
+            bulk_download_url:
+              type: string
+              format: uri
               nullable: true
-              description: "Results data (null if processing not completed)"
-            results_excel_file:
-              allOf:
-                - $ref: '#/components/schemas/ExcelFileMetadata'
-              nullable: true
-              description: "Excel file containing all evaluation results (null if processing not completed)"
+              description: "URL to download all files as ZIP archive (null if processing not completed)"
+              example: "/api/v1/tasks/12345/files"
 
   responses:
-    # Success Responses
-    TaskCreated:
-      description: Excel file processed and tasks created successfully
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/UploadResponse'
-
-    TaskList:
-      description: List of user's tasks (metadata only)
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/TaskList'
-
-    TaskWithData:
-      description: Task details with structured input and results data
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/TaskWithData'
-          examples:
-            chat_evaluation_task:
-              summary: Chat Evaluation Task Example
-              value:
-                id: 12345
-                user_id: "user_123"
-                original_filename: "chat_evaluation_data.xlsx"
-                sheet_name: "Evaluation_Questions"
-                task_type: "chat-evaluation"
-                task_status: "completed"
-                upload_batch_id: 67890
-                row_count: 2
-                processed_rows: 2
-                error_message: null
-                metadata: {"detected_columns": ["question", "golden_answer", "golden_citations"]}
-                created_at: "2024-01-01T00:00:00Z"
-                updated_at: "2024-01-01T00:10:00Z"
-                started_at: "2024-01-01T00:01:00Z"
-                completed_at: "2024-01-01T00:10:00Z"
-                cancelled_at: null
-                input_data:
-                  - row_number: 1
-                    question: "What is AI?"
-                    golden_answer: "AI is artificial intelligence, a branch of computer science."
-                    golden_citations: ["https://example.com/ai"]
-                    metadata: null
-                  - row_number: 2
-                    question: "What is ML?"
-                    golden_answer: "ML is machine learning, a subset of AI."
-                    golden_citations: ["https://example.com/ml"]
-                    metadata: null
-                results_data:
-                  - row_number: 1
-                    api_answer: "Artificial intelligence refers to computer systems that can perform tasks typically requiring human intelligence."
-                    api_citations: ["https://api-source.com/ai"]
-                    answer_similarity: 0.85
-                    citation_similarity: 0.72
-                    processing_time_ms: 1200
-                  - row_number: 2
-                    api_answer: "Machine learning is a subset of artificial intelligence that enables computers to learn from data."
-                    api_citations: ["https://api-source.com/ml"]
-                    answer_similarity: 0.92
-                    citation_similarity: 0.88
-                    processing_time_ms: 980
-                results_excel_file:
-                  filename: "task_12345_evaluation_results.xlsx"
-                  content: "UEsDBBQAAAAIAO..."
-                  size: 15360
-                  mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  generated_at: "2024-01-01T00:10:00Z"
-
-    TaskUpdated:
-      description: Task cancelled successfully
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Task'
-
-    TaskDeleted:
-      description: Task deleted successfully
-
-    # Error Responses
+    # Error Responses (used across all endpoints)
     BadRequest:
       description: Bad Request - Malformed request or validation errors
       content:
@@ -682,7 +654,7 @@ components:
               timestamp: "2024-01-15T14:30:00Z"
               request_id: "request_12345"
               user_id: "user_123"
-
+    
     InternalServerError:
       description: Internal Server Error - Unexpected server error
       content:
@@ -697,6 +669,10 @@ components:
               timestamp: "2024-01-15T14:30:00Z"
               request_id: "request_12345"
               user_id: "user_123"
+
+    # Simple Success Responses (no content)
+    TaskDeleted:
+      description: Task deleted successfully
 
 security:
   - JWTAuth: []
@@ -748,7 +724,11 @@ paths:
                   example: "Monthly evaluation data upload"
       responses:
         '201':
-          $ref: '#/components/responses/TaskCreated'
+          description: Excel file processed and tasks created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -798,7 +778,11 @@ paths:
             example: "123"
       responses:
         '200':
-          $ref: '#/components/responses/TaskList'
+          description: List of user's tasks (metadata only)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskList'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -820,23 +804,82 @@ paths:
     get:
       tags:
         - Tasks
-      summary: Get task details with structured data and Excel file
+      summary: "[TO BE DELETED] Get task details with downloadable result files"
+      deprecated: true
       description: |
-        Retrieve detailed information about a specific task including parsed input data,
-        processing results, and generated Excel file (if completed). Users can only access their own tasks.
+        **⚠️ TO BE DELETED - KEEPING FOR NOW**
+        
+        Retrieve detailed information about a specific task including metadata and downloadable result files.
+        Users can only access their own tasks.
         
         **Response includes:**
         - Task metadata (status, progress, etc.)
-        - Structured input data (parsed from original Excel)
-        - Processing results (if background processing completed)
-        - Excel file with evaluation results (if background processing completed)
+        - Download URLs for 4 result files (if processing completed):
+          1. **task_QnAs**: Original questions and golden answers from uploaded Excel
+          2. **answers_and_retrieved_docs**: API responses with retrieved documents and citations
+          3. **answer_evaluation**: Answer similarity scores and evaluation metrics  
+          4. **docs_evaluation**: Document/citation similarity analysis and evaluation
         
-        **Data structure for chat evaluation:**
-        - Questions, golden answers, golden citations, similarity scores
-        - Excel file contains all input data plus API responses and similarity scores
+        **File Format:** All files are Excel (.xlsx) format for easy analysis
+        **File Availability:** Files are generated only after background processing completes
+        - **File Access:** Use the download_url to fetch individual files
       responses:
         '200':
-          $ref: '#/components/responses/TaskWithData'
+          description: Task details with downloadable result files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskWithFiles'
+              examples:
+                chat_evaluation_task:
+                  summary: Chat Evaluation Task with Files
+                  value:
+                    id: 12345
+                    user_id: "user_123"
+                    original_filename: "chat_evaluation_data.xlsx"
+                    sheet_name: "Evaluation_Questions"
+                    task_type: "chat-evaluation"
+                    task_status: "completed"
+                    upload_batch_id: 67890
+                    row_count: 150
+                    processed_rows: 150
+                    error_message: null
+                    metadata: {"detected_columns": ["question", "golden_answer", "golden_citations"]}
+                    created_at: "2024-01-01T00:00:00Z"
+                    updated_at: "2024-01-01T00:10:00Z"
+                    started_at: "2024-01-01T00:01:00Z"
+                    completed_at: "2024-01-01T00:10:00Z"
+                    cancelled_at: null
+                    files:
+                      task_QnAs:
+                        filename: "task_12345_QnAs.xlsx"
+                        download_url: "/api/v1/tasks/12345/files/task_QnAs"
+                        size: 45120
+                        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        generated_at: "2024-01-01T00:10:00Z"
+                        row_count: 150
+                      answers_and_retrieved_docs:
+                        filename: "task_12345_answers_and_retrieved_docs.xlsx"
+                        download_url: "/api/v1/tasks/12345/files/answers_and_retrieved_docs"
+                        size: 78240
+                        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        generated_at: "2024-01-01T00:10:00Z"
+                        row_count: 150
+                      answer_evaluation:
+                        filename: "task_12345_answer_evaluation.xlsx"
+                        download_url: "/api/v1/tasks/12345/files/answer_evaluation"
+                        size: 32768
+                        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        generated_at: "2024-01-01T00:10:00Z"
+                        row_count: 150
+                      docs_evaluation:
+                        filename: "task_12345_docs_evaluation.xlsx"
+                        download_url: "/api/v1/tasks/12345/files/docs_evaluation"
+                        size: 28672
+                        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        generated_at: "2024-01-01T00:10:00Z"
+                        row_count: 150
+                      bulk_download_url: "/api/v1/tasks/12345/files"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -864,7 +907,11 @@ paths:
             example: true
       responses:
         '200':
-          $ref: '#/components/responses/TaskUpdated'
+          description: Task cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -890,6 +937,84 @@ paths:
           $ref: '#/components/responses/TaskDeleted'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /tasks/{id}/files:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Task ID
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+
+    get:
+      tags:
+        - Tasks
+      summary: "[NOT FINALIZED] Download all result files as ZIP archive"
+      description: |
+        **🚧 NOT FINALIZED - NEEDS FURTHER REVIEW**
+        
+        Download all 4 result files for a completed task in a single ZIP archive. 
+        Users can only download files for their own tasks.
+        
+        **ZIP Contents:**
+        - **task_12345_QnAs.xlsx**: Original questions and golden answers
+        - **task_12345_answers_and_retrieved_docs.xlsx**: API responses with retrieved documents
+        - **task_12345_answer_evaluation.xlsx**: Answer similarity scores and metrics
+        - **task_12345_docs_evaluation.xlsx**: Document/citation similarity analysis
+        
+        **Convenience:** Get all evaluation results in one download
+        **Availability:** Only available for completed tasks
+        
+        **⚠️ DESIGN DECISIONS NEEDED:**
+        - File format and structure confirmation
+        - Response format validation
+        - Error handling scenarios
+        - Performance considerations for large files
+      responses:
+        '200':
+          description: ZIP archive containing all result files
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+                description: "ZIP archive with all Excel files"
+          headers:
+            Content-Disposition:
+              description: "Attachment filename for ZIP"
+              schema:
+                type: string
+                example: 'attachment; filename="task_12345_results.zip"'
+            Content-Length:
+              description: "ZIP file size in bytes"
+              schema:
+                type: integer
+                example: 184320
+        '400':
+          description: Files not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: "FILES_NOT_AVAILABLE"
+                  message: "Result files not available for download"
+                  details: "Task processing not completed. Current status: processing"
+                  timestamp: "2024-01-15T14:30:00Z"
+                  request_id: "request_12345"
+                  user_id: "user_123"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
