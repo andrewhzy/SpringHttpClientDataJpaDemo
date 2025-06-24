@@ -15,11 +15,21 @@ info:
     - Structured data responses for easy frontend integration
     
     **Chat Evaluation Requirements:**
-    - Excel columns "question", "golden_answer", "golden_citations"
+    - Excel columns: "question", "golden_answer", "golden_citations"
+    - File formats: .xlsx or .xls
+    - File size limit: 50MB
+    - Maximum sheets per file: 20
+    - Maximum rows per sheet: 1,000
     
     **Authentication:**
     - JWT-based authentication from internal SSO
     - User-scoped access to tasks and operations
+    
+    **API Design:**
+    - RESTful endpoints with clear resource hierarchy
+    - Cursor-based pagination for performance
+    - Comprehensive error handling with structured responses
+    - OpenAPI 3.1 specification for documentation
   version: 1.0.0
   contact:
     name: Internal API Team
@@ -33,6 +43,8 @@ servers:
     description: Internal Production API Server
   - url: https://staging-api.organization.com/rest/api/v1
     description: Internal Staging API Server
+  - url: http://localhost:8080/rest/api/v1
+    description: Local Development Server
 
 security:
   - JWTAuth: []

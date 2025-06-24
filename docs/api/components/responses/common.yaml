@@ -6,25 +6,45 @@ BadRequest:
         $ref: '../schemas/error.yaml#/Error'
       examples:
         invalid_file:
-          summary: Invalid Excel file
+          summary: Invalid Excel file format
           value:
             error:
               code: "INVALID_FILE_FORMAT"
               message: "File must be Excel format (.xlsx or .xls)"
-              details: "Uploaded file has MIME type text/plain"
-              timestamp: "2024-01-01T00:00:00Z"
-              request_id: "request_12345"
-              user_id: "user_123"
+              details: "Uploaded file has MIME type text/plain, expected Excel format"
+              timestamp: "2024-01-15T14:30:00Z"
+              request_id: "req_abc123def456"
+              user_id: "system-user"
         missing_columns:
           summary: Missing required columns
           value:
             error:
               code: "MISSING_REQUIRED_COLUMNS"
               message: "Excel file missing required columns for chat evaluation"
-              details: "Excel must contain columns: question, golden_answer, golden_citations"
-              timestamp: "2024-01-01T00:00:00Z"
-              request_id: "request_12345"
-              user_id: "user_123"
+              details: "Excel must contain columns: question, golden_answer, golden_citations. Found: question, answer"
+              timestamp: "2024-01-15T14:30:00Z"
+              request_id: "req_abc123def456"
+              user_id: "system-user"
+        file_too_large:
+          summary: File size exceeded
+          value:
+            error:
+              code: "FILE_TOO_LARGE"
+              message: "File size exceeds maximum limit"
+              details: "File size: 60MB, maximum allowed: 50MB"
+              timestamp: "2024-01-15T14:30:00Z"
+              request_id: "req_abc123def456"
+              user_id: "system-user"
+        validation_error:
+          summary: Request validation failed
+          value:
+            error:
+              code: "VALIDATION_ERROR"
+              message: "Invalid request parameters"
+              details: "per_page must be between 1 and 100, received: 150"
+              timestamp: "2024-01-15T14:30:00Z"
+              request_id: "req_abc123def456"
+              user_id: "system-user"
 
 Unauthorized:
   description: Unauthorized - Invalid or missing JWT token
@@ -37,8 +57,8 @@ Unauthorized:
           code: "UNAUTHORIZED"
           message: "Invalid or expired JWT token"
           details: "Please refresh your authentication token"
-          timestamp: "2024-01-01T00:00:00Z"
-          request_id: "request_12345"
+          timestamp: "2024-01-15T14:30:00Z"
+          request_id: "req_abc123def456"
 
 Forbidden:
   description: Forbidden - Insufficient permissions
@@ -51,9 +71,9 @@ Forbidden:
           code: "FORBIDDEN"
           message: "Access denied to task"
           details: "You can only access your own tasks"
-          timestamp: "2024-01-01T00:00:00Z"
-          request_id: "request_12345"
-          user_id: "user_123"
+          timestamp: "2024-01-15T14:30:00Z"
+          request_id: "req_abc123def456"
+          user_id: "system-user"
 
 NotFound:
   description: Not Found
@@ -61,6 +81,14 @@ NotFound:
     application/json:
       schema:
         $ref: '../schemas/error.yaml#/Error'
+      example:
+        error:
+          code: "NOT_FOUND"
+          message: "Task not found"
+          details: "Task with ID 123 does not exist or you don't have access to it"
+          timestamp: "2024-01-15T14:30:00Z"
+          request_id: "req_abc123def456"
+          user_id: "system-user"
 
 PayloadTooLarge:
   description: Payload Too Large
@@ -70,16 +98,24 @@ PayloadTooLarge:
         $ref: '../schemas/error.yaml#/Error'
       example:
         error:
-          code: "FILE_TOO_LARGE"
-          message: "File size exceeds maximum limit"
+          code: "PAYLOAD_TOO_LARGE"
+          message: "Request payload exceeds maximum size"
           details: "Maximum file size is 50MB"
-          timestamp: "2024-01-01T00:00:00Z"
-          request_id: "request_12345"
-          user_id: "user_123"
+          timestamp: "2024-01-15T14:30:00Z"
+          request_id: "req_abc123def456"
+          user_id: "system-user"
 
 InternalServerError:
   description: Internal Server Error
   content:
     application/json:
       schema:
-        $ref: '../schemas/error.yaml#/Error' 
+        $ref: '../schemas/error.yaml#/Error'
+      example:
+        error:
+          code: "INTERNAL_SERVER_ERROR"
+          message: "An unexpected error occurred"
+          details: "Please try again later or contact support if the problem persists"
+          timestamp: "2024-01-15T14:30:00Z"
+          request_id: "req_abc123def456"
+          user_id: "system-user" 

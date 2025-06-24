@@ -1,17 +1,26 @@
 PaginationMeta:
   type: object
+  required:
+    - per_page
+    - total
+    - has_more
   properties:
     per_page:
       type: integer
+      minimum: 1
+      maximum: 100
       example: 20
+      description: "Number of items requested per page"
     total:
       type: integer
+      minimum: 0
       example: 100
+      description: "Total number of items available"
     next_cursor:
       type: string
       nullable: true
       example: "123"
-      description: "Cursor for next page, null if no more results"
+      description: "Cursor for next page (string representation of task ID), null if no more results"
     has_more:
       type: boolean
       example: true

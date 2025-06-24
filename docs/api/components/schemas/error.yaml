@@ -13,20 +13,30 @@ Error:
         code:
           type: string
           example: "VALIDATION_ERROR"
+          description: "Error code for programmatic handling"
+          pattern: "^[A-Z_]+$"
         message:
           type: string
           example: "Invalid Excel file format"
+          description: "Human-readable error message"
+          minLength: 1
+          maxLength: 500
         details:
           type: string
           example: "File must be .xlsx or .xls format"
+          description: "Additional context about the error"
+          maxLength: 1000
         timestamp:
           type: string
           format: date-time
-          example: "2024-01-01T00:00:00Z"
+          example: "2024-01-15T14:30:00Z"
+          description: "When the error occurred (ISO 8601 format)"
         request_id:
           type: string
-          example: "request_12345"
-          description: "Request ID for debugging"
+          example: "req_abc123def456"
+          description: "Request ID for debugging and correlation"
+          pattern: "^req_[a-zA-Z0-9]+$"
         user_id:
           type: string
-          example: "user_123" 
+          example: "system-user"
+          description: "User ID associated with the request (if authenticated)" 

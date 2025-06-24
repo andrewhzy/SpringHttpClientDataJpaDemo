@@ -29,28 +29,33 @@ Task:
     - row_count
     - processed_rows
     - created_at
+    - updated_at
   properties:
     id:
-      type: string
-      format: uuid
-      example: "123e4567-e89b-12d3-a456-426614174000"
+      type: integer
+      format: int64
+      example: 123
+      description: "Unique task identifier (auto-generated)"
     user_id:
       type: string
-      example: "user_123"
+      example: "system-user"
+      description: "ID of the user who created the task"
     original_filename:
       type: string
       example: "monthly_reports.xlsx"
+      description: "Original filename of the uploaded Excel file"
     sheet_name:
       type: string
       example: "January_Data"
+      description: "Name of the Excel sheet this task was created from"
     task_type:
       $ref: '#/TaskType'
     task_status:
       $ref: '#/TaskStatus'
     upload_batch_id:
-      type: string
-      format: uuid
-      example: "456e7890-e89b-12d3-a456-426614174000"
+      type: integer
+      format: int64
+      example: 456789
       description: "Groups tasks from the same Excel file upload"
     row_count:
       type: integer
@@ -62,42 +67,43 @@ Task:
       minimum: 0
       example: 75
       description: "Number of rows completed by background processing"
-    progress_percentage:
-      type: integer
-      minimum: 0
-      maximum: 100
-      example: 50
-      description: "Calculated as (processed_rows / row_count * 100)"
     error_message:
       type: string
       nullable: true
       example: "API timeout on row 15"
-    metadata:
-      type: object
-      nullable: true
-      example: {"detected_columns": ["question", "golden_answer"], "extra_columns": ["priority"]}
+      description: "Error message if task failed"
     created_at:
       type: string
       format: date-time
       example: "2024-01-01T00:00:00Z"
+      description: "When the task was created"
     updated_at:
       type: string
       format: date-time
       example: "2024-01-01T00:05:00Z"
+      description: "When the task was last updated"
     started_at:
       type: string
       format: date-time
       nullable: true
       example: "2024-01-01T00:01:00Z"
+      description: "When background processing started"
     completed_at:
       type: string
       format: date-time
       nullable: true
       example: "2024-01-01T00:10:00Z"
+      description: "When background processing completed successfully"
     cancelled_at:
       type: string
       format: date-time
       nullable: true
+      description: "When the task was cancelled"
+    failed_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: "When the task failed"
 
 TaskList:
   type: object
@@ -113,35 +119,63 @@ UploadResponse:
   type: object
   required:
     - upload_batch_id
+    - filename
     - tasks
+    - total_sheets
+    - message
   properties:
     upload_batch_id:
       type: string
       format: uuid
       example: "456e7890-e89b-12d3-a456-426614174000"
+      description: "UUID for this upload batch"
+    filename:
+      type: string
+      example: "monthly_reports.xlsx"
+      description: "Original filename of uploaded Excel file"
     tasks:
       type: array
       items:
         type: object
+        required:
+          - task_id
+          - sheet_name
+          - task_type
+          - status
+          - row_count
         properties:
           task_id:
             type: string
-            format: uuid
+            example: "123"
+            description: "Generated task ID"
+          filename:
+            type: string
+            example: "monthly_reports.xlsx"
+            description: "Original filename"
           sheet_name:
             type: string
+            example: "January_Data"
+            description: "Excel sheet name"
           task_type:
-            $ref: '#/TaskType'
+            type: string
+            example: "chat-evaluation"
+            description: "Type of task created"
           status:
-            $ref: '#/TaskStatus'
+            type: string
+            example: "queueing"
+            description: "Initial task status"
           row_count:
             type: integer
+            example: 150
             description: "Number of rows parsed from this sheet"
     total_sheets:
       type: integer
       example: 3
+      description: "Number of sheets processed"
     message:
       type: string
-      example: "Successfully created 3 tasks from uploaded Excel file"
+      example: "Successfully created 3 tasks with 450 total questions"
+      description: "Success message with summary"
 
 TaskStats:
   type: object

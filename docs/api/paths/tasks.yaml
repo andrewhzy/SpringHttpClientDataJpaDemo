@@ -83,13 +83,15 @@
         required: true
         schema:
           $ref: '../components/schemas/task.yaml#/TaskType'
-      - name: maxTaskId
+      - name: cursor
         in: query
         description: Cursor for pagination (omit for first page)
         required: false
         schema:
-          type: string
-          example: "123"
+          type: integer
+          format: int64
+          example: 123
+          description: "ID of the last task from the previous page"
     responses:
       '200':
         description: List of user's tasks (metadata only)
@@ -111,26 +113,27 @@
       required: true
       description: Task ID
       schema:
-        type: string
-        format: uuid
+        type: integer
+        format: int64
 
   get:
     tags:
       - Tasks
-    summary: Get task details with structured data and Excel file
+    summary: Get task details with structured data
     description: |
-      Retrieve detailed information about a specific task including parsed input data,
-      processing results, and generated Excel file (if completed). Users can only access their own tasks.
+      Retrieve detailed information about a specific task including parsed input data
+      and processing results (if completed). Users can only access their own tasks.
       
       **Response includes:**
       - Task metadata (status, progress, etc.)
       - Structured input data (parsed from original Excel)
       - Processing results (if background processing completed)
-      - Excel file with evaluation results (if background processing completed)
       
       **Data structure for chat evaluation:**
       - Questions, golden answers, golden citations, similarity scores
-      - Excel file contains all input data plus API responses and similarity scores
+      
+      **Note:** Excel file download should be handled via a separate download endpoint
+      for better performance and caching.
     responses:
       '200':
         description: Task details with structured input and results data
@@ -142,11 +145,19 @@
               chat_evaluation_task:
                 summary: Chat Evaluation Task Example
                 value:
-                  id: "123e4567-e89b-12d3-a456-426614174000"
+                  id: 123
+                  user_id: "system-user"
+                  original_filename: "monthly_reports.xlsx"
+                  sheet_name: "January_Data"
                   task_type: "chat-evaluation"
-                  status: "completed"
+                  task_status: "completed"
+                  upload_batch_id: 456789
                   row_count: 2
                   processed_rows: 2
+                  created_at: "2024-01-01T00:00:00Z"
+                  updated_at: "2024-01-01T00:05:00Z"
+                  started_at: "2024-01-01T00:01:00Z"
+                  completed_at: "2024-01-01T00:10:00Z"
                   input_data:
                     - row_number: 1
                       question: "What is AI?"
@@ -167,12 +178,6 @@
                       api_citations: ["https://api-source.com/ml"]
                       answer_similarity: 0.92
                       citation_similarity: 0.88
-                  results_excel_file:
-                    filename: "task_123e4567_evaluation_results.xlsx"
-                    content: "UEsDBBQAAAAIAO..."
-                    size: 15360
-                    mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    generated_at: "2024-01-01T00:10:00Z"
       '401':
         $ref: '../components/responses/common.yaml#/Unauthorized'
       '403':
