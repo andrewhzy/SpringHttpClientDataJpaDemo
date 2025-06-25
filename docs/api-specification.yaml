@@ -110,39 +110,7 @@ components:
           description: "Whether there are more results available"
           example: true
 
-    # User Context Schema
-    UserContext:
-      type: object
-      required:
-        - user_id
-        - name
-        - email
-      properties:
-        user_id:
-          type: string
-          description: "Unique user identifier"
-          example: "user_123"
-        name:
-          type: string
-          description: "User's display name"
-          example: "John Doe"
-        email:
-          type: string
-          format: email
-          description: "User's email address"
-          example: "john.doe@organization.com"
-        roles:
-          type: array
-          items:
-            type: string
-          description: "User's assigned roles"
-          example: ["user", "analyst"]
-        departments:
-          type: array
-          items:
-            type: string
-          description: "User's department affiliations"
-          example: ["engineering", "data-science"]
+
 
     # Enum Schemas
     TaskStatus:
@@ -252,134 +220,13 @@ components:
           nullable: true
           description: "When the task was cancelled"
 
-    # Chat Evaluation Data Schemas
-    ChatEvaluationInputData:
-      type: object
-      required:
-        - row_number
-        - question
-        - golden_answer
-        - golden_citations
-      properties:
-        row_number:
-          type: integer
-          minimum: 1
-          description: "Row number in the original Excel sheet"
-          example: 1
-        question:
-          type: string
-          minLength: 1
-          description: "Question to be evaluated"
-          example: "What is artificial intelligence?"
-        golden_answer:
-          type: string
-          minLength: 1
-          description: "Expected/golden answer for comparison"
-          example: "AI is a branch of computer science that aims to create machines capable of intelligent behavior."
-        golden_citations:
-          type: array
-          items:
-            type: string
-            format: uri
-          minItems: 1
-          description: "Expected/golden citations for comparison"
-          example: ["https://example.com/ai-definition", "https://example.com/ai-overview"]
-        metadata:
-          type: object
-          nullable: true
-          description: "Additional row-specific metadata"
-          example: {"priority": "high", "category": "general"}
 
-    ChatEvaluationOutputData:
-      type: object
-      required:
-        - row_number
-        - api_answer
-        - api_citations
-        - answer_similarity
-        - citation_similarity
-      properties:
-        row_number:
-          type: integer
-          minimum: 1
-          description: "Row number matching the input data"
-          example: 1
-        api_answer:
-          type: string
-          description: "Answer returned by the API being evaluated"
-          example: "Artificial intelligence (AI) refers to the simulation of human intelligence in machines."
-        api_citations:
-          type: array
-          items:
-            type: string
-            format: uri
-          description: "Citations returned by the API being evaluated"
-          example: ["https://api-source.com/ai-definition"]
-        answer_similarity:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 1
-          description: "Similarity score between golden answer and API answer (0-1)"
-          example: 0.8567
-        citation_similarity:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 1
-          description: "Similarity score between golden citations and API citations (0-1)"
-          example: 0.7234
-        processing_time_ms:
-          type: integer
-          minimum: 0
-          nullable: true
-          description: "Time taken to process this row in milliseconds"
-          example: 1250
 
-    # File Metadata Schema
-    ExcelFileMetadata:
-      type: object
-      required:
-        - filename
-        - content
-        - size
-        - mime_type
-        - generated_at
-      properties:
-        filename:
-          type: string
-          description: "Generated Excel filename"
-          example: "task_12345_evaluation_results.xlsx"
-        content:
-          type: string
-          format: byte
-          description: "Base64-encoded Excel file content"
-        size:
-          type: integer
-          minimum: 0
-          description: "File size in bytes"
-          example: 15360
-        mime_type:
-          type: string
-          enum: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
-          description: "MIME type of the Excel file"
-          example: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        generated_at:
-          type: string
-          format: date-time
-          description: "When the Excel file was generated"
-          example: "2024-01-01T00:10:00Z"
+
+
+
 
     # Request/Response Schemas
-    TaskUpdateRequest:
-      type: object
-      required:
-        - cancelled
-      properties:
-        cancelled:
-          type: boolean
-          description: "Set to true to cancel the task"
-          example: true
 
     TaskList:
       type: object
@@ -447,62 +294,7 @@ components:
           description: "Success message"
           example: "Successfully created 3 tasks from uploaded Excel file"
 
-    # File Download Schema - Single Excel file with multiple sheets
-    ExcelEvaluationFile:
-      type: object
-      required:
-        - filename
-        - size
-        - mime_type
-        - generated_at
-        - sheet_count
-      properties:
-        filename:
-          type: string
-          description: "Generated Excel filename with evaluation results"
-          example: "task_12345_evaluation_results.xlsx"
-        size:
-          type: integer
-          minimum: 0
-          description: "File size in bytes"
-          example: 184320
-        mime_type:
-          type: string
-          enum: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
-          description: "MIME type of the Excel file"
-          example: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        generated_at:
-          type: string
-          format: date-time
-          description: "When the Excel file was generated"
-          example: "2024-01-01T00:10:00Z"
-        sheet_count:
-          type: integer
-          minimum: 1
-          description: "Number of sheets in the Excel file"
-          example: 4
-        sheets:
-          type: array
-          items:
-            type: object
-            properties:
-              name:
-                type: string
-                description: "Sheet name"
-              row_count:
-                type: integer
-                minimum: 0
-                description: "Number of data rows in this sheet"
-          description: "Information about each sheet in the Excel file"
-          example:
-            - name: "QnAs"
-              row_count: 150
-            - name: "API_Responses"
-              row_count: 150
-            - name: "Answer_Evaluation"
-              row_count: 150
-            - name: "Docs_Evaluation"
-              row_count: 150
+
 
   responses:
     # Error Responses (used across all endpoints)
