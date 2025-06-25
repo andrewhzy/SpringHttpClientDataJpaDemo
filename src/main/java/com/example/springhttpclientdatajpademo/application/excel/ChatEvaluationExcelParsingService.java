@@ -1,6 +1,7 @@
 package com.example.springhttpclientdatajpademo.application.excel;
 
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
+import com.example.springhttpclientdatajpademo.domain.task.Task;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -18,9 +19,9 @@ import java.util.stream.Collectors;
  * Implementation of ExcelParsingService for chat evaluation tasks
  * Implements API specification requirements for POST /rest/api/v1/tasks
  */
-@Service
+@Service()
 @Slf4j
-public class ExcelParsingServiceImpl implements ExcelParsingService {
+public class ChatEvaluationExcelParsingService implements ExcelParsingService {
     
     // API specification constants
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -34,13 +35,13 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
     private static final String GOLDEN_CITATIONS_COLUMN = "golden_citations";
     
     @Override
-    public Map<String, List<ChatEvaluationInput>> parseExcelFile(MultipartFile file) {
+    public List<ChatEvaluationInput> parseExcelFile(MultipartFile file) {
         log.info("Parsing Excel file: {}, size: {} bytes", file.getOriginalFilename(), file.getSize());
         
         // Validate file first
         validateExcelFile(file);
         
-        Map<String, List<ChatEvaluationInput>> result = new HashMap<>();
+        List<ChatEvaluationInput> result = new ArrayList<>();
         
         try (InputStream inputStream = file.getInputStream();
              Workbook workbook = createWorkbook(inputStream, file.getOriginalFilename())) {
@@ -57,7 +58,7 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
                 if (isValidChatEvaluationSheet(sheet)) {
                     List<ChatEvaluationInput> sheetData = parseSheet(sheet);
                     if (!sheetData.isEmpty()) {
-                        result.put(sheetName, sheetData);
+                        result.addAll(sheetData);
                         log.info("Successfully parsed {} records from sheet: {}", sheetData.size(), sheetName);
                     } else {
                         log.warn("Sheet {} contains no valid data rows", sheetName);
@@ -72,8 +73,7 @@ public class ExcelParsingServiceImpl implements ExcelParsingService {
                         "Excel must contain sheets with required columns: question, golden_answer, golden_citations");
             }
             
-            log.info("Successfully parsed {} sheets with total {} records", result.size(), 
-                    result.values().stream().mapToInt(List::size).sum());
+            log.info("Successfully parsed {} records from {} sheets", result.size(), numberOfSheets);
             
             return result;
             

@@ -1,5 +1,6 @@
 package com.example.springhttpclientdatajpademo.domain.chatevaluation.model;
 
+import com.example.springhttpclientdatajpademo.domain.Output;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -33,7 +34,7 @@ import java.util.Objects;
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA requirement
 @AllArgsConstructor(access = AccessLevel.PRIVATE)  // Builder usage only
 @Builder
-public class ChatEvaluationOutput {
+public class ChatEvaluationOutput implements Output {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

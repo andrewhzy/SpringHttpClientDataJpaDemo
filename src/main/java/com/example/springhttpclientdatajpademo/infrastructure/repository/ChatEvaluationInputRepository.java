@@ -1,7 +1,8 @@
 package com.example.springhttpclientdatajpademo.infrastructure.repository;
 
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
-import com.example.springhttpclientdatajpademo.domain.task.model.Task;
+import com.example.springhttpclientdatajpademo.domain.task.Task;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

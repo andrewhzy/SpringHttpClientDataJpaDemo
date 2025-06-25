@@ -6,10 +6,12 @@ import com.example.springhttpclientdatajpademo.application.dto.TaskListResponse;
 import com.example.springhttpclientdatajpademo.application.dto.TaskSummaryDto;
 import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
 import com.example.springhttpclientdatajpademo.application.excel.ExcelParsingService;
+import com.example.springhttpclientdatajpademo.application.excel.ExcelParsingServiceFactory;
 import com.example.springhttpclientdatajpademo.application.exception.FileProcessingException;
 import com.example.springhttpclientdatajpademo.application.exception.TaskValidationException;
+import com.example.springhttpclientdatajpademo.domain.Input;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
-import com.example.springhttpclientdatajpademo.domain.task.model.Task;
+import com.example.springhttpclientdatajpademo.domain.task.Task;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationInputRepository;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.Collections;import java.util.stream.Collectors;
 
 /**
  * Application service for task creation from Excel upload
@@ -37,13 +39,21 @@ import java.util.stream.Collectors;
  * - Item 73: Throw exceptions appropriate to the abstraction level
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class TaskApplicationService implements TaskService {
 
     private final TaskRepository taskRepository;
     private final ChatEvaluationInputRepository inputRepository;
-    private final ExcelParsingService excelParsingService;
+    private final ExcelParsingServiceFactory excelParsingServiceFactory;
+
+    public TaskApplicationService(
+            TaskRepository taskRepository,
+            ChatEvaluationInputRepository inputRepository,
+            ExcelParsingServiceFactory excelParsingServiceFactory) {
+        this.taskRepository = taskRepository;
+        this.inputRepository = inputRepository;
+        this.excelParsingServiceFactory = excelParsingServiceFactory;
+    }
 
     /**
      * Create task from Excel upload - simplified method for controller
@@ -55,7 +65,7 @@ public class TaskApplicationService implements TaskService {
      * @throws TaskValidationException if file validation fails
      */
     @Override
-    public UploadResponse createTaskFromExcel(final MultipartFile file, final String description) {
+    public UploadResponse createTaskFromExcel(final MultipartFile file, final String taskType, final String description) {
         // TODO: Extract user ID from JWT token when authentication is implemented
         final String userId = getCurrentUserId();
 
@@ -64,6 +74,7 @@ public class TaskApplicationService implements TaskService {
                 .file(file)
                 .userId(userId)
                 .description(description)
+                .taskType(taskType)
                 .build();
 
         return createTaskFromExcel(command);
@@ -84,11 +95,23 @@ public class TaskApplicationService implements TaskService {
                 command.getUserId(), command.getFile().getOriginalFilename());
 
         try {
-            // 1. Validate Excel file (includes file size, type, and structure validation)
+            // 1. Get appropriate Excel parsing service based on file content
+            final Task.TaskType taskType = Task.TaskType.valueOf(command.getTaskType().toUpperCase().replace("-", "_")  );
+            final ExcelParsingService excelParsingService = excelParsingServiceFactory.getExcelParsingService(taskType);
+            
+            // 2. Validate Excel file (includes file size, type, and structure validation)
             excelParsingService.validateExcelFile(command.getFile());
 
-            // 2. Parse Excel file and extract all sheets with chat evaluation data
-            final Map<String, List<ChatEvaluationInput>> parsedData = excelParsingService.parseExcelFile(command.getFile());
+            // 3. Parse Excel file and extract all data
+            final List<? extends Input> parsedData = excelParsingService.parseExcelFile(command.getFile());
+
+            // Cast to ChatEvaluationInput - this will need to be made more generic for other task types
+            @SuppressWarnings("unchecked")
+            final List<ChatEvaluationInput> chatInputs = (List<ChatEvaluationInput>) parsedData;
+
+            if (chatInputs.isEmpty()) {
+                throw new TaskValidationException("No valid data found in Excel file");
+            }
 
             // 3. Generate upload batch ID using UUID for better uniqueness
             final String uploadBatchId = UUID.randomUUID().toString();
@@ -96,69 +119,49 @@ public class TaskApplicationService implements TaskService {
             // Convert to Long for database storage (using hash of UUID for uniqueness)
             final Long uploadBatchIdLong = Math.abs(uploadBatchId.hashCode() % 10000000L) + 1000000L;
 
-            // 4. Create tasks for each valid sheet
-            final List<UploadResponse.TaskSummary> taskSummaries = new ArrayList<>();
-            int totalQuestions = 0;
+            // 4. Create a single task for all parsed data
+            final Task task = Task.builder()
+                    .userId(command.getUserId())
+                    .filename(command.getFile().getOriginalFilename())
+                    .sheetName("All Sheets") // Since we're combining all sheets
+                    .taskType(taskType)
+                    .taskStatus(Task.TaskStatus.QUEUEING)
+                    .uploadBatchId(uploadBatchIdLong)
+                    .rowCount(chatInputs.size())
+                    .build();
 
-            for (final Map.Entry<String, List<ChatEvaluationInput>> entry : parsedData.entrySet()) {
-                final String sheetName = entry.getKey();
-                final List<ChatEvaluationInput> inputs = entry.getValue();
+            // Save task first to get ID
+            final Task savedTask = taskRepository.save(task);
 
-                if (inputs.isEmpty()) {
-                    log.warn("Sheet '{}' contains no valid data, skipping", sheetName);
-                    continue;
-                }
+            // Associate all inputs with the task and save them
+            chatInputs.forEach(input -> input.setTask(savedTask));
+            inputRepository.saveAll(chatInputs);
 
-                // Create task for this sheet
-                final Task task = Task.builder()
-                        .userId(command.getUserId())
-                        .filename(command.getFile().getOriginalFilename())
-                        .sheetName(sheetName)
-                        .taskType(Task.TaskType.CHAT_EVALUATION)
-                        .taskStatus(Task.TaskStatus.QUEUEING)
-                        .uploadBatchId(uploadBatchIdLong)
-                        .rowCount(inputs.size())
-                        .build();
+            // Create task summary
+            final UploadResponse.TaskSummary taskSummary = UploadResponse.TaskSummary.builder()
+                    .taskId(savedTask.getId().toString())
+                    .filename(command.getFile().getOriginalFilename())
+                    .sheetName("All Sheets")
+                    .taskType(taskType.getValue())
+                    .status(Task.TaskStatus.QUEUEING.getValue())
+                    .rowCount(chatInputs.size())
+                    .build();
 
-                // Save task first to get ID
-                final Task savedTask = taskRepository.save(task);
+            final List<UploadResponse.TaskSummary> taskSummaries = List.of(taskSummary);
+            final int totalQuestions = chatInputs.size();
 
-                // Associate inputs with task and save them
-                inputs.forEach(input -> input.setTask(savedTask));
-                inputRepository.saveAll(inputs);
-
-                // Create task summary
-                final UploadResponse.TaskSummary taskSummary = UploadResponse.TaskSummary.builder()
-                        .taskId(savedTask.getId().toString())
-                        .filename(command.getFile().getOriginalFilename())
-                        .sheetName(sheetName)
-                        .taskType(Task.TaskType.CHAT_EVALUATION.getValue())
-                        .status(Task.TaskStatus.QUEUEING.getValue())
-                        .rowCount(inputs.size())
-                        .build();
-
-                taskSummaries.add(taskSummary);
-                totalQuestions += inputs.size();
-
-                log.info("Created task for sheet '{}' with {} questions", sheetName, inputs.size());
-            }
-
-            if (taskSummaries.isEmpty()) {
-                throw new TaskValidationException("No valid sheets found in Excel file");
-            }
+            log.info("Created single task with {} questions from all sheets", totalQuestions);
 
             // 5. Build response
             final UploadResponse response = UploadResponse.builder()
                     .uploadBatchId(uploadBatchId)
                     .filename(command.getFile().getOriginalFilename())
                     .tasks(taskSummaries)
-                    .totalSheets(taskSummaries.size())
-                    .message(String.format("Successfully created %d tasks with %d total questions", 
-                            taskSummaries.size(), totalQuestions))
+                    .totalSheets(1) // Single task for all sheets
+                    .message(String.format("Successfully created 1 task with %d total questions", totalQuestions))
                     .build();
 
-            log.info("Excel upload completed successfully: {} tasks created with {} total questions",
-                    taskSummaries.size(), totalQuestions);
+            log.info("Excel upload completed successfully: 1 task created with {} total questions", totalQuestions);
 
             return response;
 

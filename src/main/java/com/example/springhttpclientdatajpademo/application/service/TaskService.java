@@ -29,7 +29,7 @@ public interface TaskService {
      * @return upload response with created task summaries
      * @throws RuntimeException if file processing or validation fails (unchecked)
      */
-    UploadResponse createTaskFromExcel(MultipartFile file, String description);
+    UploadResponse createTaskFromExcel(MultipartFile file, String taskType, String description);
     
     /**
      * List user tasks with cursor-based pagination using query command

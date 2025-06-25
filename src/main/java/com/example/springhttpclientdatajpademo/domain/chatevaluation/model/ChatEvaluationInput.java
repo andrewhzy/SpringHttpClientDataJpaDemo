@@ -1,7 +1,7 @@
 package com.example.springhttpclientdatajpademo.domain.chatevaluation.model;
 
-import com.example.springhttpclientdatajpademo.domain.task.model.Task;
-
+import com.example.springhttpclientdatajpademo.domain.Input;
+import com.example.springhttpclientdatajpademo.domain.task.Task;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -34,7 +34,7 @@ import java.util.Objects;
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA requirement
 @AllArgsConstructor(access = AccessLevel.PRIVATE)  // Builder usage only
 @Builder
-public class ChatEvaluationInput {
+public class ChatEvaluationInput implements Input {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -39,12 +39,13 @@ public class TaskController {
     @PostMapping(value = "/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UploadResponse> uploadTasks(
             @RequestParam("file") MultipartFile file,
+            @RequestParam("task_type") String taskType,
             @RequestParam(required = false) String description) {
 
         log.info("Received task upload request: filename={}, size={} bytes",
                 file.getOriginalFilename(), file.getSize());
 
-        UploadResponse response = taskService.createTaskFromExcel(file, description);
+        UploadResponse response = taskService.createTaskFromExcel(file, taskType, description);
 
         log.info("Task upload completed successfully: batch={}, tasks={}",
                 response.getUploadBatchId(), response.getTotalSheets());

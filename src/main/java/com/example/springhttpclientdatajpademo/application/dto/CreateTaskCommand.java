@@ -25,4 +25,7 @@ public class CreateTaskCommand {
     private String userId;
     
     private String description;
+
+    @NotBlank(message = "Task type is required")
+    private String taskType;
 } 

@@ -1,4 +1,4 @@
-package com.example.springhttpclientdatajpademo.domain.task.model;
+package com.example.springhttpclientdatajpademo.domain.task;
 
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
 import jakarta.persistence.*;
@@ -212,7 +212,8 @@ public class Task {
      * Following Effective Java Item 34: Use enums instead of int constants
      */
     public enum TaskType {
-        CHAT_EVALUATION("chat-evaluation");
+        CHAT_EVALUATION("chat-evaluation"),
+        URL_CLEANING("url-cleaning");
         
         private final String value;
         

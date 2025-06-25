@@ -1,10 +1,9 @@
 package com.example.springhttpclientdatajpademo.application.excel;
 
-import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
+import com.example.springhttpclientdatajpademo.domain.Input;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Service interface for parsing Excel files for chat evaluation tasks
@@ -27,10 +26,10 @@ public interface ExcelParsingService {
      * - Required columns: "question", "golden_answer", "golden_citations"
      * 
      * @param file the Excel file to parse
-     * @return map of sheet names to list of chat evaluation inputs
+     * @return flattened list of all input records from all valid sheets
      * @throws RuntimeException if file cannot be read or parsed (unchecked)
      */
-    Map<String, List<ChatEvaluationInput>> parseExcelFile(MultipartFile file);
+    List<? extends Input> parseExcelFile(MultipartFile file);
     
     /**
      * Validate Excel file format and structure

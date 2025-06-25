@@ -3,7 +3,7 @@ package com.example.springhttpclientdatajpademo.application.service;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationOutput;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.service.ChatEvaluationService;
-import com.example.springhttpclientdatajpademo.domain.task.model.Task;
+import com.example.springhttpclientdatajpademo.domain.task.Task;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationInputRepository;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
