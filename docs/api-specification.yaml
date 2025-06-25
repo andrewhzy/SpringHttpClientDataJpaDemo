@@ -737,60 +737,92 @@ paths:
     get:
       tags:
         - Tasks
-      summary: "[NOT FINALIZED] Download task evaluation results"
+      summary: Download task evaluation results Excel file
       operationId: downloadTaskResults
       description: |
-        **🚧 NOT FINALIZED - NEEDS FURTHER REVIEW**
+        Download the complete evaluation results as a single Excel file (.xlsx).
+        Only task owners can download their results.
         
-        Download the task evaluation results as a single Excel file containing 4 sheets.
-        Users can only download results for their own tasks.
+        **File Contents (4 sheets):**
+        - **QnAs**: Original questions and golden answers from uploaded data
+        - **API_Responses**: Generated answers and citations from the evaluation system
+        - **Answer_Evaluation**: Similarity scores and metrics for answer comparison
+        - **Citation_Evaluation**: Citation relevance and accuracy analysis
         
-        **Excel File Contents (4 sheets):**
-        - **Sheet 1 - QnAs**: Original questions and golden answers from uploaded Excel
-        - **Sheet 2 - API_Responses**: API responses with retrieved documents and citations
-        - **Sheet 3 - Answer_Evaluation**: Answer similarity scores and evaluation metrics
-        - **Sheet 4 - Docs_Evaluation**: Document/citation similarity analysis and evaluation
+        **Requirements:**
+        - Task must be in 'completed' status
+        - User must be the task owner
+        - Results must be available (background processing finished successfully)
         
-        **File Format:** Single Excel (.xlsx) file with multiple sheets
-        **Availability:** Only available for completed tasks
-        
-        **⚠️ DESIGN DECISIONS NEEDED:**
-        - Sheet structure and column layout confirmation
-        - Response format validation
+        **File Naming:** `task_{id}_evaluation_results.xlsx`
       responses:
         '200':
-          description: Excel file download with evaluation results
+          description: Successfully generated and returned Excel file with evaluation results
           content:
             application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
               schema:
                 type: string
                 format: binary
-                description: "Excel file with 4 sheets containing evaluation results"
+                description: "Excel (.xlsx) file containing complete evaluation results across 4 sheets"
           headers:
             Content-Disposition:
-              description: "Attachment filename"
+              description: "Attachment header with generated filename"
               schema:
                 type: string
                 example: 'attachment; filename="task_12345_evaluation_results.xlsx"'
             Content-Length:
-              description: "File size in bytes"
+              description: "Size of the Excel file in bytes"
               schema:
                 type: integer
-                example: 184320
+                minimum: 1
+                example: 245760
+            Content-Type:
+              description: "MIME type for Excel files"
+              schema:
+                type: string
+                example: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            Last-Modified:
+              description: "When the results file was last generated"
+              schema:
+                type: string
+                example: "Wed, 15 Jan 2024 14:30:00 GMT"
         '400':
-          description: Results not available
+          description: Bad Request - Cannot download results for current task status
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: "RESULTS_NOT_AVAILABLE"
-                  message: "Evaluation results not available for download"
-                  details: "Task processing not completed. Current status: processing"
-                  timestamp: "2024-01-15T14:30:00Z"
-                  request_id: "request_12345"
-                  user_id: "user_123"
+              examples:
+                task_not_completed:
+                  summary: Task processing not completed
+                  value:
+                    error:
+                      code: "TASK_NOT_COMPLETED"
+                      message: "Evaluation results not available for download"
+                      details: "Task is still processing. Current status: processing (75/150 rows completed)"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                task_failed:
+                  summary: Task processing failed
+                  value:
+                    error:
+                      code: "TASK_FAILED"
+                      message: "Cannot download results for failed task"
+                      details: "Task processing failed. Error: API timeout on row 42"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
+                task_cancelled:
+                  summary: Task was cancelled
+                  value:
+                    error:
+                      code: "TASK_CANCELLED"
+                      message: "Cannot download results for cancelled task"
+                      details: "Task was cancelled before completion"
+                      timestamp: "2024-01-15T14:30:00Z"
+                      request_id: "request_12345"
+                      user_id: "user_123"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
