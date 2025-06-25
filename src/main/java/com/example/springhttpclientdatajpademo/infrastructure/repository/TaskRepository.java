@@ -47,7 +47,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * Atomically update task status from queueing to processing
      * Prevents race conditions in background processing
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
     @Query("UPDATE Task t SET t.taskStatus = :newStatus, t.startedAt = CURRENT_TIMESTAMP " +
            "WHERE t.id = :taskId AND t.taskStatus = :currentStatus")
     int updateTaskStatusFromQueueingToProcessing(@Param("taskId") Long taskId, 
@@ -58,7 +59,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * Update task progress with processed row count
      * Used during background processing to track progress
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
     @Query("UPDATE Task t SET t.processedRows = :processedRows, t.updatedAt = CURRENT_TIMESTAMP " +
            "WHERE t.id = :taskId")
     int updateTaskProgress(@Param("taskId") Long taskId, @Param("processedRows") int processedRows);
