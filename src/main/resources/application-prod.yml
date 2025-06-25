@@ -8,10 +8,11 @@ spring:
   # Production logging
   logging:
     level:
-      com.example.springhttpclientdatajpademo: WARN
+      com.example.springhttpclientdatajpademo: INFO
       org.springframework.web: WARN
       org.hibernate.SQL: WARN
       org.hibernate.type.descriptor.sql.BasicBinder: WARN
+      org.springframework.web.cors: WARN
     pattern:
       console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n"
 
@@ -21,4 +22,16 @@ app:
     max-size: 52428800  # 50MB in production (smaller than dev)
   excel:
     max-sheets: 5       # More restrictive in production
-    max-rows-per-sheet: 5000 
+    max-rows-per-sheet: 5000
+  # Production CORS - Restrictive for security
+  cors:
+    allowed-origins:
+      - https://evaluation-app.organization.com
+      - https://evaluation-portal.organization.com
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    max-age: 3600  # 1 hour for production 

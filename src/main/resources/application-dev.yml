@@ -37,6 +37,7 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.springframework.jdbc.core: DEBUG
+    org.springframework.web.cors: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
@@ -64,4 +65,21 @@ app:
       intelligent-similarity: true
       identical-text-similarity: 0.95
       min-random-similarity: 0.3
-      max-random-similarity: 0.9 
+      max-random-similarity: 0.9
+
+  # Development CORS - More permissive for local development
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - http://localhost:3001
+      - http://localhost:4200
+      - http://localhost:8081
+      - http://127.0.0.1:3000
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+      - PATCH
+    max-age: 86400  # 24 hours for development 
