@@ -16,9 +16,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TaskListResponse {
+public class ListTaskResponse {
     
-    private List<TaskSummaryDto> data;
+    private List<TaskInfoDto> data;
     private PaginationMeta meta;
     
     @Data

@@ -1,5 +1,7 @@
 package com.example.springhttpclientdatajpademo.application.dto;
 
+import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
+
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -30,7 +32,7 @@ public class ListTasksCommand {
     private int perPage;
     
     @NotBlank(message = "Task type is required")
-    private String taskType;
+    private TaskType taskType;
     
     /**
      * Cursor for pagination - null for first page
@@ -41,7 +43,7 @@ public class ListTasksCommand {
     /**
      * Create query for first page (no cursor)
      */
-    public static ListTasksCommand firstPage(String userId, int perPage, String taskType) {
+    public static ListTasksCommand firstPage(String userId, int perPage, TaskType taskType) {
         return ListTasksCommand.builder()
                 .userId(userId)
                 .perPage(perPage)
@@ -53,7 +55,7 @@ public class ListTasksCommand {
     /**
      * Create query for subsequent page with cursor
      */
-    public static ListTasksCommand nextPage(String userId, int perPage, String taskType, Long cursor) {
+    public static ListTasksCommand nextPage(String userId, int perPage, TaskType taskType, Long cursor) {
         return ListTasksCommand.builder()
                 .userId(userId)
                 .perPage(perPage)

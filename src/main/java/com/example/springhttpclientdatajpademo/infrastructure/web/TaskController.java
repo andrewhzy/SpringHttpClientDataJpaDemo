@@ -2,11 +2,11 @@ package com.example.springhttpclientdatajpademo.infrastructure.web;
 
 import com.example.springhttpclientdatajpademo.application.dto.CreateTaskCommand;
 import com.example.springhttpclientdatajpademo.application.dto.ListTasksCommand;
-import com.example.springhttpclientdatajpademo.application.dto.TaskListResponse;
+import com.example.springhttpclientdatajpademo.application.dto.ListTaskResponse;
 import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
-import com.example.springhttpclientdatajpademo.application.service.TaskService;
+import com.example.springhttpclientdatajpademo.application.service.ChatEvaluationTaskService;
+import com.example.springhttpclientdatajpademo.application.service.TaskManagementService;
 import com.example.springhttpclientdatajpademo.application.service.TaskTypeValidationService;
-import com.example.springhttpclientdatajpademo.config.TaskTypeConfig;
 import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
 import jakarta.validation.constraints.Max;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +30,8 @@ import java.util.List;
 @Slf4j
 public class TaskController {
 
-    private final TaskService taskService;
-    private final TaskTypeValidationService taskTypeValidationService;
+    private final TaskManagementService taskManagementService;
+
 
     /**
      * Upload Excel file and create chat evaluation tasks
@@ -59,7 +59,7 @@ public class TaskController {
                 .userId(userId)
                 .description(description)
                 .build();
-        UploadResponse response = taskService.createTaskFromExcel(createTaskCommand);
+        UploadResponse response = taskManagementService.createTaskFromExcel(createTaskCommand);
 
         log.info("Task upload completed successfully: batch={}, tasks={}", response.getUploadBatchId(), response.getTotalSheets());
 
@@ -75,9 +75,9 @@ public class TaskController {
      * @return paginated list of user tasks (metadata only)
      */
     @GetMapping("/tasks")
-    public ResponseEntity<TaskListResponse> listTasks(
+    public ResponseEntity<ListTaskResponse> listTasks(
             @RequestParam(name = "per_page") @Max(500) int perPage,
-            @RequestParam(name = "task_type") String taskType,
+            @RequestParam(name = "task_type") TaskType taskType,
             @RequestParam(name = "cursor", defaultValue = "9223372036854775807") Long cursor) {
 
         log.info("Received task list request: perPage={}, taskType={}, cursor={}",
@@ -94,7 +94,7 @@ public class TaskController {
                 .cursor(cursor)
                 .build();
 
-        TaskListResponse response = taskService.listUserTasks(query);
+        ListTaskResponse response = taskManagementService.listUserTasks(query);
 
         log.info("Task list completed successfully: {} tasks returned, hasMore={}",
                 response.getData().size(), response.getMeta().isHasMore());
@@ -110,10 +110,7 @@ public class TaskController {
     @GetMapping("/task/types")
     public ResponseEntity<List<String>> getTaskTypes() {
         log.info("Received request for available task types");
-        
-        List<String> response = taskTypeValidationService.getEnabledTaskTypes()
-                .stream()
-                .toList();
+        List<String> response = taskManagementService.getTaskTypes();
         
         log.info("Returning {} enabled task types", response.size());
         return ResponseEntity.ok(response);
