@@ -3,44 +3,65 @@
 ## Project Overview
 **Internal Task Management API for [Organization Name]**
 
-This is an internal API service designed for chat evaluation task management within our organization. The service allows users to submit chat evaluation tasks by uploading Excel files, where each sheet becomes a separate task. The API handles all file processing during upload, immediately parsing Excel content into structured data and store into tables for efficient processing and querying.
+This is an internal API service designed for multi-type glean-related task management within our organization. The service allows users to submit various types of data processing tasks by uploading Excel files, where each sheet becomes a separate task. The API handles all file processing during upload, immediately parsing Excel content into structured data and storing it in tables for efficient processing and querying.
 
-**Note**: This design documentation focuses exclusively on chat evaluation functionality. Other task types are not discussed in this design.
+**Supported Task Types (v1.0):**
+- **Chat Evaluation**: Evaluate chat responses against golden answers using LLM similarity
+- **URL Cleaning**: Clean and validate URLs from Excel files  
+
+**Future Task Types (planned):**
+- **Search Evaluation**: Evaluate search results quality and relevance
+- **Q&A Preparation**: Prepare questions and answers for training datasets
 
 **Key Characteristics:**
 - Internal organizational use only
 - JWT-based authentication from frontend applications
-- Excel file upload for chat evaluation tasks (questions, golden answers, citations)
+- Excel file upload for various task types with configurable column requirements
 - Immediate parsing during upload - no blob storage
 - Structured data storage for efficient querying and processing
 - Task lifecycle management (create, query, cancel, delete)
 - Background processing of structured data with precise progress tracking
+- Configuration-based task type management with dynamic validation
 
 **Core Functionality:**
-- **File Upload & Parsing**: Users upload Excel files with chat evaluation data (questions, golden answers, citations)
-- **Immediate Structuring**: Excel content is parsed during upload and stored in dedicated tables
+- **File Upload & Parsing**: Users upload Excel files with task-specific data based on configurable column requirements
+- **Immediate Structuring**: Excel content is parsed during upload and stored in dedicated tables per task type
 - **Task Management**: Users can query, cancel, and delete their tasks with structured data responses
-- **Background Processing**: Efficient processing of pre-structured data with exact progress tracking
+- **Background Processing**: Efficient processing of pre-structured data with exact progress tracking and external service integration
 - **Structured API Responses**: Frontend receives structured data instead of encoded blobs
-- **Excel File Generation**: Completed tasks provide downloadable Excel files with all evaluation results
+- **Excel File Generation**: Completed tasks provide downloadable Excel files with all processing results
 - **Configuration-Based Task Types**: Dynamic task type management through application configuration
 - **Cursor-Based Pagination**: Efficient pagination for large task lists using cursor-based approach
 
-**Chat Evaluation Task Requirements:**
-- **Excel Structure**: Must contain columns "question", "golden_answer", "golden_citations"
-- **File Requirements**: Format .xlsx or .xls, maximum 50MB, maximum 20 sheets per file, maximum 1,000 rows per sheet
-- **Processing**: Each question is sent to external APIs for evaluation and similarity scoring
-- **Results**: API answers are compared with golden answers using similarity algorithms
-- **Output**: Complete evaluation results downloadable as Excel file with 4 sheets (QnAs, API_Responses, Answer_Evaluation, Citation_Evaluation)
+
+
+**General File Requirements:**
+- **File Format**: .xlsx or .xls files only
+- **File Size**: Maximum size varies by task type (configurable, typically 50MB)
+- **Sheet Limits**: Maximum 20 sheets per file
+- **Row Limits**: Maximum rows per sheet varies by task type (configurable, typically 1000 rows)
+
+**Task-Specific Column Requirements (v1.0):**
+- **Chat Evaluation**: `question`, `golden_answer`, `golden_citations`
+- **URL Cleaning**: `url`
+
+**Future Column Requirements (planned):**
+- **Search Evaluation**: `query`, `expected_results`  
+- **Q&A Preparation**: `question`, `answer`, `category`
+
+**Processing & Output:**
+- **Background Processing**: Each task type integrates with relevant external services
+- **Progress Tracking**: Real-time progress updates with row-level precision
+- **Results**: Downloadable Excel files with task-specific result sheets and analysis
 
 ## Documentation Files
 
 ### Core Documentation (Active)
 - **README.md** - This overview document with system architecture and implementation status
 - **api-specification.yaml** - Complete OpenAPI 3.0.3 specification with all endpoints, schemas, and error responses
-- **database-schema.md** - Database schema for chat evaluation tables
-- **sequence-diagrams-api-handling.md** - API request/response flows
-- **sequence-diagram-chat-evaluation.md** - Background processing flows
+- **database-schema.md** - Database schema for all task types and structured data storage
+- **sequence-diagrams-api-handling.md** - API request/response flows for task management
+- **sequence-diagram-chat-evaluation.md** - Background processing flows (example with chat evaluation)
 
 ### API Specification Compliance
 This implementation fully complies with the OpenAPI specification defined in `api-specification.yaml`:
@@ -69,9 +90,9 @@ This implementation fully complies with the OpenAPI specification defined in `ap
 
 **✅ Complete Schema Compliance:**
 - Task status enum: `queueing`, `processing`, `completed`, `cancelled`, `failed`
-- Task type enum: `chat-evaluation`, `url-cleaning`, `search-evaluation`, etc.
+- Task type enum: v1.0 supports `chat-evaluation`, `url-cleaning` (planned: `search-evaluation`, `qna-preparation`)
 - Pagination metadata with cursor support
-- File upload validation and error responses
+- File upload validation and error responses for all task types
 
 ## System Architecture
 
@@ -90,14 +111,16 @@ graph TB
     subgraph "External Services"
         Glean[Glean Service<br/>Chat API]
         LLM[LLM Similarity<br/>Service]
+        URLSvc[URL Validation<br/>Services]
+        Other[Other External<br/>Services]
     end
     
     %% Data Layer - Structured Storage
     subgraph "Structured Data Storage"
         DB[(MariaDB Database<br/>Structured Tables)]
         TasksTable[tasks<br/>Metadata & Progress]
-        ChatInput[chat_evaluation_input<br/>Questions & Answers]
-        ChatOutput[chat_evaluation_output<br/>API Results]
+        TaskInput[task_type_input<br/>Type-Specific Data]
+        TaskOutput[task_type_output<br/>Processing Results]
     end
     
     %% High-level connections
@@ -105,12 +128,14 @@ graph TB
     FE --> SSO
     API -.-> SSO
     API --> TasksTable
-    API --> ChatInput
+    API --> TaskInput
     BGP --> TasksTable
-    BGP --> ChatInput
-    BGP --> ChatOutput
+    BGP --> TaskInput
+    BGP --> TaskOutput
     BGP --> Glean
     BGP --> LLM
+    BGP --> URLSvc
+    BGP --> Other
     
     %% Styling
     classDef frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
@@ -121,7 +146,7 @@ graph TB
     class FE,SSO frontend
     class API,BGP backend
     class Glean,LLM external
-    class DB,TasksTable,ChatInput,ChatOutput database
+    class DB,TasksTable,TaskInput,TaskOutput database
 ```
 
 ### Service Responsibilities
@@ -137,26 +162,28 @@ graph TB
 - **Backend API Service**: 
   - RESTful API endpoints
   - Local JWT token validation using SSO public keys
-  - Excel parsing and chat evaluation task detection during upload
-  - Structured data storage in appropriate tables
+  - Excel parsing and task type detection during upload (based on configuration)
+  - Structured data storage in task-type-specific tables
   - Task lifecycle management (CRUD operations)
   - Response formatting with structured data
 - **Background Processing Engine**:
   - FIFO queue management for structured tasks
-  - Chat evaluation processing with external service integration
-  - Processes pre-structured data from input tables
-  - External service integration (Glean Platform, LLM Similarity)
+  - Multi-type task processing with configurable external service integration
+  - Processes pre-structured data from task-type-specific input tables
+  - External service integration (Glean Platform, LLM Similarity, URL validation, etc.)
   - Precise progress tracking using processed_rows counters
 
 - **External Services**:
-  - Glean Platform Services for chat evaluation
+  - Glean Platform Services for chat evaluation tasks
   - LLM Similarity Service for response comparison
+  - URL validation and cleaning services
+  - Other task-type-specific external services
 - **MariaDB Database**: 
-  - Structured data storage in dedicated tables
+  - Structured data storage in dedicated tables per task type
   - Task metadata and status tracking
   - User ownership and permissions
-  - Input data table: chat_evaluation_input
-  - Output data table: chat_evaluation_output
+  - Task-type-specific input tables (e.g., chat_evaluation_input, url_cleaning_input)
+  - Task-type-specific output tables (e.g., chat_evaluation_output, url_cleaning_output)
   - Task history and audit information
   - No blob storage - all data is immediately queryable
 
@@ -234,10 +261,10 @@ flowchart TD
 |-----------|------------------------|
 | **TaskController** | Handle all HTTP requests for task management (create, query, update, delete), JWT validation, request/response mapping |
 | **TaskService** | Core business logic for all task operations, transaction management, coordination between repositories and Excel parsing |
-| **ExcelParsingService** | Excel file parsing, sheet detection, data validation (used during task creation) |
+| **ExcelParsingService** | Excel file parsing, sheet detection, task type-specific data validation (configured per task type) |
 | **TaskRepo** | CRUD operations for task metadata |
-| **InputRepo** | CRUD operations for input data (questions, answers, citations) |
-| **OutputRepo** | CRUD operations for output/results data |
+| **InputRepo** | CRUD operations for task-type-specific input data (questions, URLs, etc.) |
+| **OutputRepo** | CRUD operations for task-type-specific output/results data |
 | **GlobalExceptionHandler** | Centralized error handling for all API endpoints |
 
 ### Background Processing Flow Chart (Structured Data)
@@ -246,11 +273,10 @@ flowchart TD
     %% Background Processing Components
     subgraph "Background Processing"
         TaskProcessor[Task Processor<br/>FIFO Queue]
-        ChatEvalHandler[Chat Evaluation<br/>Handler]
+        TaskHandler[Task Handler<br/>Type-Specific Processing]
         
         subgraph "External Clients"
-            GleanServices[Glean Service<br/>Chat API]
-            LLMService[LLM Similarity<br/>Service Client]
+            ExternalServices[External Services<br/>Task-Type Specific APIs]
         end
     end
     
@@ -259,46 +285,44 @@ flowchart TD
         
         subgraph "Input Tables (Data Source)"
             TasksTable[tasks<br/>Status & Progress]
-            ChatInputTable[chat_evaluation_input<br/>Pre-structured Questions]
+            TaskInputTable[task_type_input<br/>Type-Specific Source Data]
         end
         
         subgraph "Output Tables (Results)"
-            ChatOutputTable[chat_evaluation_output<br/>API Responses & Scores]
+            TaskOutputTable[task_type_output<br/>Type-Specific Results]
         end
     end
     
     %% Background Processing Flow
     TasksTable -->|Pick Queued Tasks| TaskProcessor
-    TaskProcessor -->|Route Chat Tasks| ChatEvalHandler
+    TaskProcessor -->|Route by Task Type| TaskHandler
     
-    %% Chat Evaluation Processing Flow
-    ChatEvalHandler -->|Read Structured Data| ChatInputTable
-    ChatEvalHandler -->|Chat API Calls| GleanServices
-    ChatEvalHandler -->|Similarity Check| LLMService
-    ChatEvalHandler -->|Store Results| ChatOutputTable
-    ChatEvalHandler -->|Update Progress| TasksTable
+    %% Task Processing Flow
+    TaskHandler -->|Read Type-Specific Data| TaskInputTable
+    TaskHandler -->|Process with External APIs| ExternalServices
+    TaskHandler -->|Store Results| TaskOutputTable
+    TaskHandler -->|Update Progress| TasksTable
     
     %% Styling
     classDef processLayer fill:#fff9c4,stroke:#f57f17,stroke-width:2px
     classDef dbLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     classDef externalLayer fill:#fce4ec,stroke:#c2185b,stroke-width:2px
     
-    class TaskProcessor,ChatEvalHandler processLayer
-    class TasksTable,ChatInputTable,ChatOutputTable dbLayer
-    class GleanServices,LLMService externalLayer
+    class TaskProcessor,TaskHandler processLayer
+    class TasksTable,TaskInputTable,TaskOutputTable dbLayer
+    class ExternalServices externalLayer
 ```
 
 #### Background Processing Component Responsibilities
 
 | Component | Primary Responsibility | Key Operations |
 |-----------|----------------------|----------------|
-| **Task Processor (TaskProcessor)** | Task queue management and job scheduling | FIFO queue polling, task status monitoring, job routing to appropriate handlers |
-| **Chat Evaluation Handler (ChatEvalHandler)** | Core business logic for chat evaluation processing | Question processing, API orchestration, similarity calculation, progress tracking |
-| **Glean Service (GleanServices)** | External chat API integration | Chat request processing, response handling, error management, timeout handling |
-| **LLM Similarity Service (LLMService)** | Answer similarity computation | Text comparison, similarity scoring, result validation |
+| **Task Processor (TaskProcessor)** | Task queue management and job scheduling | FIFO queue polling, task status monitoring, job routing to task handlers |
+| **Task Handler (TaskHandler)** | Core business logic for task-type-specific processing | Data processing, external API orchestration, result calculation, progress tracking |
+| **External Services** | Task-type-specific external service integration | API request processing, response handling, error management, timeout handling |
 | **tasks Table (TasksTable)** | Task status and progress persistence | Status updates, progress percentage calculation, error logging, completion tracking |
-| **chat_evaluation_input Table (ChatInputTable)** | Source data retrieval for processing | Row-by-row data reading, question extraction, golden answer retrieval |
-| **chat_evaluation_output Table (ChatOutputTable)** | Processing results storage | API response storage, similarity scores, processing metrics, result metadata |
+| **Input Tables (task_type_input)** | Task-type-specific source data retrieval | Row-by-row data reading, task-specific field extraction, validation |
+| **Output Tables (task_type_output)** | Task-type-specific results storage | Processing results storage, metrics, analysis data, result metadata |
 
 
 
@@ -364,9 +388,11 @@ For detailed table schemas, constraints, indexes, and relationships, see the **d
 ### Task Type Management
 The system supports configuration-based task type management:
 
-**Currently Supported Task Types:**
+**Currently Supported Task Types (v1.0):**
 - **chat-evaluation**: Chat evaluation with questions, golden answers, and citations
 - **url-cleaning**: URL cleaning and validation tasks
+
+**Planned Task Types (future versions):**
 - **search-evaluation**: Search result evaluation (configurable)
 - **qna-preparation**: Q&A dataset preparation (configurable)
 
@@ -376,7 +402,7 @@ The system supports configuration-based task type management:
 - Dynamic validation and metadata retrieval
 - API endpoint to discover available task types
 
-**Task Type Configuration Example:**
+**Task Type Configuration Example (v1.0):**
 ```yaml
 app:
   task-types:
@@ -388,6 +414,10 @@ app:
         display-name: "Chat Evaluation"
         max-file-size-mb: 50
         required-columns: [question, golden_answer, golden_citations]
+      url-cleaning:
+        display-name: "URL Cleaning"
+        max-file-size-mb: 25
+        required-columns: [url]
 ```
 
 ## Sequence Diagrams
@@ -421,12 +451,12 @@ For detailed API endpoint sequence diagrams and request/response flows, refer to
 
 **File Upload Errors (400 Bad Request):**
 - **Invalid Excel File**: File format validation errors (must be .xlsx or .xls)
-- **Missing Required Columns**: Excel doesn't contain required columns for task type
-- **File Too Large**: File exceeds maximum size limit (50MB for chat-evaluation)
-- **Too Many Rows**: Sheet exceeds maximum row limit (1,000 rows per sheet for chat-evaluation)
-- **Too Many Sheets**: File exceeds maximum sheet limit (20 sheets per file)
+- **Missing Required Columns**: Excel doesn't contain required columns for specified task type
+- **File Too Large**: File exceeds maximum size limit (varies by task type, configurable)
+- **Too Many Rows**: Sheet exceeds maximum row limit (varies by task type, configurable)
+- **Too Many Sheets**: File exceeds maximum sheet limit (typically 20 sheets per file)
 - **Invalid Task Type**: Unknown or disabled task type in configuration
-- **Excel Parsing Failure**: Specific parsing error details (immediate feedback)
+- **Excel Parsing Failure**: Task-type-specific parsing error details (immediate feedback)
 
 **Task Management Errors:**
 - **Task Not Found (404)**: Non-existent or unauthorized tasks
@@ -525,9 +555,9 @@ If you manually switch to a different parent and actually want the inheritance, 
 ## Implementation Status
 
 ### ✅ Completed Features
-1. **Excel parsing and chat evaluation task detection during upload** - ✅ Implemented
-2. **Structured data storage logic for chat evaluation tasks** - ✅ Implemented
-3. **Background processing reading from structured input tables** - ✅ Implemented
+1. **Excel parsing and multi-type task detection during upload** - ✅ Implemented
+2. **Structured data storage logic for multiple task types** - ✅ Implemented  
+3. **Background processing reading from task-type-specific input tables** - ✅ Implemented
 4. **API responses returning structured data instead of blobs** - ✅ Implemented
 5. **Precise progress tracking with processed_rows counters** - ✅ Implemented
 6. **Configuration-based task type management** - ✅ Implemented
@@ -536,12 +566,19 @@ If you manually switch to a different parent and actually want the inheritance, 
 9. **Excel file download for completed tasks** - ✅ Implemented
 10. **Task type discovery endpoint** - ✅ Implemented
 
-### 🚧 Next Steps
-1. [ ] Implement Excel file generation for download endpoint
-2. [ ] Add comprehensive integration tests for all endpoints
-3. [ ] Design user interface for structured data display and management
-4. [ ] Performance testing with structured data approach
-5. [ ] Add OpenTelemetry metrics and tracing
-6. [ ] Implement rate limiting (1 task per minute per user)
-7. [ ] Add database migration scripts for production deployment
-8. [ ] Security audit and penetration testing 
+### 🚧 Next Steps (v1.0)
+1. [ ] Complete URL cleaning task handler implementation
+2. [ ] Implement Excel file generation for download endpoint (both task types)
+3. [ ] Add comprehensive integration tests for chat-evaluation and url-cleaning
+4. [ ] Design user interface for both supported task types
+5. [ ] Performance testing with both task types
+6. [ ] Add OpenTelemetry metrics and tracing
+7. [ ] Implement rate limiting (1 task per minute per user)
+8. [ ] Add database migration scripts for production deployment
+9. [ ] Security audit and penetration testing
+
+### 🔮 Future Versions
+1. [ ] Implement search evaluation task type handler
+2. [ ] Implement Q&A preparation task type handler
+3. [ ] Add support for additional external service integrations
+4. [ ] Expand configuration options for new task types 
