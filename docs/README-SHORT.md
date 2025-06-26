@@ -20,9 +20,8 @@ graph TB
     
     %% External Services
     subgraph "External Services"
-        Glean[Glean Service<br/>Chat API]
+        Glean[Glean Service<br/>Chat API & URL Cleaning]
         LLM[LLM Similarity<br/>Service]
-        URLSvc[URL Validation<br/>Services]
         Other[Other External<br/>Services]
     end
     
@@ -45,7 +44,6 @@ graph TB
     BGP --> TaskOutput
     BGP --> Glean
     BGP --> LLM
-    BGP --> URLSvc
     BGP --> Other
     
     %% Styling
@@ -181,7 +179,7 @@ flowchart TD
 | Type | Required Columns | Purpose |
 |------|------------------|---------|
 | **chat-evaluation** | `question`, `golden_answer`, `golden_citations` | Evaluate chat responses |
-| **url-cleaning** | `url` | Clean and validate URLs |
+| **url-cleaning** | `url` | Clean URLs using Glean service |
 
 ### Planned Task Types (Future)
 | Type | Required Columns | Purpose |
@@ -192,7 +190,7 @@ flowchart TD
 ### File Requirements
 - **Format**: .xlsx or .xls files
 - **Size**: ~50MB max (configurable per type)
-- **Sheets**: 20 max per file
+- **Sheets**: 20 max per file  (configurable per type)
 - **Rows**: ~1000 max per sheet (configurable per type)
 
 ## Data Flow
@@ -258,7 +256,7 @@ app:
 
 - **Backend**: Spring Boot, Java 21
 - **Database**: MariaDB with JPA/Hibernate
-- **Processing**: Background tasks with external service integration
+- **Processing**: Background tasks with Glean service integration
 - **API**: RESTful with OpenAPI 3.0 specification
 - **Configuration**: YAML-based with Spring Boot properties
 

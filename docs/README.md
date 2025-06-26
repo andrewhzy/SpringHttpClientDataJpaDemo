@@ -7,7 +7,7 @@ This is an internal API service designed for multi-type glean-related task manag
 
 **Supported Task Types (v1.0):**
 - **Chat Evaluation**: Evaluate chat responses against golden answers using LLM similarity
-- **URL Cleaning**: Clean and validate URLs from Excel files  
+- **URL Cleaning**: Clean and validate URLs using Glean service  
 
 **Future Task Types (planned):**
 - **Search Evaluation**: Evaluate search results quality and relevance
@@ -109,10 +109,8 @@ graph TB
     
     %% External Services
     subgraph "External Services"
-        Glean[Glean Service<br/>Chat API]
+        Glean[Glean Service<br/>Chat API & URL Cleaning]
         LLM[LLM Similarity<br/>Service]
-        URLSvc[URL Validation<br/>Services]
-        Other[Other External<br/>Services]
     end
     
     %% Data Layer - Structured Storage
@@ -134,8 +132,6 @@ graph TB
     BGP --> TaskOutput
     BGP --> Glean
     BGP --> LLM
-    BGP --> URLSvc
-    BGP --> Other
     
     %% Styling
     classDef frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
@@ -170,13 +166,12 @@ graph TB
   - FIFO queue management for structured tasks
   - Multi-type task processing with configurable external service integration
   - Processes pre-structured data from task-type-specific input tables
-  - External service integration (Glean Platform, LLM Similarity, URL validation, etc.)
+  - External service integration (Glean Platform for multiple task types, LLM Similarity, etc.)
   - Precise progress tracking using processed_rows counters
 
 - **External Services**:
-  - Glean Platform Services for chat evaluation tasks
+  - Glean Platform Services for chat evaluation and URL cleaning tasks
   - LLM Similarity Service for response comparison
-  - URL validation and cleaning services
   - Other task-type-specific external services
 - **MariaDB Database**: 
   - Structured data storage in dedicated tables per task type
@@ -390,7 +385,7 @@ The system supports configuration-based task type management:
 
 **Currently Supported Task Types (v1.0):**
 - **chat-evaluation**: Chat evaluation with questions, golden answers, and citations
-- **url-cleaning**: URL cleaning and validation tasks
+- **url-cleaning**: URL cleaning tasks using Glean service
 
 **Planned Task Types (future versions):**
 - **search-evaluation**: Search result evaluation (configurable)

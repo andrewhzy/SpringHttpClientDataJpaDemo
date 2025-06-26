@@ -830,4 +830,89 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /task-types:
+    get:
+      tags:
+        - Task Types
+      summary: Get available task types with configuration
+      operationId: getAvailableTaskTypes
+      description: |
+        Get all available and enabled task types with their configuration settings.
+        This endpoint allows clients to discover what task types are supported
+        and their specific requirements.
+        
+        **Use Cases:**
+        - Frontend applications discovering available task types
+        - Validation of task type parameters before upload
+        - Dynamic form generation based on task type requirements
+        
+        **Response includes:**
+        - Task type identifiers
+        - Display names for UI
+        - Required Excel columns for each type
+        - File size and row limits
+        - Processing configuration
+      responses:
+        '200':
+          description: Successfully retrieved available task types
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    displayName:
+                      type: string
+                      description: Human-readable name for the task type
+                      example: "Chat Evaluation"
+                    description:
+                      type: string
+                      description: Description of what this task type does
+                      example: "Evaluate chat responses against golden answers using LLM similarity"
+                    maxFileSizeMb:
+                      type: integer
+                      description: Maximum file size in megabytes
+                      example: 50
+                    maxRowsPerSheet:
+                      type: integer
+                      description: Maximum rows per Excel sheet
+                      example: 1000
+                    requiredColumns:
+                      type: array
+                      items:
+                        type: string
+                      description: Required Excel columns for this task type
+                      example: ["question", "golden_answer", "golden_citations"]
+                    backgroundProcessing:
+                      type: boolean
+                      description: Whether this task type supports background processing
+                      example: true
+                    estimatedTimePerRowSeconds:
+                      type: number
+                      format: double
+                      description: Estimated processing time per row in seconds
+                      example: 2.0
+              example:
+                chat-evaluation:
+                  displayName: "Chat Evaluation"
+                  description: "Evaluate chat responses against golden answers using LLM similarity"
+                  maxFileSizeMb: 50
+                  maxRowsPerSheet: 1000
+                  requiredColumns: ["question", "golden_answer", "golden_citations"]
+                  backgroundProcessing: true
+                  estimatedTimePerRowSeconds: 2.0
+                url-cleaning:
+                  displayName: "URL Cleaning"
+                  description: "Clean and validate URLs using Glean service"
+                  maxFileSizeMb: 25
+                  maxRowsPerSheet: 5000
+                  requiredColumns: ["url"]
+                  backgroundProcessing: true
+                  estimatedTimePerRowSeconds: 0.5
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
           $ref: '#/components/responses/InternalServerError' 
