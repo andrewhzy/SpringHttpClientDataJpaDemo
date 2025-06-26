@@ -22,7 +22,6 @@ graph TB
     subgraph "External Services"
         Glean[Glean Service<br/>Chat API & URL Cleaning]
         LLM[LLM Similarity<br/>Service]
-        Other[Other External<br/>Services]
     end
     
     %% Data Layer - Structured Storage
@@ -44,7 +43,6 @@ graph TB
     BGP --> TaskOutput
     BGP --> Glean
     BGP --> LLM
-    BGP --> Other
     
     %% Styling
     classDef frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
@@ -171,7 +169,7 @@ flowchart TD
 | PUT | `/rest/api/v1/tasks/{id}?cancelled=true` | Cancel task |
 | DELETE | `/rest/api/v1/tasks/{id}` | Delete task |
 | GET | `/rest/api/v1/tasks/{id}/file` | Download results |
-| GET | `/rest/api/v1/task-types` | Get available task types |
+| GET | `/rest/api/v1/task/types` | Get available task types |
 
 ## Task Types & Requirements
 
@@ -190,7 +188,7 @@ flowchart TD
 ### File Requirements
 - **Format**: .xlsx or .xls files
 - **Size**: ~50MB max (configurable per type)
-- **Sheets**: 20 max per file  (configurable per type)
+- **Sheets**: 20 max per file
 - **Rows**: ~1000 max per sheet (configurable per type)
 
 ## Data Flow

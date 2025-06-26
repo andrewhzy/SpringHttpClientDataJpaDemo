@@ -17,8 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.List;
 
 /**
  * REST Controller for task management operations
@@ -104,31 +103,17 @@ public class TaskController {
     }
 
     /**
-     * Get available task types with their configuration
+     * Get available task types
      * 
-     * @return map of enabled task types with their settings
+     * @return list of enabled task type identifiers
      */
-    @GetMapping("/task-types")
-    public ResponseEntity<Map<String, Object>> getAvailableTaskTypes() {
+    @GetMapping("/task/types")
+    public ResponseEntity<List<String>> getTaskTypes() {
         log.info("Received request for available task types");
         
-        Map<String, Object> response = taskTypeValidationService.getEnabledTaskTypes()
+        List<String> response = taskTypeValidationService.getEnabledTaskTypes()
                 .stream()
-                .collect(Collectors.toMap(
-                    taskType -> taskType,
-                    taskType -> {
-                        TaskTypeConfig.TaskTypeSettings settings = taskTypeValidationService.getTaskTypeSettings(taskType);
-                        return Map.of(
-                            "displayName", taskTypeValidationService.getDisplayName(taskType),
-                            "description", settings != null ? settings.getDescription() : "",
-                            "maxFileSizeMb", taskTypeValidationService.getMaxFileSizeMb(taskType),
-                            "maxRowsPerSheet", taskTypeValidationService.getMaxRowsPerSheet(taskType),
-                            "requiredColumns", taskTypeValidationService.getRequiredColumns(taskType),
-                            "backgroundProcessing", taskTypeValidationService.supportsBackgroundProcessing(taskType),
-                            "estimatedTimePerRowSeconds", taskTypeValidationService.getEstimatedTimePerRowSeconds(taskType)
-                        );
-                    }
-                ));
+                .toList();
         
         log.info("Returning {} enabled task types", response.size());
         return ResponseEntity.ok(response);

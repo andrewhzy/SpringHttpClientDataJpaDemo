@@ -95,4 +95,10 @@ Accept: application/json
 GET {{baseUrl}}/h2-console
 Accept: text/html
 
+###
+
+### Get Available Task Types
+GET {{baseUrl}}/rest/api/v1/task/types
+Accept: application/json
+
 ### 

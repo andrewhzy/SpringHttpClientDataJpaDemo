@@ -72,7 +72,7 @@ This implementation fully complies with the OpenAPI specification defined in `ap
 - `PUT /rest/api/v1/tasks/{id}?cancelled=true` - Task cancellation
 - `DELETE /rest/api/v1/tasks/{id}` - Task deletion
 - `GET /rest/api/v1/tasks/{id}/file` - Excel file download
-- `GET /rest/api/v1/task-types` - Task type discovery
+- `GET /rest/api/v1/task/types` - Task type discovery
 
 **✅ Standard Error Response Format:**
 ```json
@@ -193,7 +193,7 @@ graph TB
 | PUT    | `/rest/api/v1/tasks/{id}?cancelled=true` | Cancel a task (only queueing/processing status) | User |
 | DELETE | `/rest/api/v1/tasks/{id}` | Delete a task and associated structured data | User |
 | GET    | `/rest/api/v1/tasks/{id}/file` | Download task evaluation results as Excel file | User |
-| GET    | `/rest/api/v1/task-types` | Get available task types with configuration | User |
+| GET    | `/rest/api/v1/task/types` | Get available task types | User |
 
 **Note**: All endpoints enforce task ownership at the application level - users can only access, modify, or delete their own tasks.
 
