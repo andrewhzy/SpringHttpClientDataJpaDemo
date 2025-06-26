@@ -1,19 +1,24 @@
 package com.example.springhttpclientdatajpademo.infrastructure.web;
 
+import com.example.springhttpclientdatajpademo.application.dto.CreateTaskCommand;
 import com.example.springhttpclientdatajpademo.application.dto.ListTasksCommand;
 import com.example.springhttpclientdatajpademo.application.dto.TaskListResponse;
 import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
 import com.example.springhttpclientdatajpademo.application.service.TaskService;
+import com.example.springhttpclientdatajpademo.application.service.TaskTypeValidationService;
+import com.example.springhttpclientdatajpademo.config.TaskTypeConfig;
+import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
 import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * REST Controller for task management operations
@@ -24,10 +29,10 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/rest/api/v1")
 @RequiredArgsConstructor
 @Slf4j
-@Validated
 public class TaskController {
 
     private final TaskService taskService;
+    private final TaskTypeValidationService taskTypeValidationService;
 
     /**
      * Upload Excel file and create chat evaluation tasks
@@ -39,16 +44,25 @@ public class TaskController {
     @PostMapping(value = "/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UploadResponse> uploadTasks(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("task_type") String taskType,
+            @RequestParam("task_type") TaskType taskType,
             @RequestParam(required = false) String description) {
 
-        log.info("Received task upload request: filename={}, size={} bytes",
-                file.getOriginalFilename(), file.getSize());
+        log.info("Received task upload request: filename={}, size={} bytes, taskType={}", 
+                file.getOriginalFilename(), file.getSize(), taskType);
 
-        UploadResponse response = taskService.createTaskFromExcel(file, taskType, description);
 
-        log.info("Task upload completed successfully: batch={}, tasks={}",
-                response.getUploadBatchId(), response.getTotalSheets());
+        // TODO: Extract user ID from JWT token when authentication is implemented
+        String userId = getCurrentUserId();
+
+        CreateTaskCommand createTaskCommand = CreateTaskCommand.builder()
+                .file(file)
+                .taskType(taskType)
+                .userId(userId)
+                .description(description)
+                .build();
+        UploadResponse response = taskService.createTaskFromExcel(createTaskCommand);
+
+        log.info("Task upload completed successfully: batch={}, tasks={}", response.getUploadBatchId(), response.getTotalSheets());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -56,9 +70,9 @@ public class TaskController {
     /**
      * List user tasks with cursor-based pagination using query command pattern
      *
-     * @param perPage         number of items per page (1-100)
-     * @param taskType        task type filter (chat-evaluation)
-     * @param cursor optional cursor for pagination (null for first page)
+     * @param perPage  number of items per page (1-100)
+     * @param taskType task type filter (chat-evaluation)
+     * @param cursor   optional cursor for pagination (null for first page)
      * @return paginated list of user tasks (metadata only)
      */
     @GetMapping("/tasks")
@@ -86,6 +100,37 @@ public class TaskController {
         log.info("Task list completed successfully: {} tasks returned, hasMore={}",
                 response.getData().size(), response.getMeta().isHasMore());
 
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get available task types with their configuration
+     * 
+     * @return map of enabled task types with their settings
+     */
+    @GetMapping("/task-types")
+    public ResponseEntity<Map<String, Object>> getAvailableTaskTypes() {
+        log.info("Received request for available task types");
+        
+        Map<String, Object> response = taskTypeValidationService.getEnabledTaskTypes()
+                .stream()
+                .collect(Collectors.toMap(
+                    taskType -> taskType,
+                    taskType -> {
+                        TaskTypeConfig.TaskTypeSettings settings = taskTypeValidationService.getTaskTypeSettings(taskType);
+                        return Map.of(
+                            "displayName", taskTypeValidationService.getDisplayName(taskType),
+                            "description", settings != null ? settings.getDescription() : "",
+                            "maxFileSizeMb", taskTypeValidationService.getMaxFileSizeMb(taskType),
+                            "maxRowsPerSheet", taskTypeValidationService.getMaxRowsPerSheet(taskType),
+                            "requiredColumns", taskTypeValidationService.getRequiredColumns(taskType),
+                            "backgroundProcessing", taskTypeValidationService.supportsBackgroundProcessing(taskType),
+                            "estimatedTimePerRowSeconds", taskTypeValidationService.getEstimatedTimePerRowSeconds(taskType)
+                        );
+                    }
+                ));
+        
+        log.info("Returning {} enabled task types", response.size());
         return ResponseEntity.ok(response);
     }
 

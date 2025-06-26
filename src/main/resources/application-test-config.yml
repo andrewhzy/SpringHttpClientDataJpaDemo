@@ -1,0 +1,61 @@
+# Example configuration showing how to enable/disable task types
+# Copy this to application.yml to change available task types
+
+app:
+  task-types:
+    # Enable/disable task types by adding/removing from this list
+    enabled:
+      - chat-evaluation
+      - url-cleaning
+      - search-evaluation  # Enable this one
+      # - qna-preparation  # Keep this disabled
+    
+    settings:
+      chat-evaluation:
+        display-name: "Chat Evaluation"
+        description: "Evaluate chat responses against golden answers using LLM similarity"
+        max-file-size-mb: 50
+        max-rows-per-sheet: 1000
+        required-columns:
+          - question
+          - golden_answer
+          - golden_citations
+        parser-service-bean: "chatEvaluationExcelParsingService"
+        background-processing: true
+        estimated-time-per-row-seconds: 2.0
+      
+      url-cleaning:
+        display-name: "URL Cleaning"
+        description: "Clean and validate URLs from Excel files"
+        max-file-size-mb: 25
+        max-rows-per-sheet: 5000
+        required-columns:
+          - url
+        parser-service-bean: "urlCleaningExcelParsingService"
+        background-processing: true
+        estimated-time-per-row-seconds: 0.5
+      
+      search-evaluation:
+        display-name: "Search Evaluation"
+        description: "Evaluate search results quality and relevance"
+        max-file-size-mb: 30
+        max-rows-per-sheet: 2000
+        required-columns:
+          - query
+          - expected_results
+        parser-service-bean: "searchEvaluationExcelParsingService"
+        background-processing: true
+        estimated-time-per-row-seconds: 1.5
+      
+      qna-preparation:
+        display-name: "Q&A Preparation"
+        description: "Prepare questions and answers for training datasets"
+        max-file-size-mb: 40
+        max-rows-per-sheet: 3000
+        required-columns:
+          - question
+          - answer
+          - category
+        parser-service-bean: "qnaPreparationExcelParsingService"
+        background-processing: true
+        estimated-time-per-row-seconds: 1.0 

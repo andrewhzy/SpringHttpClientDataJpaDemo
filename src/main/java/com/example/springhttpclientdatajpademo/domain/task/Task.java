@@ -11,6 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -213,6 +214,10 @@ public class Task {
      */
     public enum TaskType {
         CHAT_EVALUATION("chat-evaluation"),
+        CHAT_WARMUP("chat-warmup"),
+        SEARCH_EVALUATION("search-evaluation"),
+        SEARCH_WARMUP("search-warmup"),
+        QNA_PREPARATION("qna-preparation"),
         URL_CLEANING("url-cleaning");
         
         private final String value;
@@ -229,6 +234,14 @@ public class Task {
         public String toString() {
             return value;
         }
+
+        public static TaskType fromValue(String value) {
+            return Arrays.stream(values())
+                    .filter(t -> t.value.equalsIgnoreCase(value))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown TaskType: " + value));
+        }
+
     }
     
     /**

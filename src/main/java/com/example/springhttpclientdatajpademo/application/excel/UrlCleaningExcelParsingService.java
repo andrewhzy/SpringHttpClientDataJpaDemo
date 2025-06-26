@@ -1,15 +1,17 @@
 package com.example.springhttpclientdatajpademo.application.excel;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
+import com.example.springhttpclientdatajpademo.domain.urlcleaning.model.UrlCleaningInput;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.example.springhttpclientdatajpademo.domain.urlCleaning.model.UrlCleaningInput;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class UrlCleaningExcelParsingService implements ExcelParsingService {
+
+    private final TaskType TASK_TYPE = TaskType.URL_CLEANING;
 
     @Override
     public List<UrlCleaningInput> parseExcelFile(MultipartFile file) {
@@ -20,5 +22,10 @@ public class UrlCleaningExcelParsingService implements ExcelParsingService {
     @Override
     public void validateExcelFile(MultipartFile file) {
         // TODO Auto-generated method stub
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TASK_TYPE;
     }
 }

@@ -1,6 +1,7 @@
 package com.example.springhttpclientdatajpademo.application.excel;
 
 import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
+import jakarta.annotation.PostConstruct;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
@@ -8,6 +9,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -24,10 +26,20 @@ public class ExcelParsingServiceFactory implements ApplicationContextAware {
     private ApplicationContext applicationContext;
 
     // Mapping of TaskType to Spring bean names
-    private static final Map<TaskType, String> TASK_TYPE_TO_BEAN_NAME = Map.of(
-            TaskType.CHAT_EVALUATION, "chatEvaluationExcelParsingService",
-            TaskType.URL_CLEANING, "urlCleaningExcelParsingService"
-    );
+    private static final Map<TaskType, ExcelParsingService> TASK_TYPE_TO_BEAN_NAME = new HashMap<>();
+
+    @PostConstruct
+    public void init() {
+        if (applicationContext == null) {
+            throw new IllegalStateException("ApplicationContext not available. Factory not properly initialized.");
+        }
+        applicationContext
+                .getBeansOfType(ExcelParsingService.class)
+                .values()
+                .forEach(service -> {
+            TASK_TYPE_TO_BEAN_NAME.put(service.getTaskType(), service);
+        });
+    }
 
     @Override
     public void setApplicationContext(@NonNull ApplicationContext applicationContext) throws BeansException {
@@ -48,26 +60,13 @@ public class ExcelParsingServiceFactory implements ApplicationContextAware {
             throw new IllegalArgumentException("TaskType cannot be null");
         }
 
-        if (applicationContext == null) {
-            throw new IllegalStateException("ApplicationContext not available. Factory not properly initialized.");
-        }
-
-        String beanName = TASK_TYPE_TO_BEAN_NAME.get(taskType);
-        if (beanName == null) {
+        ExcelParsingService excelParsingService = TASK_TYPE_TO_BEAN_NAME.get(taskType);
+        if (excelParsingService == null) {
             throw new IllegalArgumentException(
                     String.format("Unsupported task type: %s. Supported types: %s",
                             taskType, TASK_TYPE_TO_BEAN_NAME.keySet()));
         }
-
-        try {
-            ExcelParsingService service = applicationContext.getBean(beanName, ExcelParsingService.class);
-            log.debug("Retrieved ExcelParsingService for task type '{}': {}", taskType, beanName);
-            return service;
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    String.format("Failed to retrieve ExcelParsingService for task type '%s' with bean name '%s'",
-                            taskType, beanName), e);
-        }
+        return excelParsingService;
     }
 
     /**

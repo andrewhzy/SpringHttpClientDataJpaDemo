@@ -87,6 +87,51 @@ app:
   name: Internal Task Management API
   version: 1.0.0
   
+  # Task Types Configuration
+  task-types:
+    enabled:
+      - chat-evaluation
+      - url-cleaning
+      # - search-evaluation  # Disabled for now
+      # - qna-preparation    # Disabled for now
+    
+    settings:
+      chat-evaluation:
+        display-name: "Chat Evaluation"
+        description: "Evaluate chat responses against golden answers using LLM similarity"
+        max-file-size-mb: 50
+        max-rows-per-sheet: 1000
+        required-columns:
+          - question
+          - golden_answer
+          - golden_citations
+        parser-service-bean: "chatEvaluationExcelParsingService"
+        background-processing: true
+        estimated-time-per-row-seconds: 2.0
+      
+      url-cleaning:
+        display-name: "URL Cleaning"
+        description: "Clean and validate URLs from Excel files"
+        max-file-size-mb: 25
+        max-rows-per-sheet: 5000
+        required-columns:
+          - url
+        parser-service-bean: "urlCleaningExcelParsingService"
+        background-processing: true
+        estimated-time-per-row-seconds: 0.5
+      
+      search-evaluation:
+        display-name: "Search Evaluation"
+        description: "Evaluate search results quality and relevance"
+        max-file-size-mb: 30
+        max-rows-per-sheet: 2000
+        required-columns:
+          - query
+          - expected_results
+        parser-service-bean: "searchEvaluationExcelParsingService"
+        background-processing: true
+        estimated-time-per-row-seconds: 1.5
+  
   # CORS Configuration
   cors:
     allowed-origins: 
