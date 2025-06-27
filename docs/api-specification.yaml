@@ -81,34 +81,7 @@ components:
               description: "User ID associated with the request"
               example: "user_123"
 
-    # Pagination Schema
-    PaginationMeta:
-      type: object
-      required:
-        - per_page
-        - total
-        - has_more
-      properties:
-        per_page:
-          type: integer
-          minimum: 1
-          maximum: 100
-          description: "Number of items per page"
-          example: 20
-        total:
-          type: integer
-          minimum: 0
-          description: "Total number of items available"
-          example: 100
-        next_cursor:
-          type: string
-          nullable: true
-          description: "Cursor for next page, null if no more results"
-          example: "123"
-        has_more:
-          type: boolean
-          description: "Whether there are more results available"
-          example: true
+
 
 
 
@@ -226,73 +199,7 @@ components:
 
 
 
-    # Request/Response Schemas
 
-    TaskList:
-      type: object
-      required:
-        - data
-        - meta
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Task'
-          description: "Array of task objects"
-        meta:
-          $ref: '#/components/schemas/PaginationMeta'
-
-    UploadResponse:
-      type: object
-      required:
-        - upload_batch_id
-        - tasks
-        - total_sheets
-      properties:
-        upload_batch_id:
-          type: integer
-          format: int64
-          description: "Unique identifier for this upload batch"
-          example: 67890
-        tasks:
-          type: array
-          items:
-            type: object
-            required:
-              - task_id
-              - sheet_name
-              - task_type
-              - status
-              - row_count
-            properties:
-              task_id:
-                type: integer
-                format: int64
-                description: "Unique task identifier"
-                example: 12345
-              sheet_name:
-                type: string
-                description: "Excel sheet name"
-                example: "Sheet1"
-              task_type:
-                $ref: '#/components/schemas/TaskType'
-              status:
-                $ref: '#/components/schemas/TaskStatus'
-              row_count:
-                type: integer
-                minimum: 0
-                description: "Number of rows parsed from this sheet"
-                example: 50
-          description: "Array of created tasks"
-        total_sheets:
-          type: integer
-          minimum: 1
-          description: "Total number of sheets processed"
-          example: 3
-        message:
-          type: string
-          description: "Success message"
-          example: "Successfully created 3 tasks from uploaded Excel file"
 
 
 
@@ -408,7 +315,56 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UploadResponse'
+                type: object
+                required:
+                  - upload_batch_id
+                  - tasks
+                  - total_sheets
+                properties:
+                  upload_batch_id:
+                    type: integer
+                    format: int64
+                    description: "Unique identifier for this upload batch"
+                    example: 67890
+                  tasks:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - task_id
+                        - sheet_name
+                        - task_type
+                        - status
+                        - row_count
+                      properties:
+                        task_id:
+                          type: integer
+                          format: int64
+                          description: "Unique task identifier"
+                          example: 12345
+                        sheet_name:
+                          type: string
+                          description: "Excel sheet name"
+                          example: "Sheet1"
+                        task_type:
+                          $ref: '#/components/schemas/TaskType'
+                        status:
+                          $ref: '#/components/schemas/TaskStatus'
+                        row_count:
+                          type: integer
+                          minimum: 0
+                          description: "Number of rows parsed from this sheet"
+                          example: 50
+                    description: "Array of created tasks"
+                  total_sheets:
+                    type: integer
+                    minimum: 1
+                    description: "Total number of sheets processed"
+                    example: 3
+                  message:
+                    type: string
+                    description: "Success message"
+                    example: "Successfully created 3 tasks from uploaded Excel file"
         '400':
           description: Bad Request - File upload validation errors
           content:
@@ -573,7 +529,43 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TaskList'
+                type: object
+                required:
+                  - data
+                  - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+                    description: "Array of task objects"
+                  meta:
+                    type: object
+                    required:
+                      - per_page
+                      - total
+                      - has_more
+                    properties:
+                      per_page:
+                        type: integer
+                        minimum: 1
+                        maximum: 100
+                        description: "Number of items per page"
+                        example: 20
+                      total:
+                        type: integer
+                        minimum: 0
+                        description: "Total number of items available"
+                        example: 100
+                      next_cursor:
+                        type: string
+                        nullable: true
+                        description: "Cursor for next page, null if no more results"
+                        example: "123"
+                      has_more:
+                        type: boolean
+                        description: "Whether there are more results available"
+                        example: true
         '400':
           description: Bad Request - Invalid query parameters
           content:
