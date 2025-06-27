@@ -31,7 +31,7 @@ public class ListTasksCommand {
     @Max(value = 100, message = "Per page cannot exceed 100")
     private int perPage;
     
-    @NotBlank(message = "Task type is required")
+    @jakarta.validation.constraints.NotNull(message = "Task type is required")
     private TaskType taskType;
     
     /**

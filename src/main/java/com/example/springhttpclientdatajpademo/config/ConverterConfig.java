@@ -1,9 +1,7 @@
 package com.example.springhttpclientdatajpademo.config;
 
-import com.example.springhttpclientdatajpademo.application.service.TaskTypeValidationService;
 import com.example.springhttpclientdatajpademo.domain.task.Task;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,32 +11,33 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Configuration for custom converters and formatters
- * Manages type conversion for request parameters with configuration-based validation
+ * Manages type conversion for request parameters from kebab-case to UPPER_CASE enums
  */
 @Configuration
-@RequiredArgsConstructor
 @Slf4j
 public class ConverterConfig implements WebMvcConfigurer {
-    
-    private final TaskTypeValidationService taskTypeValidationService;
 
-        /**
+    /**
      * Create TaskTypeConverter bean for automatic string to TaskType conversion
-     * Uses configuration-based validation to ensure only enabled task types are accepted
+     * Converts kebab-case strings (e.g., "chat-evaluation") to UPPER_CASE enums (e.g., CHAT_EVALUATION)
      * 
      * @return TaskTypeConverter instance
      */
     @Bean
     public Converter<String, Task.TaskType> taskTypeConverter() {
-        log.info("Creating TaskTypeConverter bean with configuration-based validation");
+        log.info("Creating TaskTypeConverter bean for kebab-case to UPPER_CASE conversion");
         return new Converter<String, Task.TaskType>() {
             @Override
             public Task.TaskType convert(@NonNull String source) {
-                // First validate against configuration (enabled types)
-                taskTypeValidationService.validateTaskType(source);
+                // Convert kebab-case to UPPER_CASE enum name
+                String upperCaseName = source.toUpperCase().replace('-', '_');
                 
-                // Then convert to enum
-                return Task.TaskType.fromValue(source);
+                try {
+                    return Task.TaskType.valueOf(upperCaseName);
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Invalid task type: " + source + 
+                        ". Valid values: " + java.util.Arrays.toString(Task.TaskType.values()));
+                }
             }
         };
     }
@@ -52,6 +51,6 @@ public class ConverterConfig implements WebMvcConfigurer {
     @Override
     public void addFormatters(FormatterRegistry registry) {
         registry.addConverter(taskTypeConverter());
-        log.info("TaskTypeConverter registered for automatic string to TaskType conversion");
+        log.info("TaskTypeConverter registered for automatic kebab-case to UPPER_CASE conversion");
     }
 } 

@@ -2,6 +2,7 @@ package com.example.springhttpclientdatajpademo.application.service;
 
 import com.example.springhttpclientdatajpademo.config.TaskTypeConfig;
 import com.example.springhttpclientdatajpademo.domain.task.Task;
+import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,7 +13,7 @@ import java.util.stream.Collectors;
 
 /**
  * Service for validating TaskTypes against configuration
- * Provides configuration-based validation while keeping enum benefits
+ * Now works with UPPER_CASE enum names for consistency
  */
 @Service
 @RequiredArgsConstructor
@@ -37,32 +38,30 @@ public class TaskTypeValidationService {
     }
     
     /**
-     * Get enabled task types from configuration
+     * Get enabled task types from configuration (converted to UPPER_CASE)
      */
     public Set<String> getEnabledTaskTypes() {
-        return taskTypeConfig.getEnabled() != null ? 
-               taskTypeConfig.getEnabled() : Set.of();
+        if (taskTypeConfig.getEnabled() == null) {
+            return Set.of();
+        }
+        
+        // Convert kebab-case config values to UPPER_CASE enum names
+        return taskTypeConfig.getEnabled().stream()
+                .map(this::kebabCaseToUpperCase)
+                .collect(Collectors.toSet());
     }
     
     /**
      * Check if a task type is enabled in configuration
      */
-    public boolean isTaskTypeEnabled(String taskType) {
-        return getEnabledTaskTypes().contains(taskType);
+    public boolean isTaskTypeEnabled(TaskType taskType) {
+        return getEnabledTaskTypes().contains(taskType.name());
     }
     
     /**
-     * Validate task type against both enum and configuration
+     * Validate task type against configuration
      */
-    public void validateTaskType(String taskType) {
-        // First check if it's a valid enum value
-        if (!isValidEnumValue(taskType)) {
-            throw new IllegalArgumentException(
-                String.format("Invalid task type: '%s'. Valid types: %s", 
-                    taskType, getValidEnumValues()));
-        }
-        
-        // Then check if it's enabled in configuration
+    public void validateTaskType(TaskType taskType) {
         if (!isTaskTypeEnabled(taskType)) {
             throw new IllegalArgumentException(
                 String.format("Task type '%s' is disabled in configuration. Enabled types: %s",
@@ -73,35 +72,33 @@ public class TaskTypeValidationService {
     /**
      * Get task type settings from configuration
      */
-    public TaskTypeConfig.TaskTypeSettings getTaskTypeSettings(String taskType) {
+    public TaskTypeConfig.TaskTypeSettings getTaskTypeSettings(TaskType taskType) {
         if (taskTypeConfig.getSettings() == null) {
             return null;
         }
-        return taskTypeConfig.getSettings().get(taskType);
+        
+        // Convert enum name back to kebab-case for config lookup
+        String kebabCase = upperCaseToKebabCase(taskType.name());
+        return taskTypeConfig.getSettings().get(kebabCase);
     }
     
     /**
      * Get display name for task type
      */
-    public String getDisplayName(String taskType) {
+    public String getDisplayName(TaskType taskType) {
         TaskTypeConfig.TaskTypeSettings settings = getTaskTypeSettings(taskType);
         if (settings != null && settings.getDisplayName() != null) {
             return settings.getDisplayName();
         }
         
-        // Fallback to enum display logic
-        try {
-            Task.TaskType enumValue = Task.TaskType.fromValue(taskType);
-            return enumValue.getValue();
-        } catch (IllegalArgumentException e) {
-            return taskType;
-        }
+        // Fallback to kebab-case transformation
+        return upperCaseToKebabCase(taskType.name());
     }
     
     /**
      * Get maximum file size for task type
      */
-    public int getMaxFileSizeMb(String taskType) {
+    public int getMaxFileSizeMb(TaskType taskType) {
         TaskTypeConfig.TaskTypeSettings settings = getTaskTypeSettings(taskType);
         return settings != null ? settings.getMaxFileSizeMb() : 50; // default
     }
@@ -109,7 +106,7 @@ public class TaskTypeValidationService {
     /**
      * Get maximum rows per sheet for task type
      */
-    public int getMaxRowsPerSheet(String taskType) {
+    public int getMaxRowsPerSheet(TaskType taskType) {
         TaskTypeConfig.TaskTypeSettings settings = getTaskTypeSettings(taskType);
         return settings != null ? settings.getMaxRowsPerSheet() : 1000; // default
     }
@@ -117,7 +114,7 @@ public class TaskTypeValidationService {
     /**
      * Get required columns for task type
      */
-    public Set<String> getRequiredColumns(String taskType) {
+    public Set<String> getRequiredColumns(TaskType taskType) {
         TaskTypeConfig.TaskTypeSettings settings = getTaskTypeSettings(taskType);
         return settings != null ? settings.getRequiredColumns() : Set.of();
     }
@@ -125,7 +122,7 @@ public class TaskTypeValidationService {
     /**
      * Check if task type supports background processing
      */
-    public boolean supportsBackgroundProcessing(String taskType) {
+    public boolean supportsBackgroundProcessing(TaskType taskType) {
         TaskTypeConfig.TaskTypeSettings settings = getTaskTypeSettings(taskType);
         return settings == null || settings.isBackgroundProcessing(); // default true
     }
@@ -133,26 +130,45 @@ public class TaskTypeValidationService {
     /**
      * Get estimated processing time per row
      */
-    public double getEstimatedTimePerRowSeconds(String taskType) {
+    public double getEstimatedTimePerRowSeconds(TaskType taskType) {
         TaskTypeConfig.TaskTypeSettings settings = getTaskTypeSettings(taskType);
         return settings != null ? settings.getEstimatedTimePerRowSeconds() : 0.5; // default
     }
     
     // Private helper methods
     
-    private boolean isValidEnumValue(String taskType) {
+    private boolean isValidEnumValue(String upperCaseName) {
         try {
-            Task.TaskType.fromValue(taskType);
+            TaskType.valueOf(upperCaseName);
             return true;
         } catch (IllegalArgumentException e) {
             return false;
         }
     }
     
+    /**
+     * Convert kebab-case to UPPER_CASE
+     * "chat-evaluation" -> "CHAT_EVALUATION"
+     */
+    private String kebabCaseToUpperCase(String kebabCase) {
+        return kebabCase.toUpperCase().replace('-', '_');
+    }
+    
+    /**
+     * Convert UPPER_CASE to kebab-case  
+     * "CHAT_EVALUATION" -> "chat-evaluation"
+     */
+    private String upperCaseToKebabCase(String upperCase) {
+        return upperCase.toLowerCase().replace('_', '-');
+    }
+    
+    /**
+     * Get valid enum values as UPPER_CASE strings
+     */
     private Set<String> getValidEnumValues() {
         return Set.of(Task.TaskType.values())
                 .stream()
-                .map(Task.TaskType::getValue)
+                .map(Enum::name)
                 .collect(Collectors.toSet());
     }
 } 

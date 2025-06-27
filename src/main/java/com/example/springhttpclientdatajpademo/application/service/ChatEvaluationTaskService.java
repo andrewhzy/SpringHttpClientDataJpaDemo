@@ -2,11 +2,8 @@ package com.example.springhttpclientdatajpademo.application.service;
 
 import com.example.springhttpclientdatajpademo.application.dto.*;
 import com.example.springhttpclientdatajpademo.application.excel.ChatEvaluationExcelParsingService;
-import com.example.springhttpclientdatajpademo.application.excel.ExcelParsingService;
-import com.example.springhttpclientdatajpademo.application.excel.ExcelParsingServiceFactory;
 import com.example.springhttpclientdatajpademo.application.exception.FileProcessingException;
 import com.example.springhttpclientdatajpademo.application.exception.TaskValidationException;
-import com.example.springhttpclientdatajpademo.domain.Input;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
 import com.example.springhttpclientdatajpademo.domain.task.Task;
 import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
@@ -19,7 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,18 +36,15 @@ public class ChatEvaluationTaskService implements TaskService {
 
     private final TaskRepository taskRepository;
     private final ChatEvaluationInputRepository inputRepository;
-    private final ExcelParsingService excelParsingService;    
-    private final TaskTypeValidationService taskTypeValidationService;
+    private final ChatEvaluationExcelParsingService chatEvaluationExcelParsingService;
 
     public ChatEvaluationTaskService(
             TaskRepository taskRepository,
             ChatEvaluationInputRepository inputRepository,
-            ExcelParsingService excelParsingService,
-            TaskTypeValidationService taskTypeValidationService) {
+            ChatEvaluationExcelParsingService chatEvaluationExcelParsingService) {
         this.taskRepository = taskRepository;
         this.inputRepository = inputRepository;
-        this.excelParsingService = excelParsingService;
-        this.taskTypeValidationService = taskTypeValidationService;
+        this.chatEvaluationExcelParsingService = chatEvaluationExcelParsingService;
     }
 
     /**
@@ -60,28 +56,22 @@ public class ChatEvaluationTaskService implements TaskService {
      * @throws TaskValidationException if file validation fails
      */
     @Transactional
+    @Override
     public UploadResponse createTaskFromExcel(final CreateTaskCommand command) {
 
-        log.info("Processing Excel upload for user: {}, filename: {}", command.getUserId(),
-                command.getFile().getOriginalFilename());
+        log.info("Processing Excel upload for user: {}, filename: {}", command.getUserId(), command.getFile().getOriginalFilename());
 
         try {
             // 1. Get appropriate Excel parsing service based on file content
             final Task.TaskType taskType = command.getTaskType();
-            final ExcelParsingService excelParsingService = chatEvaluationExcelParsingService;
 
             // 2. Validate Excel file (includes file size, type, and structure validation)
-            excelParsingService.validateExcelFile(command.getFile());
+            chatEvaluationExcelParsingService.validateExcelFile(command.getFile());
 
-            // 3. Parse Excel file and extract all data
-            final List<? extends Input> parsedData = excelParsingService.parseExcelFile(command.getFile());
+            // 3. Parse Excel file and extract data separated by sheets
+            final Map<String, List<ChatEvaluationInput>> parsedDataBySheet = chatEvaluationExcelParsingService.parseExcelFileBySheets(command.getFile());
 
-            // Cast to ChatEvaluationInput - this will need to be made more generic for
-            // other task types
-            @SuppressWarnings("unchecked")
-            final List<ChatEvaluationInput> chatInputs = (List<ChatEvaluationInput>) parsedData;
-
-            if (chatInputs.isEmpty()) {
+            if (parsedDataBySheet.isEmpty()) {
                 throw new TaskValidationException("No valid data found in Excel file");
             }
 
@@ -91,49 +81,65 @@ public class ChatEvaluationTaskService implements TaskService {
             // Convert to Long for database storage (using hash of UUID for uniqueness)
             final Long uploadBatchIdLong = Math.abs(uploadBatchId.hashCode() % 10000000L) + 1000000L;
 
-            // 4. Create a single task for all parsed data
-            final Task task = Task.builder()
-                    .userId(command.getUserId())
-                    .filename(command.getFile().getOriginalFilename())
-                    .sheetName("All Sheets") // Since we're combining all sheets
-                    .taskType(taskType)
-                    .taskStatus(Task.TaskStatus.QUEUEING)
-                    .uploadBatchId(uploadBatchIdLong)
-                    .rowCount(chatInputs.size())
-                    .build();
+            // 4. Create tasks for each sheet
+            final List<UploadResponse.TaskSummary> taskSummaries = new ArrayList<>();
+            int totalQuestions = 0;
 
-            // Save task first to get ID
-            final Task savedTask = taskRepository.save(task);
+            for (Map.Entry<String, List<ChatEvaluationInput>> entry : parsedDataBySheet.entrySet()) {
+                final String sheetName = entry.getKey();
+                final List<ChatEvaluationInput> sheetInputs = entry.getValue();
 
-            // Associate all inputs with the task and save them
-            chatInputs.forEach(input -> input.setTask(savedTask));
-            inputRepository.saveAll(chatInputs);
+                if (sheetInputs.isEmpty()) {
+                    continue;
+                }
 
-            // Create task summary
-            final UploadResponse.TaskSummary taskSummary = UploadResponse.TaskSummary.builder()
-                    .taskId(savedTask.getId().toString())
-                    .filename(command.getFile().getOriginalFilename())
-                    .sheetName("All Sheets")
-                    .taskType(taskType.getValue())
-                    .status(Task.TaskStatus.QUEUEING.getValue())
-                    .rowCount(chatInputs.size())
-                    .build();
+                // Create task for this sheet
+                final Task task = Task.builder()
+                        .userId(command.getUserId())
+                        .filename(command.getFile().getOriginalFilename())
+                        .sheetName(sheetName)
+                        .taskType(taskType)
+                        .taskStatus(Task.TaskStatus.QUEUEING)
+                        .uploadBatchId(uploadBatchIdLong)
+                        .rowCount(sheetInputs.size())
+                        .build();
 
-            final List<UploadResponse.TaskSummary> taskSummaries = List.of(taskSummary);
-            final int totalQuestions = chatInputs.size();
+                // Save task first to get ID
+                final Task savedTask = taskRepository.save(task);
 
-            log.info("Created single task with {} questions from all sheets", totalQuestions);
+                // Associate all inputs with the task and save them
+                sheetInputs.forEach(input -> input.setTask(savedTask));
+                inputRepository.saveAll(sheetInputs);
+
+                // Create task summary
+                final UploadResponse.TaskSummary taskSummary = UploadResponse.TaskSummary.builder()
+                        .taskId(savedTask.getId().toString())
+                        .filename(command.getFile().getOriginalFilename())
+                        .sheetName(sheetName)
+                        .taskType(taskType)
+                        .status(Task.TaskStatus.QUEUEING)
+                        .rowCount(sheetInputs.size())
+                        .build();
+
+                taskSummaries.add(taskSummary);
+                totalQuestions += sheetInputs.size();
+
+                log.info("Created task for sheet '{}' with {} questions", sheetName, sheetInputs.size());
+            }
+
+            log.info("Created {} tasks with {} total questions from {} sheets",
+                    taskSummaries.size(), totalQuestions, parsedDataBySheet.size());
 
             // 5. Build response
             final UploadResponse response = UploadResponse.builder()
                     .uploadBatchId(uploadBatchId)
                     .filename(command.getFile().getOriginalFilename())
                     .tasks(taskSummaries)
-                    .totalSheets(1) // Single task for all sheets
-                    .message(String.format("Successfully created 1 task with %d total questions", totalQuestions))
+                    .totalSheets(taskSummaries.size())
+                    .message(String.format("Successfully created %d tasks with %d total questions", taskSummaries.size(), totalQuestions))
                     .build();
 
-            log.info("Excel upload completed successfully: 1 task created with {} total questions", totalQuestions);
+            log.info("Excel upload completed successfully: {} tasks created with {} total questions", taskSummaries.size(), totalQuestions);
 
             return response;
 
@@ -171,8 +177,8 @@ public class ChatEvaluationTaskService implements TaskService {
                 query.getUserId(), query.getPerPage(), query.getTaskType(), query.getCursor());
 
         try {
-            // Convert string taskType to enum
-            final Task.TaskType taskTypeEnum = parseTaskType(query.getTaskType());
+            // Get taskType enum directly (no parsing needed as it's already TaskType)
+            final Task.TaskType taskTypeEnum = query.getTaskType();
 
             // Create pageable for limit
             final Pageable pageable = PageRequest.of(0, query.getPerPage() + 1); // +1 to check if more results exist
@@ -224,39 +230,6 @@ public class ChatEvaluationTaskService implements TaskService {
         }
     }
 
-    /**
-     * List user tasks with cursor-based pagination - legacy method for backward
-     * compatibility
-     * Implementation for GET /rest/api/v1/tasks endpoint
-     *
-     * @param userId   the authenticated user's ID
-     * @param perPage  number of items per page (1-100)
-     * @param taskType task type filter (required)
-     * @param cursor   optional cursor for pagination (null for first page)
-     * @return cursor-based paginated task list response with metadata
-     * @throws TaskValidationException if pagination parameters are invalid
-     * @deprecated Use {@link #listUserTasks(ListTasksCommand)} instead for
-     *             consistency with command pattern
-     */
-    @Deprecated
-    @Transactional(readOnly = true)
-    public ListTaskResponse listUserTasks(
-            final String userId,
-            final int perPage,
-            final String taskType,
-            final Long cursor) {
-
-        // Create query command and delegate to new method
-        final ListTasksCommand query = ListTasksCommand.builder()
-                .userId(userId)
-                .perPage(perPage)
-                .taskType(taskType)
-                .cursor(cursor)
-                .build();
-
-        return listUserTasks(query);
-    }
-
     @Override
     public File downloadTaskResult(Long taskId, TaskType taskType) {
         // TODO Auto-generated method stub
@@ -278,22 +251,6 @@ public class ChatEvaluationTaskService implements TaskService {
     }
 
     /**
-     * Parse task type string to enum using configuration-based validation
-     */
-    private Task.TaskType parseTaskType(final String taskType) {
-        if (taskType == null || taskType.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            // Use configuration-based validation
-            taskTypeValidationService.validateTaskType(taskType);
-            return Task.TaskType.fromValue(taskType);
-        } catch (final IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Invalid task type: " + taskType + ". " + ex.getMessage());
-        }
-    }
-
-    /**
      * Convert Task entity to TaskSummaryDto
      */
     private TaskInfoDto convertToTaskSummaryDto(final Task task) {
@@ -302,8 +259,8 @@ public class ChatEvaluationTaskService implements TaskService {
                 .userId(task.getUserId())
                 .originalFilename(task.getFilename())
                 .sheetName(task.getSheetName())
-                .taskType(task.getTaskType().getValue())
-                .taskStatus(task.getTaskStatus().getValue())
+                .taskType(task.getTaskType())
+                .taskStatus(task.getTaskStatus())
                 .uploadBatchId(task.getUploadBatchId().toString())
                 .rowCount(task.getRowCount())
                 .processedRows(task.getProcessedRows())

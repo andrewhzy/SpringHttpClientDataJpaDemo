@@ -1,5 +1,6 @@
 package com.example.springhttpclientdatajpademo.application.dto;
 
+import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -33,7 +34,7 @@ class ListTasksQueryTest {
         ListTasksCommand query = ListTasksCommand.builder()
                 .userId("user-123")
                 .perPage(20)
-                .taskType("chat-evaluation")
+                .taskType(TaskType.CHAT_EVALUATION)
                 .cursor(null)
                 .build();
 
@@ -52,7 +53,7 @@ class ListTasksQueryTest {
         ListTasksCommand query = ListTasksCommand.builder()
                 .userId("user-123")
                 .perPage(10)
-                .taskType("chat-evaluation")
+                .taskType(TaskType.CHAT_EVALUATION)
                 .cursor(123L)
                 .build();
 
@@ -69,12 +70,12 @@ class ListTasksQueryTest {
     @DisplayName("Should use static factory method for first page")
     void shouldUseStaticFactoryForFirstPage() {
         // When
-        ListTasksCommand query = ListTasksCommand.firstPage("user-123", 20, "chat-evaluation");
+        ListTasksCommand query = ListTasksCommand.firstPage("user-123", 20, TaskType.CHAT_EVALUATION);
 
         // Then
         assertEquals("user-123", query.getUserId());
         assertEquals(20, query.getPerPage());
-        assertEquals("chat-evaluation", query.getTaskType());
+        assertEquals(TaskType.CHAT_EVALUATION, query.getTaskType());
         assertNull(query.getCursor());
         assertTrue(query.isFirstPage());
     }
@@ -83,12 +84,12 @@ class ListTasksQueryTest {
     @DisplayName("Should use static factory method for next page")
     void shouldUseStaticFactoryForNextPage() {
         // When
-        ListTasksCommand query = ListTasksCommand.nextPage("user-123", 20, "chat-evaluation", 456L);
+        ListTasksCommand query = ListTasksCommand.nextPage("user-123", 20, TaskType.CHAT_EVALUATION, 456L);
 
         // Then
         assertEquals("user-123", query.getUserId());
         assertEquals(20, query.getPerPage());
-        assertEquals("chat-evaluation", query.getTaskType());
+        assertEquals(TaskType.CHAT_EVALUATION, query.getTaskType());
         assertEquals(456L, query.getCursor());
         assertFalse(query.isFirstPage());
     }
@@ -100,7 +101,7 @@ class ListTasksQueryTest {
         ListTasksCommand query = ListTasksCommand.builder()
                 .userId("")
                 .perPage(20)
-                .taskType("chat-evaluation")
+                .taskType(TaskType.CHAT_EVALUATION)
                 .build();
 
         // When
@@ -113,13 +114,13 @@ class ListTasksQueryTest {
     }
 
     @Test
-    @DisplayName("Should fail validation when taskType is blank")
+    @DisplayName("Should fail validation when taskType is null")
     void shouldFailValidationWhenTaskTypeIsBlank() {
         // Given
         ListTasksCommand query = ListTasksCommand.builder()
                 .userId("user-123")
                 .perPage(20)
-                .taskType("")
+                .taskType(null)
                 .build();
 
         // When
@@ -138,7 +139,7 @@ class ListTasksQueryTest {
         ListTasksCommand query = ListTasksCommand.builder()
                 .userId("user-123")
                 .perPage(0)
-                .taskType("chat-evaluation")
+                .taskType(TaskType.CHAT_EVALUATION)
                 .build();
 
         // When
@@ -157,7 +158,7 @@ class ListTasksQueryTest {
         ListTasksCommand query = ListTasksCommand.builder()
                 .userId("user-123")
                 .perPage(101)
-                .taskType("chat-evaluation")
+                .taskType(TaskType.CHAT_EVALUATION)
                 .build();
 
         // When

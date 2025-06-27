@@ -85,6 +85,62 @@ public class ChatEvaluationExcelParsingService implements ExcelParsingService {
         }
     }
 
+    /**
+     * Parse Excel file and return data separated by sheet names
+     * This method preserves the sheet structure for creating separate tasks per sheet
+     * 
+     * @param file the Excel file to parse
+     * @return Map where key is sheet name and value is list of parsed inputs from that sheet
+     */
+    public Map<String, List<ChatEvaluationInput>> parseExcelFileBySheets(MultipartFile file) {
+        log.info("Parsing Excel file by sheets: {}, size: {} bytes", file.getOriginalFilename(), file.getSize());
+
+        // Validate file first
+        validateExcelFile(file);
+
+        Map<String, List<ChatEvaluationInput>> result = new LinkedHashMap<>();
+
+        try (InputStream inputStream = file.getInputStream();
+             Workbook workbook = createWorkbook(inputStream, file.getOriginalFilename())) {
+
+            int numberOfSheets = workbook.getNumberOfSheets();
+            log.info("Found {} sheets in Excel file", numberOfSheets);
+
+            for (int i = 0; i < numberOfSheets; i++) {
+                Sheet sheet = workbook.getSheetAt(i);
+                String sheetName = sheet.getSheetName();
+
+                log.info("Processing sheet: {}", sheetName);
+
+                if (isValidChatEvaluationSheet(sheet)) {
+                    List<ChatEvaluationInput> sheetData = parseSheet(sheet);
+                    if (!sheetData.isEmpty()) {
+                        result.put(sheetName, sheetData);
+                        log.info("Successfully parsed {} records from sheet: {}", sheetData.size(), sheetName);
+                    } else {
+                        log.warn("Sheet {} contains no valid data rows", sheetName);
+                    }
+                } else {
+                    log.warn("Skipping sheet {} - invalid format or missing required columns", sheetName);
+                }
+            }
+
+            if (result.isEmpty()) {
+                throw new IllegalArgumentException("No valid chat evaluation sheets found in Excel file. " +
+                        "Excel must contain sheets with required columns: question, golden_answer, golden_citations");
+            }
+
+            log.info("Successfully parsed {} records from {} sheets", 
+                    result.values().stream().mapToInt(List::size).sum(), result.size());
+
+            return result;
+
+        } catch (IOException e) {
+            log.error("Failed to parse Excel file: {}", file.getOriginalFilename(), e);
+            throw new IllegalArgumentException("Failed to parse Excel file: " + e.getMessage(), e);
+        }
+    }
+
     @Override
     public void validateExcelFile(MultipartFile file) {
         // Basic file validation
@@ -158,13 +214,7 @@ public class ChatEvaluationExcelParsingService implements ExcelParsingService {
     }
 
     // Private helper methods
-
-
-    @Override
-    public Task.TaskType getTaskType() {
-        return TASK_TYPE;
-    }
-
+    
     private Workbook createWorkbook(InputStream inputStream, String filename) throws IOException {
         if (filename.toLowerCase().endsWith(".xlsx")) {
             return new XSSFWorkbook(inputStream);
@@ -304,5 +354,10 @@ public class ChatEvaluationExcelParsingService implements ExcelParsingService {
                 .map(String::trim)
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return Task.TaskType.CHAT_EVALUATION;
     }
 } 

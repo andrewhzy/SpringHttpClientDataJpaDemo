@@ -1,5 +1,7 @@
 package com.example.springhttpclientdatajpademo.application.dto;
 
+import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
+import com.example.springhttpclientdatajpademo.domain.task.Task.TaskStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,10 +32,10 @@ public class TaskInfoDto {
     private String sheetName;
     
     @JsonProperty("task_type")
-    private String taskType;
+    private TaskType taskType;
     
     @JsonProperty("task_status")
-    private String taskStatus;
+    private TaskStatus taskStatus;
     
     @JsonProperty("upload_batch_id")
     private String uploadBatchId;

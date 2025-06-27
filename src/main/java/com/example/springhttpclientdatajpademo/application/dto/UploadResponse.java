@@ -1,5 +1,7 @@
 package com.example.springhttpclientdatajpademo.application.dto;
 
+import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
+import com.example.springhttpclientdatajpademo.domain.task.Task.TaskStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -52,10 +54,10 @@ public class UploadResponse {
         private String sheetName;
         
         @JsonProperty("task_type")
-        private String taskType;
+        private TaskType taskType;
         
         @JsonProperty("status")
-        private String status;
+        private TaskStatus status;
         
         @JsonProperty("row_count")
         private Integer rowCount;

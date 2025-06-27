@@ -11,7 +11,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -213,35 +212,12 @@ public class Task {
      * Following Effective Java Item 34: Use enums instead of int constants
      */
     public enum TaskType {
-        CHAT_EVALUATION("chat-evaluation"),
-        CHAT_WARMUP("chat-warmup"),
-        SEARCH_EVALUATION("search-evaluation"),
-        SEARCH_WARMUP("search-warmup"),
-        QNA_PREPARATION("qna-preparation"),
-        URL_CLEANING("url-cleaning");
-        
-        private final String value;
-        
-        TaskType(final String value) {
-            this.value = value;
-        }
-        
-        public String getValue() {
-            return value;
-        }
-        
-        @Override
-        public String toString() {
-            return value;
-        }
-
-        public static TaskType fromValue(String value) {
-            return Arrays.stream(values())
-                    .filter(t -> t.value.equalsIgnoreCase(value))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown TaskType: " + value));
-        }
-
+        CHAT_EVALUATION,
+        CHAT_WARMUP,
+        SEARCH_EVALUATION,
+        SEARCH_WARMUP,
+        QNA_PREPARATION,
+        URL_CLEANING
     }
     
     /**
@@ -249,25 +225,10 @@ public class Task {
      * Following Effective Java Item 34: Use enums instead of int constants
      */
     public enum TaskStatus {
-        QUEUEING("queueing"),
-        PROCESSING("processing"),
-        COMPLETED("completed"),
-        CANCELLED("cancelled"),
-        FAILED("failed");
-        
-        private final String value;
-        
-        TaskStatus(final String value) {
-            this.value = value;
-        }
-        
-        public String getValue() {
-            return value;
-        }
-        
-        @Override
-        public String toString() {
-            return value;
-        }
+        QUEUEING,
+        PROCESSING,
+        COMPLETED,
+        CANCELLED,
+        FAILED
     }
 } 
