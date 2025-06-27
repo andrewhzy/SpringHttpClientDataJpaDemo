@@ -115,21 +115,21 @@ components:
     # Enum Schemas
     TaskStatus:
       type: string
-      enum: [queueing, processing, completed, cancelled, failed]
+      enum: [QUEUEING, PROCESSING, COMPLETED, CANCELLED, FAILED]
       description: |
         Task status values:
-        - queueing: Task created with parsed data, waiting for background processing
-        - processing: Background processing is executing on the parsed rows
-        - completed: All rows processed successfully
-        - cancelled: Task cancelled by user
-        - failed: Background processing failed with error
+        - QUEUEING: Task created with parsed data, waiting for background processing
+        - PROCESSING: Background processing is executing on the parsed rows
+        - COMPLETED: All rows processed successfully
+        - CANCELLED: Task cancelled by user
+        - FAILED: Background processing failed with error
 
     TaskType:
       type: string
-      enum: [chat-evaluation]
+      enum: [CHAT_EVALUATION]
       description: |
         Task type values:
-        - chat-evaluation: Chat evaluation task with questions and expected answers
+        - CHAT_EVALUATION: Chat evaluation task with questions and expected answers
 
     # Core Task Schema
     Task: 
@@ -472,7 +472,7 @@ paths:
                     error:
                       code: "INVALID_TASK_TYPE"
                       message: "Invalid task_type value"
-                      details: "task_type must be 'chat-evaluation'. Received: 'unknown-type'"
+                      details: "task_type must be 'CHAT_EVALUATION'. Received: 'unknown-type'"
                       timestamp: "2024-01-15T14:30:00Z"
                       request_id: "request_12345"
                       user_id: "user_123"
@@ -597,7 +597,7 @@ paths:
                     error:
                       code: "INVALID_TASK_TYPE"
                       message: "Invalid task_type filter"
-                      details: "task_type must be 'chat-evaluation'. Received: 'unknown-type'"
+                      details: "task_type must be 'CHAT_EVALUATION'. Received: 'unknown-type'"
                       timestamp: "2024-01-15T14:30:00Z"
                       request_id: "request_12345"
                       user_id: "user_123"
@@ -633,7 +633,7 @@ paths:
       summary: Cancel task
       operationId: cancelTask
       description: |
-        Cancel a task by setting cancelled=true. Only tasks in 'queueing' or 'processing'
+        Cancel a task by setting cancelled=true. Only tasks in 'QUEUEING' or 'PROCESSING'
         status can be cancelled. Only task owners can cancel their tasks.
       parameters:
         - name: cancelled
@@ -696,7 +696,7 @@ paths:
         Delete a task permanently. This will remove the task record and 
         associated structured data from input and output tables. 
         Only task owners can delete their tasks.
-        Tasks in 'processing' status cannot be deleted.
+        Tasks in 'PROCESSING' status cannot be deleted.
       responses:
         '204':
           description: Task deleted successfully
@@ -750,7 +750,7 @@ paths:
         - **Citation_Evaluation**: Citation relevance and accuracy analysis
         
         **Requirements:**
-        - Task must be in 'completed' status
+        - Task must be in 'COMPLETED' status
         - User must be the task owner
         - Results must be available (background processing finished successfully)
         
@@ -799,7 +799,7 @@ paths:
                     error:
                       code: "TASK_NOT_COMPLETED"
                       message: "Evaluation results not available for download"
-                      details: "Task is still processing. Current status: processing (75/150 rows completed)"
+                      details: "Task is still processing. Current status: PROCESSING (75/150 rows completed)"
                       timestamp: "2024-01-15T14:30:00Z"
                       request_id: "request_12345"
                       user_id: "user_123"
@@ -854,7 +854,7 @@ paths:
                 items:
                   type: string
                 description: Array of available task type identifiers
-                example: ["chat-evaluation", "url-cleaning"]
+                example: ["CHAT_EVALUATION", "URL_CLEANING"]
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
