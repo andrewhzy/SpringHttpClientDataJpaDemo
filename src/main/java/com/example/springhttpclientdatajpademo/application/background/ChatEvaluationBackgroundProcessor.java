@@ -190,7 +190,7 @@ public class ChatEvaluationBackgroundProcessor {
      * @return true if successfully marked as processing
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    protected boolean markTaskAsProcessing(final Task task) {
+    boolean markTaskAsProcessing(final Task task) {
         try {
             // Refresh the task from database first
             final Optional<Task> currentTask = taskRepository.findById(task.getId());
@@ -227,7 +227,7 @@ public class ChatEvaluationBackgroundProcessor {
      * @param task the task
      * @return list of task items
      */
-    protected List<ChatEvaluationTaskItem> getTaskItems(final Task task) {
+    List<ChatEvaluationTaskItem> getTaskItems(final Task task) {
         return taskItemRepository.findByTaskOrderByIdAsc(task);
     }
     
@@ -237,7 +237,7 @@ public class ChatEvaluationBackgroundProcessor {
      * @param task the task to check
      * @return true if task is cancelled
      */
-    protected boolean isTaskCancelled(final Task task) {
+    boolean isTaskCancelled(final Task task) {
         final Optional<Task> currentTask = taskRepository.findById(task.getId());
         return currentTask.isPresent() && 
                currentTask.get().getTaskStatus() == Task.TaskStatus.CANCELLED;
@@ -251,7 +251,7 @@ public class ChatEvaluationBackgroundProcessor {
      * @param processedRows number of processed rows
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    protected void updateTaskProgress(final Task task, final int processedRows) {
+    void updateTaskProgress(final Task task, final int processedRows) {
         try {
             taskRepository.updateTaskProgress(task.getId(), processedRows);
             task.setProcessedRows(processedRows); // Update entity state
@@ -268,7 +268,7 @@ public class ChatEvaluationBackgroundProcessor {
      * @param task the task to complete
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    protected void markTaskAsCompleted(final Task task) {
+    void markTaskAsCompleted(final Task task) {
         try {
             task.markAsCompleted();
             taskRepository.save(task);
@@ -287,7 +287,7 @@ public class ChatEvaluationBackgroundProcessor {
      * @param errorMessage the error message
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    protected void markTaskAsFailed(final Task task, final String errorMessage) {
+    void markTaskAsFailed(final Task task, final String errorMessage) {
         try {
             task.markAsFailed(errorMessage);
             taskRepository.save(task);
