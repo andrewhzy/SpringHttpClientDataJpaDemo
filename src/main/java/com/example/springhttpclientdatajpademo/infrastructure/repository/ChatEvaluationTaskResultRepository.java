@@ -10,13 +10,13 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository interface for ChatEvaluationOutput entity
+ * Repository interface for ChatEvaluationTaskResult entity
  * Provides data access operations for chat evaluation results
  * 
  * Following Spring Data JPA conventions and best practices
  */
 @Repository
-public interface ChatEvaluationOutputRepository extends JpaRepository<ChatEvaluationTaskResult, Long> {
+public interface ChatEvaluationTaskResultRepository extends JpaRepository<ChatEvaluationTaskResult, Long> {
     
     /**
      * Find all outputs for a specific task ID

@@ -19,7 +19,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -69,7 +68,7 @@ public class ChatEvaluationTaskService implements TaskService {
             chatEvaluationExcelParsingService.validateExcelFile(command.getFile());
 
             // 3. Parse Excel file and extract data separated by sheets
-            final Map<String, List<ChatEvaluationTaskItem>> parsedDataBySheet = chatEvaluationExcelParsingService.parseExcelFileBySheets(command.getFile());
+            final Map<String, List<ChatEvaluationTaskItem>> parsedDataBySheet = chatEvaluationExcelParsingService.parseExcelFile(command.getFile());
 
             if (parsedDataBySheet.isEmpty()) {
                 throw new TaskValidationException("No valid data found in Excel file");

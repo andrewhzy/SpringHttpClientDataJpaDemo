@@ -1,4 +1,4 @@
-package com.example.springhttpclientdatajpademo.application.service;
+package com.example.springhttpclientdatajpademo.application.background;
 
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskItem;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskResult;

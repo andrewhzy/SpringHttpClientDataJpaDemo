@@ -1,5 +1,6 @@
 package com.example.springhttpclientdatajpademo.application.service;
 
+import com.example.springhttpclientdatajpademo.application.background.ChatEvaluationBackgroundProcessor;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskItem;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskResult;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.service.ChatEvaluationService;

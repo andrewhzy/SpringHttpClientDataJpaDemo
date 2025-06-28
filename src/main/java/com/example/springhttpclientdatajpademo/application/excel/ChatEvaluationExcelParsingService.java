@@ -1,5 +1,6 @@
 package com.example.springhttpclientdatajpademo.application.excel;
 
+import com.example.springhttpclientdatajpademo.domain.TaskItem;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskItem;
 import com.example.springhttpclientdatajpademo.domain.task.Task;
 import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
  */
 @Service()
 @Slf4j
-public class ChatEvaluationExcelParsingService implements ExcelParsingService {
+public class ChatEvaluationExcelParsingService implements ExcelParsingService<ChatEvaluationTaskItem> {
 
     // API specification constants
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -36,63 +37,16 @@ public class ChatEvaluationExcelParsingService implements ExcelParsingService {
     private static final String GOLDEN_CITATIONS_COLUMN = "golden_citations";
     private final TaskType TASK_TYPE = Task.TaskType.CHAT_EVALUATION;
 
-    @Override
-    public List<ChatEvaluationTaskItem> parseExcelFile(MultipartFile file) {
-        log.info("Parsing Excel file: {}, size: {} bytes", file.getOriginalFilename(), file.getSize());
-
-        // Validate file first
-        validateExcelFile(file);
-
-        List<ChatEvaluationTaskItem> result = new ArrayList<>();
-
-        try (InputStream inputStream = file.getInputStream();
-             Workbook workbook = createWorkbook(inputStream, file.getOriginalFilename())) {
-
-            int numberOfSheets = workbook.getNumberOfSheets();
-            log.info("Found {} sheets in Excel file", numberOfSheets);
-
-            for (int i = 0; i < numberOfSheets; i++) {
-                Sheet sheet = workbook.getSheetAt(i);
-                String sheetName = sheet.getSheetName();
-
-                log.info("Processing sheet: {}", sheetName);
-
-                if (isValidChatEvaluationSheet(sheet)) {
-                    List<ChatEvaluationTaskItem> sheetData = parseSheet(sheet);
-                    if (!sheetData.isEmpty()) {
-                        result.addAll(sheetData);
-                        log.info("Successfully parsed {} records from sheet: {}", sheetData.size(), sheetName);
-                    } else {
-                        log.warn("Sheet {} contains no valid data rows", sheetName);
-                    }
-                } else {
-                    log.warn("Skipping sheet {} - invalid format or missing required columns", sheetName);
-                }
-            }
-
-            if (result.isEmpty()) {
-                throw new IllegalArgumentException("No valid chat evaluation sheets found in Excel file. " +
-                        "Excel must contain sheets with required columns: question, golden_answer, golden_citations");
-            }
-
-            log.info("Successfully parsed {} records from {} sheets", result.size(), numberOfSheets);
-
-            return result;
-
-        } catch (IOException e) {
-            log.error("Failed to parse Excel file: {}", file.getOriginalFilename(), e);
-            throw new IllegalArgumentException("Failed to parse Excel file: " + e.getMessage(), e);
-        }
-    }
 
     /**
      * Parse Excel file and return data separated by sheet names
      * This method preserves the sheet structure for creating separate tasks per sheet
-     * 
+     *
      * @param file the Excel file to parse
      * @return Map where key is sheet name and value is list of parsed inputs from that sheet
      */
-    public Map<String, List<ChatEvaluationTaskItem>> parseExcelFileBySheets(MultipartFile file) {
+    @Override
+    public Map<String, List<ChatEvaluationTaskItem>> parseExcelFile(MultipartFile file) {
         log.info("Parsing Excel file by sheets: {}, size: {} bytes", file.getOriginalFilename(), file.getSize());
 
         // Validate file first

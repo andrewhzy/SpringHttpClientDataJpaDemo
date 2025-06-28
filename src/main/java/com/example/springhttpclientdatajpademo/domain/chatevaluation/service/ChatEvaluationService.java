@@ -8,7 +8,7 @@ import com.example.springhttpclientdatajpademo.infrastructure.client.GleanServic
 import com.example.springhttpclientdatajpademo.infrastructure.client.GleanServiceException;
 import com.example.springhttpclientdatajpademo.infrastructure.client.LlmSimilarityServiceClient;
 import com.example.springhttpclientdatajpademo.infrastructure.client.LlmSimilarityServiceException;
-import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationOutputRepository;
+import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationTaskResultRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.annotation.Backoff;
@@ -40,7 +40,7 @@ public class ChatEvaluationService {
     
     private final GleanServiceClient gleanServiceClient;
     private final LlmSimilarityServiceClient llmSimilarityServiceClient;
-    private final ChatEvaluationOutputRepository outputRepository;
+    private final ChatEvaluationTaskResultRepository outputRepository;
     
     /**
      * Evaluate a single chat taskItem and store the results

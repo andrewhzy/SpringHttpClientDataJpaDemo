@@ -5,6 +5,7 @@ import com.example.springhttpclientdatajpademo.domain.task.Task;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Service interface for parsing Excel files for chat evaluation tasks
@@ -13,8 +14,10 @@ import java.util.List;
  * Note: This interface does not declare checked exceptions.
  * Implementations should convert any checked exceptions to appropriate
  * unchecked exceptions for clean client code.
+ * 
+ * @param <T> the specific TaskItem type that this service handles
  */
-public interface ExcelParsingService {
+public interface ExcelParsingService<T extends TaskItem> {
 
     /**
      * Parse Excel file and extract chat evaluation data from all sheets
@@ -30,7 +33,7 @@ public interface ExcelParsingService {
      * @return flattened list of all input records from all valid sheets
      * @throws RuntimeException if file cannot be read or parsed (unchecked)
      */
-    List<? extends TaskItem> parseExcelFile(MultipartFile file);
+    Map<String, List<T>> parseExcelFile(MultipartFile file);
 
     /**
      * Validate Excel file format and structure
