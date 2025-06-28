@@ -1,13 +1,9 @@
 package com.example.springhttpclientdatajpademo.domain.chatevaluation.model;
 
-import com.example.springhttpclientdatajpademo.domain.Output;
+import com.example.springhttpclientdatajpademo.domain.TaskResult;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -27,24 +23,25 @@ import java.util.Objects;
  * - Item 17: Minimize mutability where possible
  */
 @Entity
-@Table(name = "chat_evaluation_outputs", indexes = {
-    @Index(name = "idx_chat_eval_output_input_id", columnList = "input_id")
+@Table(name = "chat_evaluation_task_results", indexes = {
+@Index(name = "idx_chat_eval_output_task_item_id", columnList = "task_item_id")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA requirement
 @AllArgsConstructor(access = AccessLevel.PRIVATE)  // Builder usage only
 @Builder
-public class ChatEvaluationOutput implements Output {
+public class ChatEvaluationTaskResult implements TaskResult {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
     private Long id;
-    
+
+    @Setter
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "input_id", nullable = false)
+    @JoinColumn(name = "task_item_id", nullable = false)
     @JsonIgnore
-    private ChatEvaluationInput input;
+    private ChatEvaluationTaskItem taskItem;
     
     @Column(name = "api_answer", nullable = false, columnDefinition = "TEXT")
     private String apiAnswer;
@@ -69,42 +66,6 @@ public class ChatEvaluationOutput implements Output {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    
-    /**
-     * Set the input for this chat evaluation output
-     * Required for entity relationship management
-     */
-    public void setInput(final ChatEvaluationInput input) {
-        this.input = input;
-    }
-    
-    /**
-     * Get the task ID from the associated input
-     */
-    public Long getTaskId() {
-        return input != null && input.getTask() != null ? input.getTask().getId() : null;
-    }
-    
-    /**
-     * Get the question from the associated input
-     */
-    public String getQuestion() {
-        return input != null ? input.getQuestion() : null;
-    }
-    
-    /**
-     * Get the golden answer from the associated input
-     */
-    public String getGoldenAnswer() {
-        return input != null ? input.getGoldenAnswer() : null;
-    }
-    
-    /**
-     * Get the golden citations from the associated input
-     */
-    public List<String> getGoldenCitations() {
-        return input != null ? input.getGoldenCitations() : null;
-    }
     
     /**
      * Check if this result indicates a good match
@@ -135,9 +96,9 @@ public class ChatEvaluationOutput implements Output {
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        final ChatEvaluationOutput that = (ChatEvaluationOutput) obj;
+        final ChatEvaluationTaskResult that = (ChatEvaluationTaskResult) obj;
         // Use business key for equality - input should be unique
-        return Objects.equals(input, that.input);
+        return Objects.equals(taskItem, that.taskItem);
     }
     
     /**
@@ -147,6 +108,6 @@ public class ChatEvaluationOutput implements Output {
     @Override
     public int hashCode() {
         // Use business key for hash code, not id
-        return Objects.hash(input);
+        return Objects.hash(taskItem);
     }
 } 

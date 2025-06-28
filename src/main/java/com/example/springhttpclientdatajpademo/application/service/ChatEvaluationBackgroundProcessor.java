@@ -1,10 +1,10 @@
 package com.example.springhttpclientdatajpademo.application.service;
 
-import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
-import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationOutput;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskItem;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskResult;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.service.ChatEvaluationService;
 import com.example.springhttpclientdatajpademo.domain.task.Task;
-import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationInputRepository;
+import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationTaskItemRepository;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +41,7 @@ import java.util.Optional;
 public class ChatEvaluationBackgroundProcessor {
     
     private final TaskRepository taskRepository;
-    private final ChatEvaluationInputRepository inputRepository;
+    private final ChatEvaluationTaskItemRepository taskItemRepository;
     private final ChatEvaluationService chatEvaluationService;
     
     /**
@@ -99,21 +99,21 @@ public class ChatEvaluationBackgroundProcessor {
                 return;
             }
             
-            // Step 2: Get all input data for this task
-            final List<ChatEvaluationInput> inputs = getTaskInputs(task);
+            // Step 2: Get all task items for this task
+            final List<ChatEvaluationTaskItem> taskItems = getTaskItems(task);
             
-            if (inputs.isEmpty()) {
-                log.error("No input data found for task: {}", task.getId());
-                markTaskAsFailed(task, "No input data available for processing");
+            if (taskItems.isEmpty()) {
+                log.error("No task items found for task: {}", task.getId());
+                markTaskAsFailed(task, "No task items available for processing");
                 return;
             }
             
-            log.info("Processing task {} with {} input rows", task.getId(), inputs.size());
+            log.info("Processing task {} with {} task items", task.getId(), taskItems.size());
             
-            // Step 3: Process each input row sequentially
+            // Step 3: Process each task item sequentially
             int processedCount = task.getProcessedRows();
             
-            for (final ChatEvaluationInput input : inputs) {
+            for (final ChatEvaluationTaskItem taskItem : taskItems) {
                 // Check if task was cancelled during processing
                 if (isTaskCancelled(task)) {
                     log.info("Task {} was cancelled during processing. Stopping at row {}",
@@ -122,33 +122,33 @@ public class ChatEvaluationBackgroundProcessor {
                     return;
                 }
                 
-                // Skip already processed inputs (for resume capability)
-                if (chatEvaluationService.isAlreadyEvaluated(input)) {
-                    log.debug("Input {} already evaluated, skipping", input.getId());
+                // Skip already processed task items (for resume capability)
+                if (chatEvaluationService.isAlreadyEvaluated(taskItem)) {
+                    log.debug("Task item {} already evaluated, skipping", taskItem.getId());
                     processedCount++;
                     continue;
                 }
                 
                 try {
-                    // Process the individual input
-                    log.debug("Processing input {} for task {}", input.getId(), task.getId());
+                    // Process the individual task item
+                    log.debug("Processing task item {} for task {}", taskItem.getId(), task.getId());
                     
-                    final ChatEvaluationOutput output = chatEvaluationService.evaluateInput(input);
+                    final ChatEvaluationTaskResult output = chatEvaluationService.evaluateInput(taskItem);
                     
                     processedCount++;
                     
                     // Update progress after each successful processing
                     updateTaskProgress(task, processedCount);
                     
-                    log.debug("Completed processing input {}. Progress: {}/{} ({}%)",
-                            input.getId(), processedCount, inputs.size(),
+                    log.debug("Completed processing task item {}. Progress: {}/{} ({}%)",
+                            taskItem.getId(), processedCount, taskItems.size(),
                             task.getProgressPercentage());
                     
                 } catch (ChatEvaluationService.ChatEvaluationException e) {
                     // Handle evaluation failures - mark task as failed
                     final String errorMessage = String.format(
-                        "Chat evaluation failed on input %d (ID: %d): %s",
-                        processedCount + 1, input.getId(), e.getMessage()
+                        "Chat evaluation failed on task item %d (ID: %d): %s",
+                        processedCount + 1, taskItem.getId(), e.getMessage()
                     );
                     
                     log.error("Processing failed for task {}: {}", task.getId(), errorMessage, e);
@@ -159,8 +159,8 @@ public class ChatEvaluationBackgroundProcessor {
                 } catch (Exception e) {
                     // Handle unexpected errors
                     final String errorMessage = String.format(
-                        "Unexpected error processing input %d (ID: %d): %s",
-                        processedCount + 1, input.getId(), e.getMessage()
+                        "Unexpected error processing task item %d (ID: %d): %s",
+                        processedCount + 1, taskItem.getId(), e.getMessage()
                     );
                     
                     log.error("Unexpected error for task {}: {}", task.getId(), errorMessage, e);
@@ -222,13 +222,13 @@ public class ChatEvaluationBackgroundProcessor {
     }
     
     /**
-     * Get all input data for a task, ordered by ID for consistent processing
+     * Get all task items for a task, ordered by ID for consistent processing
      * 
      * @param task the task
-     * @return list of input data
+     * @return list of task items
      */
-    protected List<ChatEvaluationInput> getTaskInputs(final Task task) {
-        return inputRepository.findByTaskOrderByIdAsc(task);
+    protected List<ChatEvaluationTaskItem> getTaskItems(final Task task) {
+        return taskItemRepository.findByTaskOrderByIdAsc(task);
     }
     
     /**

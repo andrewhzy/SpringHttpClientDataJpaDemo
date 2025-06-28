@@ -4,10 +4,10 @@ import com.example.springhttpclientdatajpademo.application.dto.*;
 import com.example.springhttpclientdatajpademo.application.excel.ChatEvaluationExcelParsingService;
 import com.example.springhttpclientdatajpademo.application.exception.FileProcessingException;
 import com.example.springhttpclientdatajpademo.application.exception.TaskValidationException;
-import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskItem;
 import com.example.springhttpclientdatajpademo.domain.task.Task;
 import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
-import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationInputRepository;
+import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationTaskItemRepository;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.TaskRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -35,15 +35,15 @@ import java.util.stream.Collectors;
 public class ChatEvaluationTaskService implements TaskService {
 
     private final TaskRepository taskRepository;
-    private final ChatEvaluationInputRepository inputRepository;
+    private final ChatEvaluationTaskItemRepository taskItemRepository;
     private final ChatEvaluationExcelParsingService chatEvaluationExcelParsingService;
 
     public ChatEvaluationTaskService(
             TaskRepository taskRepository,
-            ChatEvaluationInputRepository inputRepository,
+            ChatEvaluationTaskItemRepository taskItemRepository,
             ChatEvaluationExcelParsingService chatEvaluationExcelParsingService) {
         this.taskRepository = taskRepository;
-        this.inputRepository = inputRepository;
+        this.taskItemRepository = taskItemRepository;
         this.chatEvaluationExcelParsingService = chatEvaluationExcelParsingService;
     }
 
@@ -69,27 +69,21 @@ public class ChatEvaluationTaskService implements TaskService {
             chatEvaluationExcelParsingService.validateExcelFile(command.getFile());
 
             // 3. Parse Excel file and extract data separated by sheets
-            final Map<String, List<ChatEvaluationInput>> parsedDataBySheet = chatEvaluationExcelParsingService.parseExcelFileBySheets(command.getFile());
+            final Map<String, List<ChatEvaluationTaskItem>> parsedDataBySheet = chatEvaluationExcelParsingService.parseExcelFileBySheets(command.getFile());
 
             if (parsedDataBySheet.isEmpty()) {
                 throw new TaskValidationException("No valid data found in Excel file");
             }
 
-            // 3. Generate upload batch ID using UUID for better uniqueness
-            final String uploadBatchId = UUID.randomUUID().toString();
-
-            // Convert to Long for database storage (using hash of UUID for uniqueness)
-            final Long uploadBatchIdLong = Math.abs(uploadBatchId.hashCode() % 10000000L) + 1000000L;
-
             // 4. Create tasks for each sheet
             final List<UploadResponse.TaskSummary> taskSummaries = new ArrayList<>();
             int totalQuestions = 0;
 
-            for (Map.Entry<String, List<ChatEvaluationInput>> entry : parsedDataBySheet.entrySet()) {
+            for (Map.Entry<String, List<ChatEvaluationTaskItem>> entry : parsedDataBySheet.entrySet()) {
                 final String sheetName = entry.getKey();
-                final List<ChatEvaluationInput> sheetInputs = entry.getValue();
+                final List<ChatEvaluationTaskItem> taskItems = entry.getValue();
 
-                if (sheetInputs.isEmpty()) {
+                if (taskItems.isEmpty()) {
                     continue;
                 }
 
@@ -100,16 +94,15 @@ public class ChatEvaluationTaskService implements TaskService {
                         .sheetName(sheetName)
                         .taskType(taskType)
                         .taskStatus(Task.TaskStatus.QUEUEING)
-                        .uploadBatchId(uploadBatchIdLong)
-                        .rowCount(sheetInputs.size())
+                        .rowCount(taskItems.size())
                         .build();
 
                 // Save task first to get ID
                 final Task savedTask = taskRepository.save(task);
 
                 // Associate all inputs with the task and save them
-                sheetInputs.forEach(input -> input.setTask(savedTask));
-                inputRepository.saveAll(sheetInputs);
+                taskItems.forEach(taskItem -> taskItem.setTask(savedTask));
+                taskItemRepository.saveAll(taskItems);
 
                 // Create task summary
                 final UploadResponse.TaskSummary taskSummary = UploadResponse.TaskSummary.builder()
@@ -118,13 +111,13 @@ public class ChatEvaluationTaskService implements TaskService {
                         .sheetName(sheetName)
                         .taskType(taskType)
                         .status(Task.TaskStatus.QUEUEING)
-                        .rowCount(sheetInputs.size())
+                        .rowCount(taskItems.size())
                         .build();
 
                 taskSummaries.add(taskSummary);
-                totalQuestions += sheetInputs.size();
+                totalQuestions += taskItems.size();
 
-                log.info("Created task for sheet '{}' with {} questions", sheetName, sheetInputs.size());
+                log.info("Created task for sheet '{}' with {} questions", sheetName, taskItems.size());
             }
 
             log.info("Created {} tasks with {} total questions from {} sheets",
@@ -132,7 +125,6 @@ public class ChatEvaluationTaskService implements TaskService {
 
             // 5. Build response
             final UploadResponse response = UploadResponse.builder()
-                    .uploadBatchId(uploadBatchId)
                     .filename(command.getFile().getOriginalFilename())
                     .tasks(taskSummaries)
                     .totalSheets(taskSummaries.size())
@@ -261,7 +253,6 @@ public class ChatEvaluationTaskService implements TaskService {
                 .sheetName(task.getSheetName())
                 .taskType(task.getTaskType())
                 .taskStatus(task.getTaskStatus())
-                .uploadBatchId(task.getUploadBatchId().toString())
                 .rowCount(task.getRowCount())
                 .processedRows(task.getProcessedRows())
                 .progressPercentage(task.getProgressPercentage())

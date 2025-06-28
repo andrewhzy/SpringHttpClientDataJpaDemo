@@ -15,7 +15,7 @@ spring:
   # JPA/Hibernate Configuration for MariaDB Development
   jpa:
     hibernate:
-      ddl-auto: update  # Keep tables and data between restarts
+      ddl-auto: create-drop  # Keep tables and data between restarts
     show-sql: true  # Show SQL queries for debugging
     properties:
       hibernate:

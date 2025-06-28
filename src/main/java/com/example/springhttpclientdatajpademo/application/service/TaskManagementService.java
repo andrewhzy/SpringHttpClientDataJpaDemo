@@ -89,8 +89,8 @@ public class TaskManagementService {
         if (taskService instanceof ChatEvaluationTaskService) {
             ChatEvaluationTaskService chatService = (ChatEvaluationTaskService) taskService;
             return chatService.listUserTasks(listTasksCommand);
-        }
-        
+    }
+
         throw new UnsupportedOperationException("Task listing not yet implemented for task type: " + 
                 listTasksCommand.getTaskType());
     }

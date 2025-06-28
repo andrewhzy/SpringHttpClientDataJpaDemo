@@ -1,7 +1,7 @@
 package com.example.springhttpclientdatajpademo.application.excel;
 
 import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
-import com.example.springhttpclientdatajpademo.domain.urlcleaning.model.UrlCleaningInput;
+import com.example.springhttpclientdatajpademo.domain.urlcleaning.model.UrlCleaningTaskItem;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,7 +14,7 @@ public class UrlCleaningExcelParsingService implements ExcelParsingService {
     private final TaskType TASK_TYPE = TaskType.URL_CLEANING;
 
     @Override
-    public List<UrlCleaningInput> parseExcelFile(MultipartFile file) {
+    public List<UrlCleaningTaskItem> parseExcelFile(MultipartFile file) {
         // TODO: Implement the logic to parse the Excel file and return a list of UrlCleaningInput objects
         return new ArrayList<>();
     }

@@ -1,6 +1,6 @@
 package com.example.springhttpclientdatajpademo.application.excel;
 
-import com.example.springhttpclientdatajpademo.domain.Input;
+import com.example.springhttpclientdatajpademo.domain.TaskItem;
 import com.example.springhttpclientdatajpademo.domain.task.Task;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,7 +30,7 @@ public interface ExcelParsingService {
      * @return flattened list of all input records from all valid sheets
      * @throws RuntimeException if file cannot be read or parsed (unchecked)
      */
-    List<? extends Input> parseExcelFile(MultipartFile file);
+    List<? extends TaskItem> parseExcelFile(MultipartFile file);
 
     /**
      * Validate Excel file format and structure

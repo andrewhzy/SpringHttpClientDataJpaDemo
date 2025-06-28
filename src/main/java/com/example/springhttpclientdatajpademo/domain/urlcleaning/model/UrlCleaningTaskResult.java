@@ -1,6 +1,6 @@
 package com.example.springhttpclientdatajpademo.domain.urlcleaning.model;
 
-import com.example.springhttpclientdatajpademo.domain.Output;
+import com.example.springhttpclientdatajpademo.domain.TaskResult;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -9,12 +9,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "urlCleaning_outputs")
+@Table(name = "url_cleaning_task_results")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder        
-public class UrlCleaningOutput implements Output {
+public class UrlCleaningTaskResult implements TaskResult {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

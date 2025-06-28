@@ -61,7 +61,7 @@ public class TaskController {
                 .build();
         UploadResponse response = taskManagementService.createTaskFromExcel(createTaskCommand);
 
-        log.info("Task upload completed successfully: batch={}, tasks={}", response.getUploadBatchId(), response.getTotalSheets());
+                    log.info("Task upload completed successfully: tasks={}", response.getTotalSheets());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

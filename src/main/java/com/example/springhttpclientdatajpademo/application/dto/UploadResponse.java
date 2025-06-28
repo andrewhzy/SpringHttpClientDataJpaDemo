@@ -20,9 +20,6 @@ import java.util.List;
 @AllArgsConstructor
 public class UploadResponse {
     
-    @JsonProperty("upload_batch_id")
-    private String uploadBatchId;
-    
     @JsonProperty("filename")
     private String filename;
     

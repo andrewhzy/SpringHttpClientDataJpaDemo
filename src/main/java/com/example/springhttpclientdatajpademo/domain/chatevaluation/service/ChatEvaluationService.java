@@ -1,7 +1,7 @@
 package com.example.springhttpclientdatajpademo.domain.chatevaluation.service;
 
-import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
-import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationOutput;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskItem;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskResult;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.GleanApiResponse;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.LlmSimilarityResponse;
 import com.example.springhttpclientdatajpademo.infrastructure.client.GleanServiceClient;
@@ -16,7 +16,6 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,9 +43,9 @@ public class ChatEvaluationService {
     private final ChatEvaluationOutputRepository outputRepository;
     
     /**
-     * Evaluate a single chat input and store the results
+     * Evaluate a single chat taskItem and store the results
      * 
-     * @param input the chat evaluation input to process
+     * @param taskItem the chat evaluation taskItem to process
      * @return the evaluation output with similarity scores
      * @throws ChatEvaluationException if evaluation fails after retries
      */
@@ -56,21 +55,21 @@ public class ChatEvaluationService {
         maxAttempts = 3,
         backoff = @Backoff(delay = 1000, multiplier = 2.0)
     )
-    public ChatEvaluationOutput evaluateInput(final ChatEvaluationInput input) {
-        log.info("Starting evaluation for input ID: {} from task: {}", 
-                input.getId(), input.getTask().getId());
+    public ChatEvaluationTaskResult evaluateInput(final ChatEvaluationTaskItem taskItem) {
+        log.info("Starting evaluation for taskItem ID: {} from task: {}",
+                taskItem.getId(), taskItem.getTask().getId());
         
         final long startTime = System.currentTimeMillis();
         
         try {
             // Mark evaluation as started
-            input.markEvaluationStarted();
+            taskItem.markEvaluationStarted();
             
             // Step 1: Get API response from Glean Platform Services
             log.debug("Calling Glean API for question: {}", 
-                     input.getQuestion().substring(0, Math.min(50, input.getQuestion().length())));
+                     taskItem.getQuestion().substring(0, Math.min(50, taskItem.getQuestion().length())));
             
-            final GleanApiResponse gleanResponse = gleanServiceClient.askQuestion(input.getQuestion());
+            final GleanApiResponse gleanResponse = gleanServiceClient.askQuestion(taskItem.getQuestion());
             
             if (!gleanResponse.isSuccessful()) {
                 throw new ChatEvaluationException(
@@ -81,7 +80,7 @@ public class ChatEvaluationService {
             // Step 2: Calculate answer similarity
             log.debug("Calculating answer similarity");
             final LlmSimilarityResponse answerSimilarity = llmSimilarityServiceClient.calculateSimilarity(
-                input.getGoldenAnswer(), 
+                taskItem.getGoldenAnswer(),
                 gleanResponse.getAnswer()
             );
             
@@ -94,7 +93,7 @@ public class ChatEvaluationService {
             // Step 3: Calculate citation similarity
             log.debug("Calculating citation similarity");
             final LlmSimilarityResponse citationSimilarity = llmSimilarityServiceClient.calculateCitationSimilarity(
-                input.getGoldenCitations(),
+                taskItem.getGoldenCitations(),
                 gleanResponse.getCitations()
             );
             
@@ -107,8 +106,8 @@ public class ChatEvaluationService {
             // Step 4: Create and save evaluation output
             final long processingTime = System.currentTimeMillis() - startTime;
             
-            final ChatEvaluationOutput output = ChatEvaluationOutput.builder()
-                    .input(input)
+            final ChatEvaluationTaskResult output = ChatEvaluationTaskResult.builder()
+                    .taskItem(taskItem)
                     .apiAnswer(gleanResponse.getAnswer())
                     .apiCitations(gleanResponse.getCitations())
                     .answerSimilarity(answerSimilarity.getSimilarity())
@@ -117,44 +116,44 @@ public class ChatEvaluationService {
                     .apiResponseMetadata(buildResponseMetadata(gleanResponse, answerSimilarity, citationSimilarity))
                     .build();
             
-            output.setInput(input);
+            output.setTaskItem(taskItem);
             
-            final ChatEvaluationOutput savedOutput = outputRepository.save(output);
+            final ChatEvaluationTaskResult savedOutput = outputRepository.save(output);
             
             // Mark evaluation as completed
-            input.markEvaluationCompleted();
+            taskItem.markEvaluationCompleted();
             
-            log.info("Completed evaluation for input ID: {} in {}ms. Answer similarity: {}, Citation similarity: {}",
-                    input.getId(), processingTime, 
+            log.info("Completed evaluation for taskItem ID: {} in {}ms. Answer similarity: {}, Citation similarity: {}",
+                    taskItem.getId(), processingTime,
                     answerSimilarity.getSimilarity(), citationSimilarity.getSimilarity());
             
             return savedOutput;
             
         } catch (Exception e) {
-            log.error("Evaluation failed for input ID: {} from task: {}. Error: {}", 
-                     input.getId(), input.getTask().getId(), e.getMessage(), e);
-            throw new ChatEvaluationException("Chat evaluation failed for input " + input.getId(), e);
+            log.error("Evaluation failed for taskItem ID: {} from task: {}. Error: {}",
+                     taskItem.getId(), taskItem.getTask().getId(), e.getMessage(), e);
+            throw new ChatEvaluationException("Chat evaluation failed for taskItem " + taskItem.getId(), e);
         }
     }
     
     /**
      * Check if an input has already been evaluated
      * 
-     * @param input the chat evaluation input
+     * @param taskItem the chat evaluation task item
      * @return true if output already exists
      */
-    public boolean isAlreadyEvaluated(final ChatEvaluationInput input) {
-        return outputRepository.existsByInputId(input.getId());
+    public boolean isAlreadyEvaluated(final ChatEvaluationTaskItem taskItem) {
+        return outputRepository.existsByTaskItemId(taskItem.getId());
     }
     
     /**
      * Get existing evaluation output for an input
      * 
-     * @param input the chat evaluation input
+     * @param taskItem the chat evaluation task item
      * @return the evaluation output if it exists
      */
-    public ChatEvaluationOutput getExistingOutput(final ChatEvaluationInput input) {
-        return outputRepository.findByInputId(input.getId()).orElse(null);
+    public ChatEvaluationTaskResult getExistingOutput(final ChatEvaluationTaskItem taskItem) {
+        return outputRepository.findByTaskItemId(taskItem.getId()).orElse(null);
     }
     
     /**

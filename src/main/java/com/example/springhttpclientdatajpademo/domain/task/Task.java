@@ -1,6 +1,6 @@
 package com.example.springhttpclientdatajpademo.domain.task;
 
-import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskItem;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -24,8 +24,7 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "tasks", indexes = {
-    @Index(name = "idx_tasks_user_id", columnList = "user_id"),
-    @Index(name = "idx_tasks_upload_batch_id", columnList = "upload_batch_id")
+    @Index(name = "idx_tasks_user_id", columnList = "user_id")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA requirement
@@ -55,9 +54,6 @@ public class Task {
     @Column(name = "task_status", nullable = false)
     @Builder.Default
     private TaskStatus taskStatus = TaskStatus.QUEUEING;
-    
-    @Column(name = "upload_batch_id", nullable = false)
-    private Long uploadBatchId;
     
     @Column(name = "row_count", nullable = false)
     @Builder.Default
@@ -92,7 +88,7 @@ public class Task {
     
     // One-to-many relationship with input data
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ChatEvaluationInput> inputData;
+    private List<ChatEvaluationTaskItem> inputData;
     
     /**
      * Mark task as started

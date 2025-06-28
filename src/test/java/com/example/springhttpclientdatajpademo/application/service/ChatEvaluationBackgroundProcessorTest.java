@@ -1,10 +1,10 @@
 package com.example.springhttpclientdatajpademo.application.service;
 
-import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
-import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationOutput;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskItem;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskResult;
 import com.example.springhttpclientdatajpademo.domain.chatevaluation.service.ChatEvaluationService;
 import com.example.springhttpclientdatajpademo.domain.task.Task;
-import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationInputRepository;
+import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationTaskItemRepository;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ class ChatEvaluationBackgroundProcessorTest {
     private TaskRepository taskRepository;
 
     @Mock
-    private ChatEvaluationInputRepository inputRepository;
+    private ChatEvaluationTaskItemRepository taskItemRepository;
 
     @Mock
     private ChatEvaluationService chatEvaluationService;
@@ -44,7 +44,7 @@ class ChatEvaluationBackgroundProcessorTest {
     private ChatEvaluationBackgroundProcessor processor;
 
     private Task testTask;
-    private List<ChatEvaluationInput> testInputs;
+    private List<ChatEvaluationTaskItem> testTaskItems;
 
     @BeforeEach
     void setUp() {
@@ -61,7 +61,7 @@ class ChatEvaluationBackgroundProcessorTest {
                 .build();
 
         // Create test inputs
-        ChatEvaluationInput input1 = ChatEvaluationInput.builder()
+        ChatEvaluationTaskItem input1 = ChatEvaluationTaskItem.builder()
                 .id(1L)
                 .task(testTask)
                 .question("What is AI?")
@@ -69,7 +69,7 @@ class ChatEvaluationBackgroundProcessorTest {
                 .goldenCitations(Arrays.asList("https://example.com/ai"))
                 .build();
 
-        ChatEvaluationInput input2 = ChatEvaluationInput.builder()
+        ChatEvaluationTaskItem input2 = ChatEvaluationTaskItem.builder()
                 .id(2L)
                 .task(testTask)
                 .question("What is ML?")
@@ -77,7 +77,7 @@ class ChatEvaluationBackgroundProcessorTest {
                 .goldenCitations(Arrays.asList("https://example.com/ml"))
                 .build();
 
-        testInputs = Arrays.asList(input1, input2);
+        testTaskItems = Arrays.asList(input1, input2);
     }
 
     @Test
@@ -119,7 +119,7 @@ class ChatEvaluationBackgroundProcessorTest {
                 Task.TaskType.CHAT_EVALUATION, 
                 Task.TaskStatus.QUEUEING, 
                 pageable);
-        verifyNoMoreInteractions(taskRepository, inputRepository, chatEvaluationService);
+        verifyNoMoreInteractions(taskRepository, taskItemRepository, chatEvaluationService);
     }
 
     @Test
@@ -161,16 +161,16 @@ class ChatEvaluationBackgroundProcessorTest {
     }
 
     @Test
-    void getTaskInputs_ShouldReturnInputsOrderedById() {
+    void getTaskItems_ShouldReturnInputsOrderedById() {
         // Given
-        when(inputRepository.findByTaskOrderByIdAsc(testTask))
-                .thenReturn(testInputs);
+        when(taskItemRepository.findByTaskOrderByIdAsc(testTask))
+                .thenReturn(testTaskItems);
 
         // When
-        List<ChatEvaluationInput> result = processor.getTaskInputs(testTask);
+        List<ChatEvaluationTaskItem> result = processor.getTaskItems(testTask);
 
         // Then
-        verify(inputRepository).findByTaskOrderByIdAsc(testTask);
+        verify(taskItemRepository).findByTaskOrderByIdAsc(testTask);
         assert result.size() == 2;
         assert result.get(0).getId().equals(1L);
         assert result.get(1).getId().equals(2L);
@@ -264,18 +264,18 @@ class ChatEvaluationBackgroundProcessorTest {
                 .thenReturn(Optional.of(dbTask));
         when(taskRepository.save(any(Task.class)))
                 .thenReturn(dbTask);
-        when(inputRepository.findByTaskOrderByIdAsc(testTask))
-                .thenReturn(testInputs);
+        when(taskItemRepository.findByTaskOrderByIdAsc(testTask))
+                .thenReturn(testTaskItems);
         when(chatEvaluationService.isAlreadyEvaluated(any()))
                 .thenReturn(false);
         
         // Mock successful evaluation outputs
-        ChatEvaluationOutput output1 = mockChatEvaluationOutput(testInputs.get(0));
-        ChatEvaluationOutput output2 = mockChatEvaluationOutput(testInputs.get(1));
+        ChatEvaluationTaskResult output1 = mockChatEvaluationTaskResult(testTaskItems.get(0));
+        ChatEvaluationTaskResult output2 = mockChatEvaluationTaskResult(testTaskItems.get(1));
         
-        when(chatEvaluationService.evaluateInput(testInputs.get(0)))
+        when(chatEvaluationService.evaluateInput(testTaskItems.get(0)))
                 .thenReturn(output1);
-        when(chatEvaluationService.evaluateInput(testInputs.get(1)))
+        when(chatEvaluationService.evaluateInput(testTaskItems.get(1)))
                 .thenReturn(output2);
 
         // When
@@ -283,10 +283,10 @@ class ChatEvaluationBackgroundProcessorTest {
 
         // Then - Verify the complete workflow
         verify(taskRepository, atLeast(1)).findById(testTask.getId());
-        verify(inputRepository).findByTaskOrderByIdAsc(testTask);
+        verify(taskItemRepository).findByTaskOrderByIdAsc(testTask);
         verify(chatEvaluationService, times(2)).isAlreadyEvaluated(any());
-        verify(chatEvaluationService).evaluateInput(testInputs.get(0));
-        verify(chatEvaluationService).evaluateInput(testInputs.get(1));
+        verify(chatEvaluationService).evaluateInput(testTaskItems.get(0));
+        verify(chatEvaluationService).evaluateInput(testTaskItems.get(1));
         verify(taskRepository, times(2)).updateTaskProgress(eq(testTask.getId()), anyInt());
         verify(taskRepository, atLeast(1)).save(any(Task.class));
         
@@ -294,10 +294,10 @@ class ChatEvaluationBackgroundProcessorTest {
         assert testTask.getCompletedAt() != null;
     }
 
-    private ChatEvaluationOutput mockChatEvaluationOutput(ChatEvaluationInput input) {
-        return ChatEvaluationOutput.builder()
+    private ChatEvaluationTaskResult mockChatEvaluationTaskResult(ChatEvaluationTaskItem input) {
+        return ChatEvaluationTaskResult.builder()
                 .id(input.getId())
-                .input(input)
+                .taskItem(input)
                 .apiAnswer("Mock API answer")
                 .apiCitations(Arrays.asList("https://mock-api.com/citation"))
                 .answerSimilarity(BigDecimal.valueOf(0.85))

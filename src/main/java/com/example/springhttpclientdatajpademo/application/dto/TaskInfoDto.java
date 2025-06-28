@@ -37,9 +37,6 @@ public class TaskInfoDto {
     @JsonProperty("task_status")
     private TaskStatus taskStatus;
     
-    @JsonProperty("upload_batch_id")
-    private String uploadBatchId;
-    
     @JsonProperty("row_count")
     private Integer rowCount;
     

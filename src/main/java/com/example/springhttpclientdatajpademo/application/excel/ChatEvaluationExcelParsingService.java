@@ -1,6 +1,6 @@
 package com.example.springhttpclientdatajpademo.application.excel;
 
-import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationInput;
+import com.example.springhttpclientdatajpademo.domain.chatevaluation.model.ChatEvaluationTaskItem;
 import com.example.springhttpclientdatajpademo.domain.task.Task;
 import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
 import lombok.extern.slf4j.Slf4j;
@@ -37,13 +37,13 @@ public class ChatEvaluationExcelParsingService implements ExcelParsingService {
     private final TaskType TASK_TYPE = Task.TaskType.CHAT_EVALUATION;
 
     @Override
-    public List<ChatEvaluationInput> parseExcelFile(MultipartFile file) {
+    public List<ChatEvaluationTaskItem> parseExcelFile(MultipartFile file) {
         log.info("Parsing Excel file: {}, size: {} bytes", file.getOriginalFilename(), file.getSize());
 
         // Validate file first
         validateExcelFile(file);
 
-        List<ChatEvaluationInput> result = new ArrayList<>();
+        List<ChatEvaluationTaskItem> result = new ArrayList<>();
 
         try (InputStream inputStream = file.getInputStream();
              Workbook workbook = createWorkbook(inputStream, file.getOriginalFilename())) {
@@ -58,7 +58,7 @@ public class ChatEvaluationExcelParsingService implements ExcelParsingService {
                 log.info("Processing sheet: {}", sheetName);
 
                 if (isValidChatEvaluationSheet(sheet)) {
-                    List<ChatEvaluationInput> sheetData = parseSheet(sheet);
+                    List<ChatEvaluationTaskItem> sheetData = parseSheet(sheet);
                     if (!sheetData.isEmpty()) {
                         result.addAll(sheetData);
                         log.info("Successfully parsed {} records from sheet: {}", sheetData.size(), sheetName);
@@ -92,13 +92,13 @@ public class ChatEvaluationExcelParsingService implements ExcelParsingService {
      * @param file the Excel file to parse
      * @return Map where key is sheet name and value is list of parsed inputs from that sheet
      */
-    public Map<String, List<ChatEvaluationInput>> parseExcelFileBySheets(MultipartFile file) {
+    public Map<String, List<ChatEvaluationTaskItem>> parseExcelFileBySheets(MultipartFile file) {
         log.info("Parsing Excel file by sheets: {}, size: {} bytes", file.getOriginalFilename(), file.getSize());
 
         // Validate file first
         validateExcelFile(file);
 
-        Map<String, List<ChatEvaluationInput>> result = new LinkedHashMap<>();
+        Map<String, List<ChatEvaluationTaskItem>> result = new LinkedHashMap<>();
 
         try (InputStream inputStream = file.getInputStream();
              Workbook workbook = createWorkbook(inputStream, file.getOriginalFilename())) {
@@ -113,7 +113,7 @@ public class ChatEvaluationExcelParsingService implements ExcelParsingService {
                 log.info("Processing sheet: {}", sheetName);
 
                 if (isValidChatEvaluationSheet(sheet)) {
-                    List<ChatEvaluationInput> sheetData = parseSheet(sheet);
+                    List<ChatEvaluationTaskItem> sheetData = parseSheet(sheet);
                     if (!sheetData.isEmpty()) {
                         result.put(sheetName, sheetData);
                         log.info("Successfully parsed {} records from sheet: {}", sheetData.size(), sheetName);
@@ -249,8 +249,8 @@ public class ChatEvaluationExcelParsingService implements ExcelParsingService {
                 columnIndices.containsKey(GOLDEN_CITATIONS_COLUMN);
     }
 
-    private List<ChatEvaluationInput> parseSheet(Sheet sheet) {
-        List<ChatEvaluationInput> results = new ArrayList<>();
+    private List<ChatEvaluationTaskItem> parseSheet(Sheet sheet) {
+        List<ChatEvaluationTaskItem> results = new ArrayList<>();
 
         if (sheet.getPhysicalNumberOfRows() < 2) {
             return results; // No data rows
@@ -283,7 +283,7 @@ public class ChatEvaluationExcelParsingService implements ExcelParsingService {
 
                 List<String> citations = parseCitations(citationsStr);
 
-                ChatEvaluationInput input = ChatEvaluationInput.builder()
+                ChatEvaluationTaskItem input = ChatEvaluationTaskItem.builder()
                         .question(question.trim())
                         .goldenAnswer(goldenAnswer.trim())
                         .goldenCitations(citations)

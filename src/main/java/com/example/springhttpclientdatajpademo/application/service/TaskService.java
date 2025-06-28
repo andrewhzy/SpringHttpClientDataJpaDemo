@@ -14,9 +14,5 @@ public interface TaskService {
 
     TaskType getTaskType();
 
-    // ListTaskResponse listUserTasks(ListTasksCommand listTasksCommand);
 
-    // void deleteTask(Long taskId);
-
-    // void cancelTask(Long taskId);
 }
