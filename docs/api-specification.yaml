@@ -318,53 +318,42 @@ paths:
                 type: object
                 required:
                   - upload_batch_id
-                  - tasks
                   - total_sheets
+                  - succeeded_sheets
+                  - failed_sheets
                 properties:
                   upload_batch_id:
                     type: integer
                     format: int64
                     description: "Unique identifier for this upload batch"
                     example: 67890
-                  tasks:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - task_id
-                        - sheet_name
-                        - task_type
-                        - status
-                        - row_count
-                      properties:
-                        task_id:
-                          type: integer
-                          format: int64
-                          description: "Unique task identifier"
-                          example: 12345
-                        sheet_name:
-                          type: string
-                          description: "Excel sheet name"
-                          example: "Sheet1"
-                        task_type:
-                          $ref: '#/components/schemas/TaskType'
-                        status:
-                          $ref: '#/components/schemas/TaskStatus'
-                        row_count:
-                          type: integer
-                          minimum: 0
-                          description: "Number of rows parsed from this sheet"
-                          example: 50
-                    description: "Array of created tasks"
                   total_sheets:
                     type: integer
                     minimum: 1
                     description: "Total number of sheets processed"
                     example: 3
-                  message:
-                    type: string
-                    description: "Success message"
-                    example: "Successfully created 3 tasks from uploaded Excel file"
+                  succeeded_sheets:
+                    type: integer
+                    minimum: 0
+                    description: "Number of sheets successfully processed"
+                    example: 2
+                  failed_sheets:
+                    type: object
+                    required:
+                      - count
+                      - sheet_names
+                    properties:
+                      count:
+                        type: integer
+                        minimum: 0
+                        description: "Number of sheets that failed to process"
+                        example: 1
+                      sheet_names:
+                        type: array
+                        items:
+                          type: string
+                        description: "Names of sheets that failed to process"
+                        example: ["sheet1", "sheet2"]
         '400':
           description: Bad Request - File upload validation errors
           content:
