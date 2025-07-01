@@ -4,10 +4,10 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
-import com.example.springhttpclientdatajpademo.application.dto.CreateTaskCommand;
-import com.example.springhttpclientdatajpademo.application.dto.ListTasksCommand;
-import com.example.springhttpclientdatajpademo.application.dto.ListTaskResponse;
-import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
+import com.example.springhttpclientdatajpademo.application.dto.CreateTasksCommand;
+import com.example.springhttpclientdatajpademo.application.dto.ListUserTasksCommand;
+import com.example.springhttpclientdatajpademo.application.dto.ListUserTasksResponse;
+import com.example.springhttpclientdatajpademo.application.dto.CreateTasksResponse;
 import com.example.springhttpclientdatajpademo.application.exception.TaskValidationException;
 
 import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
@@ -36,18 +36,18 @@ public class TaskManagementService {
      * Create task from Excel upload
      * Delegates to appropriate task service based on task type
      * 
-     * @param createTaskCommand the create task command
+     * @param createTasksCommand the create task command
      * @return upload response with created tasks
      */
-    public UploadResponse createTaskFromExcel(CreateTaskCommand createTaskCommand) {
-        log.info("Creating task from Excel for task type: {}", createTaskCommand.getTaskType());
+    public CreateTasksResponse createTaskFromExcel(CreateTasksCommand createTasksCommand) {
+        log.info("Creating task from Excel for task type: {}", createTasksCommand.getTaskType());
         
-        TaskService taskService = taskServiceFactory.getTaskService(createTaskCommand.getTaskType());
+        TaskService taskService = taskServiceFactory.getTaskService(createTasksCommand.getTaskType());
         if (taskService == null) {
-            throw new TaskValidationException("No service available for task type: " + createTaskCommand.getTaskType());
+            throw new TaskValidationException("No service available for task type: " + createTasksCommand.getTaskType());
         }
         
-        return taskService.createTaskFromExcel(createTaskCommand);
+        return taskService.createTasksFromExcel(createTasksCommand);
     }
 
     /**
@@ -73,26 +73,26 @@ public class TaskManagementService {
      * List user tasks with pagination
      * Delegates to appropriate task service based on task type in command
      * 
-     * @param listTasksCommand the list tasks command
+     * @param listUserTasksCommand the list tasks command
      * @return paginated task list response
      */
-    public ListTaskResponse listUserTasks(ListTasksCommand listTasksCommand) {
+    public ListUserTasksResponse listUserTasks(ListUserTasksCommand listUserTasksCommand) {
         log.info("Listing tasks for user: {}, task type: {}", 
-                listTasksCommand.getUserId(), listTasksCommand.getTaskType());
+                listUserTasksCommand.getUserId(), listUserTasksCommand.getTaskType());
         
-        TaskService taskService = taskServiceFactory.getTaskService(listTasksCommand.getTaskType());
+        TaskService taskService = taskServiceFactory.getTaskService(listUserTasksCommand.getTaskType());
         if (taskService == null) {
-            throw new TaskValidationException("No service available for task type: " + listTasksCommand.getTaskType());
+            throw new TaskValidationException("No service available for task type: " + listUserTasksCommand.getTaskType());
         }
         
         // Check if service supports listing (ChatEvaluationTaskService does)
         if (taskService instanceof ChatEvaluationTaskService) {
             ChatEvaluationTaskService chatService = (ChatEvaluationTaskService) taskService;
-            return chatService.listUserTasks(listTasksCommand);
+            return chatService.listUserTasks(listUserTasksCommand);
     }
 
         throw new UnsupportedOperationException("Task listing not yet implemented for task type: " + 
-                listTasksCommand.getTaskType());
+                listUserTasksCommand.getTaskType());
     }
 
     /**

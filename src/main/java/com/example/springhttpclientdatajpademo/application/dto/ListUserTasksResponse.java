@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ListTaskResponse {
+public class ListUserTasksResponse {
     
     private List<TaskInfoDto> data;
     private PaginationMeta meta;

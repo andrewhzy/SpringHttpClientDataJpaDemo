@@ -1,7 +1,7 @@
 package com.example.springhttpclientdatajpademo.application.service;
 
-import com.example.springhttpclientdatajpademo.application.dto.CreateTaskCommand;
-import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
+import com.example.springhttpclientdatajpademo.application.dto.CreateTasksCommand;
+import com.example.springhttpclientdatajpademo.application.dto.CreateTasksResponse;
 import com.example.springhttpclientdatajpademo.application.excel.UrlCleaningExcelParsingService;
 import com.example.springhttpclientdatajpademo.domain.task.Task;
 import com.example.springhttpclientdatajpademo.infrastructure.repository.ChatEvaluationTaskItemRepository;
@@ -18,7 +18,7 @@ public class UrlCleaningTaskService implements TaskService {
         // TODO: Implement constructor
     }
     @Override
-    public UploadResponse createTaskFromExcel(CreateTaskCommand createTaskCommand) {
+    public CreateTasksResponse createTasksFromExcel(CreateTasksCommand createTasksCommand) {
         return null;
     }
 

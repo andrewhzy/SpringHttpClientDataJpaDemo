@@ -18,7 +18,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UploadResponse {
+public class CreateTasksResponse {
     
     @JsonProperty("filename")
     private String filename;

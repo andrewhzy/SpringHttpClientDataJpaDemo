@@ -17,7 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CreateTaskCommand {
+public class CreateTasksCommand {
 
     @NotNull(message = "File is required")
     private MultipartFile file;

@@ -1,14 +1,14 @@
 package com.example.springhttpclientdatajpademo.application.service;
 
-import com.example.springhttpclientdatajpademo.application.dto.CreateTaskCommand;
-import com.example.springhttpclientdatajpademo.application.dto.UploadResponse;
+import com.example.springhttpclientdatajpademo.application.dto.CreateTasksCommand;
+import com.example.springhttpclientdatajpademo.application.dto.CreateTasksResponse;
 import java.io.File;
 
 import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
 
 public interface TaskService {
 
-    UploadResponse createTaskFromExcel(CreateTaskCommand createTaskCommand);
+    CreateTasksResponse createTasksFromExcel(CreateTasksCommand createTasksCommand);
 
     File downloadTaskResult(Long taskId, TaskType taskType);
 

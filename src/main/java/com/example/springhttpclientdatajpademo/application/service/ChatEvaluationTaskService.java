@@ -56,7 +56,7 @@ public class ChatEvaluationTaskService implements TaskService {
      */
     @Transactional
     @Override
-    public UploadResponse createTaskFromExcel(final CreateTaskCommand command) {
+    public CreateTasksResponse createTasksFromExcel(final CreateTasksCommand command) {
 
         log.info("Processing Excel upload for user: {}, filename: {}", command.getUserId(), command.getFile().getOriginalFilename());
 
@@ -75,7 +75,7 @@ public class ChatEvaluationTaskService implements TaskService {
             }
 
             // 4. Create tasks for each sheet
-            final List<UploadResponse.TaskSummary> taskSummaries = new ArrayList<>();
+            final List<CreateTasksResponse.TaskSummary> taskSummaries = new ArrayList<>();
             int totalQuestions = 0;
 
             for (Map.Entry<String, List<ChatEvaluationTaskItem>> entry : parsedDataBySheet.entrySet()) {
@@ -104,7 +104,7 @@ public class ChatEvaluationTaskService implements TaskService {
                 taskItemRepository.saveAll(taskItems);
 
                 // Create task summary
-                final UploadResponse.TaskSummary taskSummary = UploadResponse.TaskSummary.builder()
+                final CreateTasksResponse.TaskSummary taskSummary = CreateTasksResponse.TaskSummary.builder()
                         .taskId(savedTask.getId().toString())
                         .filename(command.getFile().getOriginalFilename())
                         .sheetName(sheetName)
@@ -123,7 +123,7 @@ public class ChatEvaluationTaskService implements TaskService {
                     taskSummaries.size(), totalQuestions, parsedDataBySheet.size());
 
             // 5. Build response
-            final UploadResponse response = UploadResponse.builder()
+            final CreateTasksResponse response = CreateTasksResponse.builder()
                     .filename(command.getFile().getOriginalFilename())
                     .tasks(taskSummaries)
                     .totalSheets(taskSummaries.size())
@@ -162,7 +162,7 @@ public class ChatEvaluationTaskService implements TaskService {
      * @throws TaskValidationException if query parameters are invalid
      */
     @Transactional(readOnly = true)
-    public ListTaskResponse listUserTasks(final ListTasksCommand query) {
+    public ListUserTasksResponse listUserTasks(final ListUserTasksCommand query) {
 
         log.info("Listing tasks with query: userId={}, perPage={}, taskType={}, cursor={}",
                 query.getUserId(), query.getPerPage(), query.getTaskType(), query.getCursor());
@@ -197,14 +197,14 @@ public class ChatEvaluationTaskService implements TaskService {
                     query.getUserId(), taskTypeEnum);
 
             // Build pagination metadata
-            final ListTaskResponse.PaginationMeta meta = ListTaskResponse.PaginationMeta.builder()
+            final ListUserTasksResponse.PaginationMeta meta = ListUserTasksResponse.PaginationMeta.builder()
                     .perPage(query.getPerPage())
                     .total(totalCount)
                     .nextCursor(nextCursor != null ? nextCursor.toString() : null)
                     .hasMore(hasMore)
                     .build();
 
-            final ListTaskResponse response = ListTaskResponse.builder()
+            final ListUserTasksResponse response = ListUserTasksResponse.builder()
                     .data(taskSummaries)
                     .meta(meta)
                     .build();
