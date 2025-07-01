@@ -5,7 +5,7 @@
 
 Internal API service for processing data tasks through Excel file uploads. **Version 1.0** supports chat evaluation and URL cleaning, with search evaluation and Q&A preparation planned for future releases. Features immediate parsing, structured storage, and background processing.
 
-## Core Architecture
+## Architectures
 
 ### High-Level Architecture
 ```mermaid
