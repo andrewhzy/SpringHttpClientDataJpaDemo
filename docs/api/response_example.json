@@ -1,0 +1,59 @@
+{
+  "POST /tasks": {
+    "upload_batch_id": 67890,
+    "total_sheets": 3,
+    "succeeded_sheets": 2,
+    "failed_sheets": {
+      "count": 1,
+      "sheet_names": [
+        "sheet1",
+        "sheet2"
+      ]
+    }
+  },
+    "GET /tasks": {
+    "data": [
+      {
+        "id": 12345,
+        "user_id": "user_123",
+        "original_filename": "monthly_reports.xlsx",
+        "sheet_name": "January_Data",
+        "task_type": "CHAT_EVALUATION",
+        "task_status": "QUEUEING",
+        "upload_batch_id": 67890,
+        "row_count": 150,
+        "processed_rows": 75,
+        "error_message": "API timeout on row 15",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:05:00Z",
+        "started_at": "2024-01-01T00:01:00Z",
+        "completed_at": "2024-01-01T00:10:00Z",
+        "cancelled_at": "2025-07-01T02:40:11.034Z"
+      }
+    ],
+    "next_cursor": "123"
+  },
+  "PUT /tasks/{id}": {
+    "id": 12345,
+    "user_id": "user_123",
+    "original_filename": "monthly_reports.xlsx",
+    "sheet_name": "January_Data",
+    "task_type": "CHAT_EVALUATION",
+    "task_status": "CANCELLED",
+    "upload_batch_id": 67890,
+    "row_count": 150,
+    "processed_rows": 75,
+    "error_message": "API timeout on row 15",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T00:05:00Z",
+    "started_at": "2024-01-01T00:01:00Z",
+    "completed_at": "2024-01-01T00:10:00Z",
+    "cancelled_at": "2025-07-01T02:40:11.034Z"
+  },
+  "DELETE /tasks/{id}": null,
+  "GET /tasks/{id}/file": "binary of a file",
+  "GET /tasks/types": [
+    "CHAT_EVALUATION",
+    "URL_CLEANING"
+  ]
+}
