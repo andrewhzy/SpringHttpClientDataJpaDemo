@@ -4,6 +4,8 @@ import com.example.springhttpclientdatajpademo.application.dto.CreateTasksComman
 import com.example.springhttpclientdatajpademo.application.dto.ListUserTasksResponse;
 import com.example.springhttpclientdatajpademo.application.dto.ListUserTasksCommand;
 import com.example.springhttpclientdatajpademo.application.dto.CreateTasksResponse;
+import com.example.springhttpclientdatajpademo.application.dto.DeleteTaskResponse;
+import com.example.springhttpclientdatajpademo.application.dto.TaskInfoDto;
 import com.example.springhttpclientdatajpademo.application.service.TaskManagementService;
 import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
 import jakarta.validation.constraints.Max;
@@ -15,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -94,8 +97,57 @@ public class TaskController {
 
         ListUserTasksResponse response = taskManagementService.listUserTasks(query);
 
-        log.info("Task list completed successfully: {} tasks returned, hasMore={}",
-                response.getData().size(), response.getMeta().isHasMore());
+        log.info("Task list completed successfully: {} tasks returned, nextCursor={}",
+                response.getData().size(), response.getNextCursor());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Cancel a task by setting cancelled=true
+     *
+     * @param id        the task ID to cancel
+     * @param cancelled must be true to cancel the task
+     * @return updated task object with CANCELLED status
+     */
+    @PutMapping("/tasks/{id}")
+    public ResponseEntity<TaskInfoDto> cancelTask(
+            @PathVariable Long id,
+            @RequestParam boolean cancelled) {
+
+        log.info("Received cancel task request: id={}, cancelled={}", id, cancelled);
+
+        if (!cancelled) {
+            throw new IllegalArgumentException("cancelled parameter must be true to cancel a task");
+        }
+
+        // TODO: Extract user ID from JWT token when authentication is implemented
+        String userId = getCurrentUserId();
+
+        TaskInfoDto response = taskManagementService.cancelTask(id, userId);
+
+        log.info("Task cancelled successfully: id={}, status={}", id, response.getTaskStatus());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Delete a task permanently
+     *
+     * @param id the task ID to delete
+     * @return deletion confirmation with metadata
+     */
+    @DeleteMapping("/tasks/{id}")
+    public ResponseEntity<DeleteTaskResponse> deleteTask(@PathVariable Long id) {
+
+        log.info("Received delete task request: id={}", id);
+
+        // TODO: Extract user ID from JWT token when authentication is implemented
+        String userId = getCurrentUserId();
+
+        DeleteTaskResponse response = taskManagementService.deleteTask(id, userId);
+
+        log.info("Task deleted successfully: id={}, deletedAt={}", id, response.getDeletedAt());
 
         return ResponseEntity.ok(response);
     }
@@ -105,13 +157,47 @@ public class TaskController {
      *
      * @return list of enabled task type identifiers
      */
-    @GetMapping("/task/types")
+    @GetMapping("/tasks/types")
     public ResponseEntity<List<String>> getTaskTypes() {
         log.info("Received request for available task types");
         List<String> response = taskManagementService.getTaskTypes();
 
         log.info("Returning {} enabled task types", response.size());
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Download task evaluation results Excel file
+     *
+     * @param id the task ID
+     * @return Excel file with evaluation results
+     */
+    @GetMapping("/tasks/{id}/file")
+    public ResponseEntity<byte[]> downloadTaskResults(@PathVariable Long id) {
+        log.info("Received download request for task: {}", id);
+
+        // TODO: Extract user ID from JWT token when authentication is implemented
+        String userId = getCurrentUserId();
+
+        // TODO: Get task type from task ID lookup
+        // For now, assume CHAT_EVALUATION
+        TaskType taskType = TaskType.CHAT_EVALUATION;
+
+        try {
+            File resultFile = taskManagementService.downloadTaskResult(id, taskType);
+            
+            // TODO: Implement proper file reading and response generation
+            // This is a placeholder that will be implemented later
+            
+            log.info("File download completed for task: {}", id);
+            
+            // Placeholder response - actual implementation will read file and return bytes
+            throw new UnsupportedOperationException("File download feature is not yet implemented");
+            
+        } catch (Exception e) {
+            log.error("Error downloading file for task: {}", id, e);
+            throw e;
+        }
     }
 
     /**

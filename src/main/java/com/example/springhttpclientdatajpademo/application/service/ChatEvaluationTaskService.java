@@ -192,25 +192,13 @@ public class ChatEvaluationTaskService implements TaskService {
             final Long nextCursor = hasMore && !resultTasks.isEmpty() ? resultTasks.get(resultTasks.size() - 1).getId()
                     : null;
 
-            // Get total count for metadata
-            final long totalCount = taskRepository.countByUserIdAndTaskType(
-                    query.getUserId(), taskTypeEnum);
-
-            // Build pagination metadata
-            final ListUserTasksResponse.PaginationMeta meta = ListUserTasksResponse.PaginationMeta.builder()
-                    .perPage(query.getPerPage())
-                    .total(totalCount)
-                    .nextCursor(nextCursor != null ? nextCursor.toString() : null)
-                    .hasMore(hasMore)
-                    .build();
-
             final ListUserTasksResponse response = ListUserTasksResponse.builder()
                     .data(taskSummaries)
-                    .meta(meta)
+                    .nextCursor(nextCursor != null ? nextCursor.toString() : null)
                     .build();
 
-            log.info("Listed {} tasks for user: {}, total: {}, hasMore: {}",
-                    taskSummaries.size(), query.getUserId(), totalCount, hasMore);
+            log.info("Listed {} tasks for user: {}, nextCursor: {}",
+                    taskSummaries.size(), query.getUserId(), nextCursor);
 
             return response;
 

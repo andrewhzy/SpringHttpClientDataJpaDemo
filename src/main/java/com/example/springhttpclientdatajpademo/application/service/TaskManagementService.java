@@ -1,6 +1,7 @@
 package com.example.springhttpclientdatajpademo.application.service;
 
 import java.io.File;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -8,13 +9,18 @@ import com.example.springhttpclientdatajpademo.application.dto.CreateTasksComman
 import com.example.springhttpclientdatajpademo.application.dto.ListUserTasksCommand;
 import com.example.springhttpclientdatajpademo.application.dto.ListUserTasksResponse;
 import com.example.springhttpclientdatajpademo.application.dto.CreateTasksResponse;
+import com.example.springhttpclientdatajpademo.application.dto.DeleteTaskResponse;
+import com.example.springhttpclientdatajpademo.application.dto.TaskInfoDto;
 import com.example.springhttpclientdatajpademo.application.exception.TaskValidationException;
 
+import com.example.springhttpclientdatajpademo.domain.task.Task;
 import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
+import com.example.springhttpclientdatajpademo.infrastructure.repository.TaskRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Main orchestration service for task management operations
@@ -31,6 +37,7 @@ import org.springframework.stereotype.Service;
 public class TaskManagementService {
 
     private final TaskServiceFactory taskServiceFactory;
+    private final TaskRepository taskRepository;
 
     /**
      * Create task from Excel upload
@@ -89,7 +96,7 @@ public class TaskManagementService {
         if (taskService instanceof ChatEvaluationTaskService) {
             ChatEvaluationTaskService chatService = (ChatEvaluationTaskService) taskService;
             return chatService.listUserTasks(listUserTasksCommand);
-    }
+        }
 
         throw new UnsupportedOperationException("Task listing not yet implemented for task type: " + 
                 listUserTasksCommand.getTaskType());
@@ -97,26 +104,77 @@ public class TaskManagementService {
 
     /**
      * Delete a task
-     * TODO: Implement when needed
      * 
      * @param taskId the task ID to delete
+     * @param userId the user ID who owns the task
+     * @return deletion confirmation response
      */
-    public void deleteTask(Long taskId) {
-        log.info("Delete task requested for ID: {}", taskId);
-        // TODO: Implement task deletion
-        throw new UnsupportedOperationException("Task deletion not yet implemented");
+    @Transactional
+    public DeleteTaskResponse deleteTask(Long taskId, String userId) {
+        log.info("Delete task requested for ID: {}, user: {}", taskId, userId);
+        
+        // Find the task and validate ownership
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new TaskValidationException("Task not found with ID: " + taskId));
+        
+        if (!task.getUserId().equals(userId)) {
+            throw new TaskValidationException("Access denied: You can only delete your own tasks");
+        }
+        
+        // Check if task can be deleted (not in PROCESSING status)
+        if (task.getTaskStatus() == Task.TaskStatus.PROCESSING) {
+            throw new TaskValidationException("Cannot delete task in processing status. Cancel the task first, then delete it.");
+        }
+        
+        // Delete the task (cascade deletes related data)
+        taskRepository.delete(task);
+        
+        // Build response
+        DeleteTaskResponse response = DeleteTaskResponse.builder()
+                .deleted(true)
+                .taskId(taskId)
+                .deletedAt(LocalDateTime.now())
+                .build();
+                
+        log.info("Task deleted successfully: ID={}, user={}", taskId, userId);
+        return response;
     }
 
     /**
      * Cancel a running task
-     * TODO: Implement when needed
      * 
      * @param taskId the task ID to cancel
+     * @param userId the user ID who owns the task
+     * @return updated task information
      */
-    public void cancelTask(Long taskId) {
-        log.info("Cancel task requested for ID: {}", taskId);
-        // TODO: Implement task cancellation
-        throw new UnsupportedOperationException("Task cancellation not yet implemented");
+    @Transactional
+    public TaskInfoDto cancelTask(Long taskId, String userId) {
+        log.info("Cancel task requested for ID: {}, user: {}", taskId, userId);
+        
+        // Find the task and validate ownership
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new TaskValidationException("Task not found with ID: " + taskId));
+        
+        if (!task.getUserId().equals(userId)) {
+            throw new TaskValidationException("Access denied: You can only cancel your own tasks");
+        }
+        
+        // Check if task can be cancelled
+        if (task.getTaskStatus() == Task.TaskStatus.COMPLETED || 
+            task.getTaskStatus() == Task.TaskStatus.CANCELLED ||
+            task.getTaskStatus() == Task.TaskStatus.FAILED) {
+            throw new TaskValidationException("Cannot cancel task with status: " + task.getTaskStatus());
+        }
+        
+        // Cancel the task
+        task.markAsCancelled();
+        Task savedTask = taskRepository.save(task);
+        
+        // Convert to DTO
+        TaskInfoDto response = convertToTaskInfoDto(savedTask);
+        
+        log.info("Task cancelled successfully: ID={}, user={}, status={}", taskId, userId, savedTask.getTaskStatus());
+        return response;
     }
 
     /**
@@ -126,14 +184,46 @@ public class TaskManagementService {
      * @return list of available task type values
      */
     public List<String> getTaskTypes() {
-        log.debug("Getting available task types");
+        log.info("Getting available task types");
         
-        List<String> availableTypes = Arrays.stream(TaskType.values())
-                .filter(taskType -> taskServiceFactory.getTaskService(taskType) != null)
-                .map(Enum::name)
-                .toList();
+        // Return task types that have active implementations
+        // For now, only CHAT_EVALUATION is implemented
+        List<String> taskTypes = Arrays.asList(TaskType.CHAT_EVALUATION.name());
         
-        log.info("Available task types: {}", availableTypes);
-        return availableTypes;
+        log.info("Available task types: {}", taskTypes);
+        return taskTypes;
+    }
+    
+    /**
+     * Convert Task entity to TaskInfoDto
+     */
+    private TaskInfoDto convertToTaskInfoDto(Task task) {
+        return TaskInfoDto.builder()
+                .id(task.getId().toString())
+                .userId(task.getUserId())
+                .originalFilename(task.getFilename())
+                .sheetName(task.getSheetName())
+                .taskType(task.getTaskType())
+                .taskStatus(task.getTaskStatus())
+                .rowCount(task.getRowCount())
+                .processedRows(task.getProcessedRows())
+                .progressPercentage(calculateProgressPercentage(task.getProcessedRows(), task.getRowCount()))
+                .errorMessage(task.getErrorMessage())
+                .createdAt(task.getCreatedAt())
+                .updatedAt(task.getUpdatedAt())
+                .startedAt(task.getStartedAt())
+                .completedAt(task.getCompletedAt())
+                .cancelledAt(task.getCancelledAt())
+                .build();
+    }
+    
+    /**
+     * Calculate progress percentage
+     */
+    private Integer calculateProgressPercentage(Integer processedRows, Integer totalRows) {
+        if (totalRows == null || totalRows == 0) {
+            return 0;
+        }
+        return Math.round((float) processedRows / totalRows * 100);
     }
 }   

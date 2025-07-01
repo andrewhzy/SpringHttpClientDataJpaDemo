@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * Response DTO for GET /rest/api/v1/tasks endpoint
- * Contains paginated task list with cursor-based pagination metadata
+ * Contains paginated task list with simplified cursor-based pagination
  */
 @Data
 @NoArgsConstructor
@@ -19,23 +19,7 @@ import java.util.List;
 public class ListUserTasksResponse {
     
     private List<TaskInfoDto> data;
-    private PaginationMeta meta;
     
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class PaginationMeta {
-        
-        @JsonProperty("per_page")
-        private int perPage;
-        
-        private long total;
-        
-        @JsonProperty("next_cursor")
-        private String nextCursor;
-        
-        @JsonProperty("has_more")
-        private boolean hasMore;
-    }
+    @JsonProperty("next_cursor")
+    private String nextCursor;
 } 
