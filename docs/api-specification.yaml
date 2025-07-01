@@ -679,8 +679,35 @@ paths:
         Only task owners can delete their tasks.
         Tasks in 'PROCESSING' status cannot be deleted.
       responses:
-        '204':
+        '200':
           description: Task deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - deleted
+                  - task_id
+                  - deleted_at
+                properties:
+                  deleted:
+                    type: boolean
+                    description: "Confirmation that the task was deleted"
+                    example: true
+                  task_id:
+                    type: integer
+                    format: int64
+                    description: "ID of the deleted task"
+                    example: 12345
+                  deleted_at:
+                    type: string
+                    format: date-time
+                    description: "Timestamp when the task was deleted"
+                    example: "2024-01-15T14:30:00Z"
+              example:
+                deleted: true
+                task_id: 12345
+                deleted_at: "2024-01-15T14:30:00Z"
         '400':
           description: Bad Request - Invalid operation for current task status
           content:
@@ -735,7 +762,7 @@ paths:
         - User must be the task owner
         - Results must be available (background processing finished successfully)
         
-        **File Naming:** `task-{task_type}-{filename}-{sheet_name}-{task_id}-results.xlsx`
+        **File Naming:** `task-{task_type}-{original_filename}-{sheet_name}-{task_id}-results.xlsx`
       responses:
         '200':
           description: Successfully generated and returned Excel file with evaluation results
@@ -750,7 +777,7 @@ paths:
               description: "Attachment header with generated filename"
               schema:
                 type: string
-                example: 'attachment; filename="task_12345_evaluation_results.xlsx"'
+                example: 'attachment; filename="task-CHAT_EVALUATION-monthly_reports.xlsx-January_Data-12345-results.xlsx"'
             Content-Length:
               description: "Size of the Excel file in bytes"
               schema:

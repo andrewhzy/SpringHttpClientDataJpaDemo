@@ -50,7 +50,11 @@
     "completed_at": "2024-01-01T00:10:00Z",
     "cancelled_at": "2025-07-01T02:40:11.034Z"
   },
-  "DELETE /tasks/{id}": null,
+  "DELETE /tasks/{id}": {
+    "deleted": true,
+    "task_id": 12345,
+    "deleted_at": "2024-01-15T14:30:00Z"
+  },
   "GET /tasks/{id}/file": "binary of a file",
   "GET /tasks/types": [
     "CHAT_EVALUATION",
