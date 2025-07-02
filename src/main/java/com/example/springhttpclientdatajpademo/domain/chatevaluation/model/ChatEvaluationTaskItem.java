@@ -113,31 +113,4 @@ public class ChatEvaluationTaskItem implements TaskItem {
         }
         return null;
     }
-
-    /**
-     * Proper equals implementation for JPA entities
-     * Following Effective Java Item 11: Always override hashCode when you override equals
-     */
-    @Override
-    public boolean equals(final Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        final ChatEvaluationTaskItem that = (ChatEvaluationTaskItem) obj;
-        // Use business key for equality - question and task should be unique together
-        return Objects.equals(question, that.question) && Objects.equals(task, that.task);
-    }
-
-    /**
-     * Proper hashCode implementation for JPA entities
-     * Following Effective Java Item 11: Always override hashCode when you override equals
-     */
-    @Override
-    public int hashCode() {
-        // Use business key for hash code, not id
-        return Objects.hash(question, task);
-    }
 }
