@@ -80,7 +80,7 @@ public class ChatEvaluationService {
             // Step 2: Calculate answer similarity
             log.debug("Calculating answer similarity");
             final LlmSimilarityResponse answerSimilarity = llmSimilarityServiceClient.calculateSimilarity(
-                taskItem.getGoldenAnswer(),
+                taskItem.getExpectedAnswer(),
                 gleanResponse.getAnswer()
             );
             
@@ -93,7 +93,7 @@ public class ChatEvaluationService {
             // Step 3: Calculate citation similarity
             log.debug("Calculating citation similarity");
             final LlmSimilarityResponse citationSimilarity = llmSimilarityServiceClient.calculateCitationSimilarity(
-                taskItem.getGoldenCitations(),
+                taskItem.getExpectedDocs(),
                 gleanResponse.getCitations()
             );
             
@@ -108,12 +108,15 @@ public class ChatEvaluationService {
             
             final ChatEvaluationTaskResult output = ChatEvaluationTaskResult.builder()
                     .taskItem(taskItem)
-                    .apiAnswer(gleanResponse.getAnswer())
-                    .apiCitations(gleanResponse.getCitations())
-                    .answerSimilarity(answerSimilarity.getSimilarity())
-                    .citationSimilarity(citationSimilarity.getSimilarity())
-                    .processingTimeMs((int) processingTime)
-                    .apiResponseMetadata(buildResponseMetadata(gleanResponse, answerSimilarity, citationSimilarity))
+                    .modelOutput(gleanResponse.getAnswer())
+                    .reference(gleanResponse.getCitations())
+                    .alignModel("default-llm")  // TODO: Make this configurable
+                    .alignInferenceOutput("evaluation completed")  // TODO: Add proper align inference
+                    .alignJudgeRating(ChatEvaluationTaskResult.AlignJudgeRating.PASS_ACCURATE_COMPLETE)  // TODO: Implement proper rating logic
+                    .retrievedDocs(gleanResponse.getCitations())  // Using citations as retrieved docs for now
+                    .expectedDocsRetrieved(taskItem.getExpectedDocs())
+                    .matchedProp(answerSimilarity.getSimilarity())
+                    .minHit(citationSimilarity.getSimilarity())
                     .build();
             
             output.setTaskItem(taskItem);
@@ -123,7 +126,7 @@ public class ChatEvaluationService {
             // Mark evaluation as completed
             taskItem.markEvaluationCompleted();
             
-            log.info("Completed evaluation for taskItem ID: {} in {}ms. Answer similarity: {}, Citation similarity: {}",
+            log.info("Completed evaluation for taskItem ID: {} in {}ms. Matched proportion: {}, Min hit: {}",
                     taskItem.getId(), processingTime,
                     answerSimilarity.getSimilarity(), citationSimilarity.getSimilarity());
             
@@ -156,49 +159,7 @@ public class ChatEvaluationService {
         return outputRepository.findByTaskItemId(taskItem.getId()).orElse(null);
     }
     
-    /**
-     * Build comprehensive metadata from all API responses
-     */
-    private Map<String, Object> buildResponseMetadata(
-            final GleanApiResponse gleanResponse,
-            final LlmSimilarityResponse answerSimilarity,
-            final LlmSimilarityResponse citationSimilarity) {
-        
-        final Map<String, Object> metadata = new HashMap<>();
-        
-        // Glean API metadata
-        metadata.put("glean_confidence", gleanResponse.getConfidence());
-        metadata.put("glean_response_time_ms", gleanResponse.getResponseTimeMs());
-        metadata.put("glean_citation_count", gleanResponse.getCitationCount());
-        
-        if (gleanResponse.getMetadata() != null) {
-            metadata.put("glean_metadata", gleanResponse.getMetadata());
-        }
-        
-        // Answer similarity metadata
-        metadata.put("answer_similarity_method", answerSimilarity.getMethod());
-        metadata.put("answer_similarity_confidence", answerSimilarity.getConfidence());
-        metadata.put("answer_similarity_response_time_ms", answerSimilarity.getResponseTimeMs());
-        
-        if (answerSimilarity.getMetadata() != null) {
-            metadata.put("answer_similarity_metadata", answerSimilarity.getMetadata());
-        }
-        
-        // Citation similarity metadata
-        metadata.put("citation_similarity_method", citationSimilarity.getMethod());
-        metadata.put("citation_similarity_confidence", citationSimilarity.getConfidence());
-        metadata.put("citation_similarity_response_time_ms", citationSimilarity.getResponseTimeMs());
-        
-        if (citationSimilarity.getMetadata() != null) {
-            metadata.put("citation_similarity_metadata", citationSimilarity.getMetadata());
-        }
-        
-        // Overall evaluation metadata
-        metadata.put("evaluation_timestamp", System.currentTimeMillis());
-        metadata.put("evaluation_version", "1.0");
-        
-        return metadata;
-    }
+    // Note: buildResponseMetadata method removed as metadata fields no longer exist in ChatEvaluationTaskResult
     
     /**
      * Custom exception for chat evaluation failures

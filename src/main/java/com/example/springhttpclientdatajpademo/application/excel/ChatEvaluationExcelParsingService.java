@@ -239,8 +239,8 @@ public class ChatEvaluationExcelParsingService implements ExcelParsingService<Ch
 
                 ChatEvaluationTaskItem input = ChatEvaluationTaskItem.builder()
                         .question(question.trim())
-                        .goldenAnswer(goldenAnswer.trim())
-                        .goldenCitations(citations)
+                        .expectedAnswer(goldenAnswer.trim())
+                        .expectedDocs(citations)
                         .build();
 
                 results.add(input);

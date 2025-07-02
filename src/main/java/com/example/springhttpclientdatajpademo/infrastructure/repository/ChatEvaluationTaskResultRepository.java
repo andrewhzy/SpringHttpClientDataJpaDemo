@@ -54,8 +54,8 @@ public interface ChatEvaluationTaskResultRepository extends JpaRepository<ChatEv
      * @return list of high-quality outputs
      */
     @Query("SELECT o FROM ChatEvaluationTaskResult o JOIN o.taskItem i " +
-           "WHERE i.task.id = :taskId AND o.answerSimilarity >= 0.7 AND o.citationSimilarity >= 0.7 " +
-           "ORDER BY o.answerSimilarity DESC, o.citationSimilarity DESC")
+           "WHERE i.task.id = :taskId AND o.matchedProp >= 0.7 AND o.minHit >= 0.7 " +
+           "ORDER BY o.matchedProp DESC, o.minHit DESC")
     List<ChatEvaluationTaskResult> findGoodMatchesByTaskId(@Param("taskId") Long taskId);
     
     /**
@@ -64,8 +64,8 @@ public interface ChatEvaluationTaskResultRepository extends JpaRepository<ChatEv
      * @return list of low-quality outputs
      */
     @Query("SELECT o FROM ChatEvaluationTaskResult o JOIN o.taskItem i " +
-           "WHERE i.task.id = :taskId AND (o.answerSimilarity < 0.5 OR o.citationSimilarity < 0.5) " +
-           "ORDER BY o.answerSimilarity ASC, o.citationSimilarity ASC")
+           "WHERE i.task.id = :taskId AND (o.matchedProp < 0.5 OR o.minHit < 0.5) " +
+           "ORDER BY o.matchedProp ASC, o.minHit ASC")
     List<ChatEvaluationTaskResult> findPoorMatchesByTaskId(@Param("taskId") Long taskId);
     
     /**

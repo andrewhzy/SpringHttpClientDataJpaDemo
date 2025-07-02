@@ -66,16 +66,16 @@ class ChatEvaluationBackgroundProcessorTest {
                 .id(1L)
                 .task(testTask)
                 .question("What is AI?")
-                .goldenAnswer("AI is artificial intelligence")
-                .goldenCitations(Arrays.asList("https://example.com/ai"))
+                .expectedAnswer("AI is artificial intelligence")
+                .expectedDocs(Arrays.asList("https://example.com/ai"))
                 .build();
 
         ChatEvaluationTaskItem input2 = ChatEvaluationTaskItem.builder()
                 .id(2L)
                 .task(testTask)
                 .question("What is ML?")
-                .goldenAnswer("ML is machine learning")
-                .goldenCitations(Arrays.asList("https://example.com/ml"))
+                .expectedAnswer("ML is machine learning")
+                .expectedDocs(Arrays.asList("https://example.com/ml"))
                 .build();
 
         testTaskItems = Arrays.asList(input1, input2);
@@ -299,11 +299,15 @@ class ChatEvaluationBackgroundProcessorTest {
         return ChatEvaluationTaskResult.builder()
                 .id(input.getId())
                 .taskItem(input)
-                .apiAnswer("Mock API answer")
-                .apiCitations(Arrays.asList("https://mock-api.com/citation"))
-                .answerSimilarity(BigDecimal.valueOf(0.85))
-                .citationSimilarity(BigDecimal.valueOf(0.75))
-                .processingTimeMs(1000)
+                .modelOutput("Mock API answer")
+                .reference(Arrays.asList("https://mock-api.com/citation"))
+                .alignModel("test-llm")
+                .alignInferenceOutput("test evaluation")
+                .alignJudgeRating(ChatEvaluationTaskResult.AlignJudgeRating.PASS_ACCURATE_COMPLETE)
+                .retrievedDocs(Arrays.asList("https://mock-api.com/citation"))
+                .expectedDocsRetrieved(input.getExpectedDocs())
+                .matchedProp(BigDecimal.valueOf(0.85))
+                .minHit(BigDecimal.valueOf(0.75))
                 .build();
     }
 } 
