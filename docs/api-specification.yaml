@@ -110,7 +110,7 @@ components:
       required:
         - id
         - user_id
-        - original_filename
+        - filename
         - sheet_name
         - task_type
         - task_status
@@ -128,10 +128,10 @@ components:
           type: string
           description: "ID of the user who created the task"
           example: "user_123"
-        original_filename:
+        filename:
           type: string
-          description: "Original Excel filename"
-          example: "monthly_reports.xlsx"
+          description: "Excel filename"
+          example: "evaluation use cases.xlsx"
         sheet_name:
           type: string
           description: "Excel sheet name that was processed"
@@ -317,16 +317,15 @@ paths:
               schema:
                 type: object
                 required:
-                  - upload_batch_id
+                  - filename
                   - total_sheets
                   - succeeded_sheets
                   - failed_sheets
                 properties:
-                  upload_batch_id:
-                    type: integer
-                    format: int64
-                    description: "Unique identifier for this upload batch"
-                    example: 67890
+                  filename:
+                    type: string
+                    description: "Excel filename"
+                    example: "evaluation use cases.xlsx"
                   total_sheets:
                     type: integer
                     minimum: 1
@@ -355,7 +354,7 @@ paths:
                         description: "Names of sheets that failed to process"
                         example: ["sheet1", "sheet2"]
               example:
-                upload_batch_id: 67890
+                filename: "evaluation use cases.xlsx"
                 total_sheets: 3
                 succeeded_sheets: 1
                 failed_sheets:
@@ -510,7 +509,7 @@ paths:
                 data:
                   - id: 12345
                     user_id: "user_123"
-                    original_filename: "monthly_reports.xlsx"
+                    filename: "evaluation use cases.xlsx"
                     sheet_name: "January_Data"
                     task_type: "CHAT_EVALUATION"
                     task_status: "QUEUEING"
@@ -525,7 +524,7 @@ paths:
                     cancelled_at: "2025-07-01T02:40:11.034Z"
                   - id: 12346
                     user_id: "user_123"
-                    original_filename: "monthly_reports.xlsx"
+                    filename: "evaluation use cases.xlsx"
                     sheet_name: "January_Data"
                     task_type: "CHAT_EVALUATION"
                     task_status: "QUEUEING"
@@ -619,7 +618,7 @@ paths:
               example:
                 id: 12345
                 user_id: "user_123"
-                original_filename: "monthly_reports.xlsx"
+                filename: "evaluation use cases.xlsx"
                 sheet_name: "January_Data"
                 task_type: "CHAT_EVALUATION"
                 task_status: "CANCELLED"
@@ -762,7 +761,7 @@ paths:
         - User must be the task owner
         - Results must be available (background processing finished successfully)
         
-        **File Naming:** `task-{task_type}-{original_filename}-{sheet_name}-{task_id}-results.xlsx`
+        **File Naming:** `task-{task_type}-{filename}-{sheet_name}-{task_id}-results.xlsx`
       responses:
         '200':
           description: Successfully generated and returned Excel file with evaluation results
@@ -777,7 +776,7 @@ paths:
               description: "Attachment header with generated filename"
               schema:
                 type: string
-                example: 'attachment; filename="task-CHAT_EVALUATION-monthly_reports.xlsx-January_Data-12345-results.xlsx"'
+                example: 'attachment; filename="task-CHAT_EVALUATION-evaluation use cases.xlsx-January_Data-12345-results.xlsx"'
             Content-Length:
               description: "Size of the Excel file in bytes"
               schema:
