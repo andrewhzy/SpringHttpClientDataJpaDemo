@@ -47,12 +47,13 @@ public class ChatEvaluationTaskService implements TaskService {
     }
 
     /**
-     * Create task from Excel upload - main use case for POST /rest/api/v1/tasks
+     * Create tasks from Excel file upload
+     * Implementation for POST /rest/api/v1/tasks endpoint
      *
-     * @param command the create task command
-     * @return upload response with created tasks
-     * @throws FileProcessingException if file processing fails
+     * @param command the create tasks command containing file and metadata
+     * @return upload response with created task summaries
      * @throws TaskValidationException if file validation fails
+     * @throws FileProcessingException if file processing fails
      */
     @Transactional
     @Override
@@ -75,62 +76,59 @@ public class ChatEvaluationTaskService implements TaskService {
             }
 
             // 4. Create tasks for each sheet
-            final List<CreateTasksResponse.TaskSummary> taskSummaries = new ArrayList<>();
-            int totalQuestions = 0;
+            int succeededSheets = 0;
+            final List<String> failedSheetNames = new ArrayList<>();
 
             for (Map.Entry<String, List<ChatEvaluationTaskItem>> entry : parsedDataBySheet.entrySet()) {
                 final String sheetName = entry.getKey();
                 final List<ChatEvaluationTaskItem> taskItems = entry.getValue();
 
-                if (taskItems.isEmpty()) {
-                    continue;
+                try {
+                    if (taskItems.isEmpty()) {
+                        failedSheetNames.add(sheetName);
+                        continue;
+                    }
+
+                    // Create task for this sheet
+                    final Task task = Task.builder()
+                            .userId(command.getUserId())
+                            .filename(command.getFile().getOriginalFilename())
+                            .sheetName(sheetName)
+                            .taskType(taskType)
+                            .taskStatus(Task.TaskStatus.QUEUEING)
+                            .rowCount(taskItems.size())
+                            .build();
+
+                    // Save task first to get ID
+                    final Task savedTask = taskRepository.save(task);
+
+                    // Associate all inputs with the task and save them
+                    taskItems.forEach(taskItem -> taskItem.setTask(savedTask));
+                    taskItemRepository.saveAll(taskItems);
+
+                    succeededSheets++;
+                    log.info("Created task for sheet '{}' with {} questions", sheetName, taskItems.size());
+                } catch (Exception ex) {
+                    log.error("Failed to create task for sheet '{}': {}", sheetName, ex.getMessage());
+                    failedSheetNames.add(sheetName);
                 }
-
-                // Create task for this sheet
-                final Task task = Task.builder()
-                        .userId(command.getUserId())
-                        .filename(command.getFile().getOriginalFilename())
-                        .sheetName(sheetName)
-                        .taskType(taskType)
-                        .taskStatus(Task.TaskStatus.QUEUEING)
-                        .rowCount(taskItems.size())
-                        .build();
-
-                // Save task first to get ID
-                final Task savedTask = taskRepository.save(task);
-
-                // Associate all inputs with the task and save them
-                taskItems.forEach(taskItem -> taskItem.setTask(savedTask));
-                taskItemRepository.saveAll(taskItems);
-
-                // Create task summary
-                final CreateTasksResponse.TaskSummary taskSummary = CreateTasksResponse.TaskSummary.builder()
-                        .taskId(savedTask.getId().toString())
-                        .filename(command.getFile().getOriginalFilename())
-                        .sheetName(sheetName)
-                        .taskType(taskType)
-                        .status(Task.TaskStatus.QUEUEING)
-                        .rowCount(taskItems.size())
-                        .build();
-
-                taskSummaries.add(taskSummary);
-                totalQuestions += taskItems.size();
-
-                log.info("Created task for sheet '{}' with {} questions", sheetName, taskItems.size());
             }
 
-            log.info("Created {} tasks with {} total questions from {} sheets",
-                    taskSummaries.size(), totalQuestions, parsedDataBySheet.size());
+            log.info("Created {} successful tasks from {} total sheets",
+                    succeededSheets, parsedDataBySheet.size());
 
-            // 5. Build response
+            // 5. Build response according to new API specification
             final CreateTasksResponse response = CreateTasksResponse.builder()
                     .filename(command.getFile().getOriginalFilename())
-                    .tasks(taskSummaries)
-                    .totalSheets(taskSummaries.size())
-                    .message(String.format("Successfully created %d tasks with %d total questions", taskSummaries.size(), totalQuestions))
+                    .totalSheets(parsedDataBySheet.size())
+                    .succeededSheets(succeededSheets)
+                    .failedSheets(CreateTasksResponse.FailedSheets.builder()
+                            .count(failedSheetNames.size())
+                            .sheetNames(failedSheetNames)
+                            .build())
                     .build();
 
-            log.info("Excel upload completed successfully: {} tasks created with {} total questions", taskSummaries.size(), totalQuestions);
+            log.info("Excel upload completed: {} successful, {} failed sheets", succeededSheets, failedSheetNames.size());
 
             return response;
 
@@ -236,10 +234,11 @@ public class ChatEvaluationTaskService implements TaskService {
         return TaskInfoDto.builder()
                 .id(task.getId().toString())
                 .userId(task.getUserId())
-                .originalFilename(task.getFilename())
+                .filename(task.getFilename())
                 .sheetName(task.getSheetName())
                 .taskType(task.getTaskType())
                 .taskStatus(task.getTaskStatus())
+                .uploadBatchId(null) // Upload batch ID not used in current implementation
                 .rowCount(task.getRowCount())
                 .processedRows(task.getProcessedRows())
                 .progressPercentage(task.getProgressPercentage())

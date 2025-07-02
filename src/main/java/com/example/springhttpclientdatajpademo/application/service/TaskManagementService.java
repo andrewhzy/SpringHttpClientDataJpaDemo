@@ -201,10 +201,11 @@ public class TaskManagementService {
         return TaskInfoDto.builder()
                 .id(task.getId().toString())
                 .userId(task.getUserId())
-                .originalFilename(task.getFilename())
+                .filename(task.getFilename())
                 .sheetName(task.getSheetName())
                 .taskType(task.getTaskType())
                 .taskStatus(task.getTaskStatus())
+                .uploadBatchId(null) // Upload batch ID not used in current implementation
                 .rowCount(task.getRowCount())
                 .processedRows(task.getProcessedRows())
                 .progressPercentage(calculateProgressPercentage(task.getProcessedRows(), task.getRowCount()))

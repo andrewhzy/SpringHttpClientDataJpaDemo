@@ -1,17 +1,22 @@
 {
   "POST /tasks": {
-    "upload_batch_id": 67890,
+    "filename": "evaluation use cases.xlsx",
     "total_sheets": 3,
-    "succeeded_sheets": 2,
-    "failed_sheets": {
-      "count": 1,
+    "succeeded_sheets": {
+      "count": 2,
       "sheet_names": [
         "sheet1",
         "sheet2"
       ]
+    },
+    "failed_sheets": {
+      "count": 1,
+      "sheet_names": [
+        "sheet3"
+      ]
     }
   },
-    "GET /tasks": {
+  "GET /tasks": {
     "data": [
       {
         "id": 12345,
@@ -20,7 +25,6 @@
         "sheet_name": "January_Data",
         "task_type": "CHAT_EVALUATION",
         "task_status": "QUEUEING",
-        "upload_batch_id": 67890,
         "row_count": 150,
         "processed_rows": 75,
         "error_message": "API timeout on row 15",
@@ -40,7 +44,6 @@
     "sheet_name": "January_Data",
     "task_type": "CHAT_EVALUATION",
     "task_status": "CANCELLED",
-    "upload_batch_id": 67890,
     "row_count": 150,
     "processed_rows": 75,
     "error_message": "API timeout on row 15",

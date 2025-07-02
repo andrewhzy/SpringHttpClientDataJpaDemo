@@ -23,40 +23,28 @@ public class CreateTasksResponse {
     @JsonProperty("filename")
     private String filename;
     
-    @JsonProperty("tasks")
-    private List<TaskSummary> tasks;
-    
     @JsonProperty("total_sheets")
     private Integer totalSheets;
     
-    @JsonProperty("message")
-    private String message;
+    @JsonProperty("succeeded_sheets")
+    private Integer succeededSheets;
+    
+    @JsonProperty("failed_sheets")
+    private FailedSheets failedSheets;
     
     /**
-     * Summary information for each created task
+     * Information about failed sheets
      */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class TaskSummary {
+    public static class FailedSheets {
         
-        @JsonProperty("task_id")
-        private String taskId;
+        @JsonProperty("count")
+        private Integer count;
         
-        @JsonProperty("filename")
-        private String filename;
-        
-        @JsonProperty("sheet_name")
-        private String sheetName;
-        
-        @JsonProperty("task_type")
-        private TaskType taskType;
-        
-        @JsonProperty("status")
-        private TaskStatus status;
-        
-        @JsonProperty("row_count")
-        private Integer rowCount;
+        @JsonProperty("sheet_names")
+        private List<String> sheetNames;
     }
 } 

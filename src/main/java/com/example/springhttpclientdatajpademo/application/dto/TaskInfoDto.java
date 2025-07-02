@@ -25,8 +25,8 @@ public class TaskInfoDto {
     @JsonProperty("user_id")
     private String userId;
     
-    @JsonProperty("original_filename")
-    private String originalFilename;
+    @JsonProperty("filename")
+    private String filename;
     
     @JsonProperty("sheet_name")
     private String sheetName;
@@ -36,6 +36,9 @@ public class TaskInfoDto {
     
     @JsonProperty("task_status")
     private TaskStatus taskStatus;
+    
+    @JsonProperty("upload_batch_id")
+    private Long uploadBatchId;
     
     @JsonProperty("row_count")
     private Integer rowCount;

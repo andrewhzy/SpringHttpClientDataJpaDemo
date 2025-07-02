@@ -10,7 +10,7 @@ Content-Type: multipart/form-data; boundary=boundary123
 Content-Disposition: form-data; name="file"; filename="chat-evaluation-QnA.xlsx"
 Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 
-< ./data/chat-evaluation-QnA.xlsx
+< ./docs/data/chat-evaluation-QnA.xlsx
 --boundary123
 Content-Disposition: form-data; name="task_type"
 
@@ -48,7 +48,7 @@ Accept: application/json
 ###
 
 ### Application Info
-GET {{baseUrl}}/actuator/info
+GET {{baseUrl}}/rest/api/v1/actuator/info
 Accept: application/json
 
 ###
@@ -60,7 +60,7 @@ Accept: text/html
 ###
 
 ### Get Available Task Types
-GET {{baseUrl}}/rest/api/v1/task/types
+GET {{baseUrl}}/rest/api/v1/tasks/types
 Accept: application/json
 
 ### 
