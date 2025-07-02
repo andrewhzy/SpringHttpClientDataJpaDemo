@@ -3,6 +3,8 @@ package com.example.springhttpclientdatajpademo.domain.chatevaluation.model;
 import com.example.springhttpclientdatajpademo.domain.TaskResult;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -24,14 +26,14 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "chat_evaluation_task_results", indexes = {
-@Index(name = "idx_chat_eval_output_task_item_id", columnList = "task_item_id")
+        @Index(name = "idx_chat_eval_output_task_item_id", columnList = "task_item_id")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA requirement
-@AllArgsConstructor(access = AccessLevel.PRIVATE)  // Builder usage only
+@AllArgsConstructor(access = AccessLevel.PRIVATE) // Builder usage only
 @Builder
 public class ChatEvaluationTaskResult implements TaskResult {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
@@ -42,72 +44,70 @@ public class ChatEvaluationTaskResult implements TaskResult {
     @JoinColumn(name = "task_item_id", nullable = false)
     @JsonIgnore
     private ChatEvaluationTaskItem taskItem;
-    
-    @Column(name = "api_answer", nullable = false, columnDefinition = "TEXT")
-    private String apiAnswer;
-    
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "api_citations", columnDefinition = "json")
-    private List<String> apiCitations;
-    
-    @Column(name = "answer_similarity", nullable = false, precision = 5, scale = 4)
-    private BigDecimal answerSimilarity;
-    
-    @Column(name = "citation_similarity", nullable = false, precision = 5, scale = 4)
-    private BigDecimal citationSimilarity;
-    
-    @Column(name = "processing_time_ms")
-    private Integer processingTimeMs;
-    
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "api_response_metadata", columnDefinition = "json")
-    private Map<String, Object> apiResponseMetadata;
-    
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-    
-    /**
-     * Check if this result indicates a good match
-     * Good match is defined as both answer and citation similarity above 0.7
-     */
-    public boolean isGoodMatch() {
-        return answerSimilarity.compareTo(BigDecimal.valueOf(0.7)) >= 0 &&
-               citationSimilarity.compareTo(BigDecimal.valueOf(0.7)) >= 0;
-    }
-    
-    /**
-     * Get average similarity score
-     */
-    public BigDecimal getAverageSimilarity() {
-        return answerSimilarity.add(citationSimilarity)
-                             .divide(BigDecimal.valueOf(2), 4, java.math.RoundingMode.HALF_UP);
-    }
 
     /**
-     * Proper equals implementation for JPA entities
-     * Following Effective Java Item 11: Always override hashCode when you override equals
+     * Response latency in milliseconds for the chat evaluation API call
      */
-    @Override
-    public boolean equals(final Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        final ChatEvaluationTaskResult that = (ChatEvaluationTaskResult) obj;
-        // Use business key for equality - input should be unique
-        return Objects.equals(taskItem, that.taskItem);
-    }
+    @Column(name = "latency", nullable = false)
+    private Integer latency;
+
+
+    // ======================Generated response start ================================================
+    @Column(name = "model_output", nullable = false, columnDefinition = "TEXT")
+    private String modelOutput;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "reference", columnDefinition = "TEXT")
+    private List<String> reference;
+
+    @Column(name = "align_model", nullable = false, columnDefinition = "TEXT")
+    private String alignModel;
+
+    @Column(name = "align_inference_output", nullable = false, columnDefinition = "TEXT")
+    private String alignInferenceOutput;
+
+    @Column(name = "align_judge_rating", nullable = false)
+    private AlignJudgeRating alignJudgeRating;
+    // ======================Generated response end=========================
+
     
-    /**
-     * Proper hashCode implementation for JPA entities
-     * Following Effective Java Item 11: Always override hashCode when you override equals
-     */
-    @Override
-    public int hashCode() {
-        // Use business key for hash code, not id
-        return Objects.hash(taskItem);
+    // ======================Retrieved docs start ================================================
+    
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "retrieved_docs", columnDefinition = "json")
+    private List<String> retrievedDocs;
+    
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "expected_docs_retrieved", columnDefinition = "json")
+    private List<String> expectedDocsRetrieved;
+
+    // matched_proportion
+    @Column(name = "matched_prop", nullable = false, precision = 5, scale = 4)
+    @DecimalMin(value = "0.0", inclusive = true, message = "Matched proportion must be >= 0")
+    @DecimalMax(value = "1.0", inclusive = true, message = "Matched proportion must be <= 1")
+    private BigDecimal matchedProp;
+
+    // min_hit_proportion?
+    @Column(name = "min_hit", nullable = false, precision = 5, scale = 4)
+    @DecimalMin(value = "0.0", inclusive = true, message = "Min hit must be >= 0")
+    @DecimalMax(value = "1.0", inclusive = true, message = "Min hit must be <= 1")
+    private BigDecimal minHit;    
+    // ======================Retrieved docs end ================================================
+
+
+
+    public enum AlignJudgeRating {
+        PASS_ACCURATE_COMPLETE("Pass - Accurate & Complete"),   
+        PASS_ACCURATE_INCOMPLETE("Pass - Accurate & Incomplete"),
+        MARGINAL_PASS("Marginal Pass"),
+        NO("No"),
+        NOT_SURE("Not Sure"); // TODO: add description
+
+        @Getter
+        private final String description;
+
+        AlignJudgeRating(String description) {
+            this.description = description;
+        }
     }
-} 
+}

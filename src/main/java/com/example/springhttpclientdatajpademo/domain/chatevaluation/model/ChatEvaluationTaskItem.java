@@ -39,8 +39,8 @@ public class ChatEvaluationTaskItem implements TaskItem {
 
     /**
      * -- SETTER --
-     *  Set the task for this chat evaluation task item
-     *  Required for entity relationship management
+     * Set the task for this chat evaluation task item
+     * Required for entity relationship management
      */
     @Setter
     @Getter
@@ -52,14 +52,12 @@ public class ChatEvaluationTaskItem implements TaskItem {
     @Column(name = "question", nullable = false, columnDefinition = "TEXT")
     private String question;
 
-    @Column(name = "golden_answer", nullable = false, columnDefinition = "TEXT")
-    private String goldenAnswer;
+    @Column(name = "expected_answer", nullable = false, columnDefinition = "TEXT")
+    private String expectedAnswer;
 
-    // @Column(name = "golden_citations", columnDefinition = "TEXT")
-    // @Convert(converter = StringListConverter.class)
-    @JdbcTypeCode(SqlTypes.JSON) // tell Hibernate "this is JSON text"
-    @Column(columnDefinition = "json")
-    private List<String> goldenCitations;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "expected_docs", columnDefinition = "json")
+    private List<String> expectedDocs;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -114,5 +112,32 @@ public class ChatEvaluationTaskItem implements TaskItem {
             return java.time.Duration.between(evaluationStartedAt, evaluationCompletedAt);
         }
         return null;
+    }
+
+    /**
+     * Proper equals implementation for JPA entities
+     * Following Effective Java Item 11: Always override hashCode when you override equals
+     */
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        final ChatEvaluationTaskItem that = (ChatEvaluationTaskItem) obj;
+        // Use business key for equality - question and task should be unique together
+        return Objects.equals(question, that.question) && Objects.equals(task, that.task);
+    }
+
+    /**
+     * Proper hashCode implementation for JPA entities
+     * Following Effective Java Item 11: Always override hashCode when you override equals
+     */
+    @Override
+    public int hashCode() {
+        // Use business key for hash code, not id
+        return Objects.hash(question, task);
     }
 }
