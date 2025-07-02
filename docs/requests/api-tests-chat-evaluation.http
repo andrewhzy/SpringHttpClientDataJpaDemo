@@ -21,44 +21,6 @@ Content-Disposition: form-data; name="description"
 Chat evaluation API test upload
 --boundary123--
 
-### Upload Excel File - URL Cleaning
-POST {{baseUrl}}/rest/api/v1/tasks
-Content-Type: multipart/form-data; boundary=boundary456
-
---boundary456
-Content-Disposition: form-data; name="file"; filename="url-cleaning-data.xlsx"
-Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-
-< ./data/chat-evaluation-QnA.xlsx
---boundary456
-Content-Disposition: form-data; name="task_type"
-
-url-cleaning
---boundary456
-Content-Disposition: form-data; name="description"
-
-URL cleaning API test upload
---boundary456--
-
-### Upload Excel File - Case Insensitive Task Type
-POST {{baseUrl}}/rest/api/v1/tasks
-Content-Type: multipart/form-data; boundary=boundary789
-
---boundary789
-Content-Disposition: form-data; name="file"; filename="chat-evaluation-QnA.xlsx"
-Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-
-< ./data/chat-evaluation-QnA.xlsx
---boundary789
-Content-Disposition: form-data; name="task_type"
-
-CHAT-EVALUATION
---boundary789
-Content-Disposition: form-data; name="description"
-
-Case insensitive task type test
---boundary789--
-
 ###
 
 ### List All Tasks (First Page)
