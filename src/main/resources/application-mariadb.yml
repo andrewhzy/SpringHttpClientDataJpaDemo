@@ -1,9 +1,9 @@
 spring:
-  # JPA Configuration for MariaDB Docker (Development/Testing)
+  # JPA Configuration for MariaDB Kubernetes (Development/Testing)
   datasource:
     url: jdbc:mariadb://localhost:3306/task_management_dev
     username: root
-    password: SuperSecret123
+    password: rootpassword
     driver-class-name: org.mariadb.jdbc.Driver
     hikari:
       connection-timeout: 20000

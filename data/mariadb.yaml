@@ -5,10 +5,12 @@ metadata:
   name: mariadb-secret
 type: Opaque
 data:
+  # Kubernetes Secrets require base64 encoding for all data values
+  # This is a security requirement - Secret data must be base64 encoded
   # echo -n 'rootpassword' | base64
   root-password: cm9vdHBhc3N3b3Jk
   # echo -n 'testuser' | base64  
-  username: dGVzdHVzZXI=∏
+  username: dGVzdHVzZXI=
   # echo -n 'testpass' | base64
   password: dGVzdHBhc3M=
 
