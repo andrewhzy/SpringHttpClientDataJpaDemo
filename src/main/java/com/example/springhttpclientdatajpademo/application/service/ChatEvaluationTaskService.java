@@ -78,6 +78,7 @@ public class ChatEvaluationTaskService implements TaskService {
             // 4. Create tasks for each sheet
             int succeededSheets = 0;
             final List<String> failedSheetNames = new ArrayList<>();
+            final List<String> succeededSheetNames = new ArrayList<>();
 
             for (Map.Entry<String, List<ChatEvaluationTaskItem>> entry : parsedDataBySheet.entrySet()) {
                 final String sheetName = entry.getKey();
@@ -107,6 +108,7 @@ public class ChatEvaluationTaskService implements TaskService {
                     taskItemRepository.saveAll(taskItems);
 
                     succeededSheets++;
+                    succeededSheetNames.add(sheetName);
                     log.info("Created task for sheet '{}' with {} questions", sheetName, taskItems.size());
                 } catch (Exception ex) {
                     log.error("Failed to create task for sheet '{}': {}", sheetName, ex.getMessage());
@@ -121,7 +123,10 @@ public class ChatEvaluationTaskService implements TaskService {
             final CreateTasksResponse response = CreateTasksResponse.builder()
                     .filename(command.getFile().getOriginalFilename())
                     .totalSheets(parsedDataBySheet.size())
-                    .succeededSheets(succeededSheets)
+                    .succeededSheets(CreateTasksResponse.SucceededSheets.builder()
+                            .count(succeededSheets)
+                            .sheetNames(succeededSheetNames)
+                            .build())
                     .failedSheets(CreateTasksResponse.FailedSheets.builder()
                             .count(failedSheetNames.size())
                             .sheetNames(failedSheetNames)

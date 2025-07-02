@@ -332,10 +332,22 @@ paths:
                     description: "Total number of sheets processed"
                     example: 3
                   succeeded_sheets:
-                    type: integer
-                    minimum: 0
-                    description: "Number of sheets successfully processed"
-                    example: 2
+                    type: object
+                    required:
+                      - count
+                      - sheet_names
+                    properties:
+                      count:
+                        type: integer
+                        minimum: 0
+                        description: "Number of sheets successfully processed"
+                        example: 2
+                      sheet_names:
+                        type: array
+                        items:
+                          type: string
+                        description: "Names of sheets that were successfully processed"
+                        example: ["sheet1", "sheet2"]
                   failed_sheets:
                     type: object
                     required:
@@ -356,7 +368,11 @@ paths:
               example:
                 filename: "evaluation use cases.xlsx"
                 total_sheets: 3
-                succeeded_sheets: 1
+                succeeded_sheets:
+                  count: 2
+                  sheet_names:
+                    - "sheet1"
+                    - "sheet2"
                 failed_sheets:
                   count: 2
                   sheet_names:

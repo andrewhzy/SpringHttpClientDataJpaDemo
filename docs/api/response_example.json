@@ -21,7 +21,7 @@
       {
         "id": 12345,
         "user_id": "user_123",
-        "original_filename": "monthly_reports.xlsx",
+        "filename": "monthly_reports.xlsx",
         "sheet_name": "January_Data",
         "task_type": "CHAT_EVALUATION",
         "task_status": "QUEUEING",
@@ -40,7 +40,7 @@
   "PUT /tasks/{id}": {
     "id": 12345,
     "user_id": "user_123",
-    "original_filename": "monthly_reports.xlsx",
+    "filename": "monthly_reports.xlsx",
     "sheet_name": "January_Data",
     "task_type": "CHAT_EVALUATION",
     "task_status": "CANCELLED",

@@ -1,7 +1,5 @@
 package com.example.springhttpclientdatajpademo.application.dto;
 
-import com.example.springhttpclientdatajpademo.domain.task.Task.TaskType;
-import com.example.springhttpclientdatajpademo.domain.task.Task.TaskStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,10 +25,26 @@ public class CreateTasksResponse {
     private Integer totalSheets;
     
     @JsonProperty("succeeded_sheets")
-    private Integer succeededSheets;
+    private SucceededSheets succeededSheets;
     
     @JsonProperty("failed_sheets")
     private FailedSheets failedSheets;
+    
+    /**
+     * Information about successfully processed sheets
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SucceededSheets {
+        
+        @JsonProperty("count")
+        private Integer count;
+        
+        @JsonProperty("sheet_names")
+        private List<String> sheetNames;
+    }
     
     /**
      * Information about failed sheets
