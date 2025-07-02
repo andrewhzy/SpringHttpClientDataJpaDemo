@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+docs/data/~$chat-evaluation-QnA.xlsx
+.DS_Store
