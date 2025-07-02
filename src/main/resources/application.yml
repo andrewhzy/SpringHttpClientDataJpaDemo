@@ -30,6 +30,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
         format_sql: true
+        globally_quoted_identifiers: false  # Disable automatic identifier quoting for cleaner DDL
         jdbc:
           time_zone: UTC
 

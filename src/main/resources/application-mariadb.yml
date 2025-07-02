@@ -15,12 +15,13 @@ spring:
   # JPA/Hibernate Configuration for MariaDB Development
   jpa:
     hibernate:
-      ddl-auto: create-drop  # Keep tables and data between restarts
+      ddl-auto: create-drop  # Temporarily recreate tables to show clean DDL
     show-sql: true  # Show SQL queries for debugging
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
         format_sql: true
+        globally_quoted_identifiers: false  # Disable automatic identifier quoting for cleaner DDL
         jdbc:
           time_zone: UTC
 

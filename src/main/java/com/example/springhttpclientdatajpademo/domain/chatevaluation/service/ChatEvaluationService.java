@@ -108,6 +108,7 @@ public class ChatEvaluationService {
             
             final ChatEvaluationTaskResult output = ChatEvaluationTaskResult.builder()
                     .taskItem(taskItem)
+                    .latency((int) processingTime)  // Add required latency field
                     .modelOutput(gleanResponse.getAnswer())
                     .reference(gleanResponse.getCitations())
                     .alignModel("default-llm")  // TODO: Make this configurable
