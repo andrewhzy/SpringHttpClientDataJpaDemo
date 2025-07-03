@@ -1,5 +1,7 @@
-# Base directory (you can customize)
-set base_dir springhttpclientdatajpademo_1
+#!/bin/zsh
+
+# Base directory (customize as needed)
+base_dir="springhttpclientdatajpademo"
 
 # Create directories and files
 mkdir -p $base_dir/application/background
@@ -46,5 +48,5 @@ mkdir -p $base_dir/infrastructure/web/exception
 touch $base_dir/infrastructure/web/exception/GlobalExceptionHandler.java
 touch $base_dir/infrastructure/web/TaskController.java
 
-# Top-level application file
+# Top-level Spring Boot application class
 touch $base_dir/SpringHttpClientDataJpaDemoApplication.java
