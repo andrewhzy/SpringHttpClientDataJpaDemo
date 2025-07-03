@@ -1,0 +1,50 @@
+# Base directory (you can customize)
+set base_dir springhttpclientdatajpademo_1
+
+# Create directories and files
+mkdir -p $base_dir/application/background
+touch $base_dir/application/background/ChatEvaluationBackgroundProcessor.java
+
+mkdir -p $base_dir/application/dto
+touch $base_dir/application/dto/{CreateTasksCommand,CreateTasksResponse,DeleteTaskResponse,ErrorResponse,ListUserTasksCommand,ListUserTasksResponse,TaskInfoDto}.java
+
+mkdir -p $base_dir/application/excel
+touch $base_dir/application/excel/{ChatEvaluationExcelParsingService,ExcelParsingService,UrlCleaningExcelParsingService}.java
+
+mkdir -p $base_dir/application/exception
+touch $base_dir/application/exception/{FileProcessingException,TaskValidationException}.java
+
+mkdir -p $base_dir/application/service
+touch $base_dir/application/service/{ChatEvaluationTaskService,TaskManagementService,TaskService,TaskServiceFactory,TaskTypeValidationService,UrlCleaningTaskService}.java
+
+mkdir -p $base_dir/config
+touch $base_dir/config/{ApplicationConfig,ConverterConfig,MockExternalServicesConfig,TaskTypeConfig}.java
+
+mkdir -p $base_dir/domain/chatevaluation/model
+touch $base_dir/domain/chatevaluation/model/{ChatEvaluationTaskItem,ChatEvaluationTaskResult,GleanApiResponse,LlmSimilarityResponse}.java
+
+mkdir -p $base_dir/domain/chatevaluation/service
+touch $base_dir/domain/chatevaluation/service/ChatEvaluationService.java
+
+mkdir -p $base_dir/domain/task
+touch $base_dir/domain/task/Task.java
+
+mkdir -p $base_dir/domain
+touch $base_dir/domain/{TaskItem,TaskResult}.java
+
+mkdir -p $base_dir/domain/urlcleaning/model
+touch $base_dir/domain/urlcleaning/model/{UrlCleaningTaskItem,UrlCleaningTaskResult}.java
+
+mkdir -p $base_dir/infrastructure/client/mock
+touch $base_dir/infrastructure/client/{GleanServiceClient,GleanServiceException,LlmSimilarityServiceClient,LlmSimilarityServiceException}.java
+touch $base_dir/infrastructure/client/mock/{MockGleanServiceClient,MockLlmSimilarityServiceClient}.java
+
+mkdir -p $base_dir/infrastructure/repository
+touch $base_dir/infrastructure/repository/{ChatEvaluationTaskItemRepository,ChatEvaluationTaskResultRepository,TaskRepository,UrlCleaningTaskItemRepository,UrlCleaningTaskResultRepository}.java
+
+mkdir -p $base_dir/infrastructure/web/exception
+touch $base_dir/infrastructure/web/exception/GlobalExceptionHandler.java
+touch $base_dir/infrastructure/web/TaskController.java
+
+# Top-level application file
+touch $base_dir/SpringHttpClientDataJpaDemoApplication.java
