@@ -33,3 +33,4 @@ build/
 .vscode/
 docs/data/~$chat-evaluation-QnA.xlsx
 .DS_Store
+docs/data/portforward.log

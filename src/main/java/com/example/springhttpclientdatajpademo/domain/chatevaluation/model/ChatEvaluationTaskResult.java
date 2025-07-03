@@ -8,6 +8,8 @@ import jakarta.validation.constraints.DecimalMin;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
@@ -42,6 +44,7 @@ public class ChatEvaluationTaskResult implements TaskResult {
     @Setter
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_item_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JsonIgnore
     private ChatEvaluationTaskItem taskItem;
 

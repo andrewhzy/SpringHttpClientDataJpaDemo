@@ -7,19 +7,19 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Entity representing input data for chat evaluation tasks
  * Contains questions, golden answers, and citations
  * <p>
  * Following Effective Java principles:
- * - Item 11: Override equals and hashCode properly for JPA entities
+ * - Item 11: Override equals and hashCode properly for JPA entities        
  * - Item 17: Minimize mutability where possible
  */
 @Entity
@@ -37,15 +37,11 @@ public class ChatEvaluationTaskItem implements TaskItem {
     @Column(name = "id", updatable = false, nullable = false)
     private Long id;
 
-    /**
-     * -- SETTER --
-     * Set the task for this chat evaluation task item
-     * Required for entity relationship management
-     */
     @Setter
     @Getter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JsonIgnore
     private Task task;
 
@@ -62,55 +58,4 @@ public class ChatEvaluationTaskItem implements TaskItem {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
-    @Column(name = "processed_at")
-    private LocalDateTime processedAt;
-
-    @Column(name = "evaluation_started_at")
-    private LocalDateTime evaluationStartedAt;
-
-    @Column(name = "evaluation_completed_at")
-    private LocalDateTime evaluationCompletedAt;
-
-    /**
-     * Mark input as processed
-     */
-    public void markAsProcessed() {
-        this.processedAt = LocalDateTime.now();
-    }
-
-    /**
-     * Mark evaluation as started
-     */
-    public void markEvaluationStarted() {
-        this.evaluationStartedAt = LocalDateTime.now();
-    }
-
-    /**
-     * Mark evaluation as completed
-     */
-    public void markEvaluationCompleted() {
-        this.evaluationCompletedAt = LocalDateTime.now();
-    }
-
-    /**
-     * Check if evaluation is completed
-     */
-    public boolean isEvaluationCompleted() {
-        return evaluationCompletedAt != null;
-    }
-
-    /**
-     * Get evaluation duration if completed
-     */
-    public java.time.Duration getEvaluationDuration() {
-        if (evaluationStartedAt != null && evaluationCompletedAt != null) {
-            return java.time.Duration.between(evaluationStartedAt, evaluationCompletedAt);
-        }
-        return null;
-    }
 }

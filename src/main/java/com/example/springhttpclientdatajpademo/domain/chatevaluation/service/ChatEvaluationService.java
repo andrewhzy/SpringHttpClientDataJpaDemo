@@ -62,9 +62,6 @@ public class ChatEvaluationService {
         final long startTime = System.currentTimeMillis();
         
         try {
-            // Mark evaluation as started
-            taskItem.markEvaluationStarted();
-            
             // Step 1: Get API response from Glean Platform Services
             log.debug("Calling Glean API for question: {}", 
                      taskItem.getQuestion().substring(0, Math.min(50, taskItem.getQuestion().length())));
@@ -120,12 +117,7 @@ public class ChatEvaluationService {
                     .minHit(citationSimilarity.getSimilarity())
                     .build();
             
-            output.setTaskItem(taskItem);
-            
             final ChatEvaluationTaskResult savedOutput = outputRepository.save(output);
-            
-            // Mark evaluation as completed
-            taskItem.markEvaluationCompleted();
             
             log.info("Completed evaluation for taskItem ID: {} in {}ms. Matched proportion: {}, Min hit: {}",
                     taskItem.getId(), processingTime,
