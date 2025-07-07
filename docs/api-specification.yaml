@@ -81,10 +81,6 @@ components:
               description: "User ID associated with the request"
               example: "user_123"
 
-
-
-
-
     # Enum Schemas
     TaskStatus:
       type: string
@@ -193,16 +189,6 @@ components:
           nullable: true
           description: "When the task was cancelled"
 
-
-
-
-
-
-
-
-
-
-
   responses:
     # Error Responses (used across all endpoints)
     Unauthorized:
@@ -263,8 +249,6 @@ components:
               timestamp: "2024-01-15T14:30:00Z"
               request_id: "request_12345"
               user_id: "user_123"
-
-
 
 security:
   - JWTAuth: []
@@ -374,10 +358,9 @@ paths:
                     - "sheet1"
                     - "sheet2"
                 failed_sheets:
-                  count: 2
+                  count: 1
                   sheet_names:
-                    - "sheet1"
-                    - "sheet2"
+                    - "sheet3"
         '400':
           description: Bad Request - File upload validation errors
           content:
