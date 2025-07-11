@@ -1,0 +1,32 @@
+import java.io.IOException;
+import java.security.MessageDigest;
+import org.apache.commons.codec.binary.Hex;
+import org.springframework.util.StreamUtils;
+import org.springframework.web.servlet.function.*;
+
+@Bean
+RouterFunction<ServerResponse> gatewayRoutes(ProxyExchangeHandlerFunction proxy) {
+
+    // λ passed to .before()
+    Function<ServerRequest, ServerRequest> hashBody =
+        req -> {
+            try {
+                // pull raw bytes (Servlet API under the hood)
+                byte[] bytes = StreamUtils.copyToByteArray(req.servletRequest().getInputStream());
+
+                // compute SHA-256
+                String digest = Hex.encodeHexString(MessageDigest.getInstance("SHA-256").digest(bytes));
+                System.out.println("SHA-256(body) = " + digest);
+
+                // rebuild request so body is still readable
+                return ServerRequest.from(req).body(bytes).build();
+            } catch (IOException | java.security.NoSuchAlgorithmException e) {
+                throw new IllegalStateException("Unable to hash request body", e);
+            }
+        };
+
+    return RouterFunctions.route()
+            .POST("/**", proxy)   // or any routes you like
+            .before(hashBody)     // <— here
+            .build();
+}
